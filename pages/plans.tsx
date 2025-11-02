@@ -21,6 +21,13 @@ interface PaymentData {
   pixQrCode?: string       // Código copia e cola (para gerar QR code se não tiver imagem)
   pixCopyPaste?: string   // Código copia e cola
   telegramLink?: string
+  bitcoinAddress?: string
+  bitcoinAmount?: number
+  network?: string
+  qrCode?: string
+  originalAmount?: number
+  currency?: string
+  fallback?: boolean
   expiresAt?: Date
 }
 
@@ -56,24 +63,29 @@ export default function Plans() {
     }
 
     if (method === 'CRYPTO') {
-      // Para criptomoedas, redirecionar direto para o Telegram
+      // Para criptomoedas, criar pagamento via Binance
       setLoading(true)
+      setSelectedPlan(plan)
+      setPaymentMethod(method)
+      
       try {
-        // Criar registro de pagamento no banco
-        await axios.post('/api/payments/create', {
+        const response = await axios.post('/api/payments/create', {
           planId: plan.id,
           method: 'BITCOIN' // Usar BITCOIN internamente para manter compatibilidade
         })
         
-        // Redirecionar para o Telegram
-        const telegramUrl = 'https://t.me/lynxdevz'
-        window.open(telegramUrl, '_blank')
-        toast.success('Redirecionando para o Telegram...')
+        setPaymentData(response.data)
+        setQrCodeImageError(false)
+        
+        // Se houver fallback (Telegram), redirecionar
+        if (response.data.fallback && response.data.telegramLink) {
+          window.open(response.data.telegramLink, '_blank')
+          toast.success('Redirecionando para o Telegram...')
+        } else {
+          toast.success('Pagamento via criptomoedas criado com sucesso!')
+        }
       } catch (error: any) {
         toast.error(error.response?.data?.error || 'Erro ao criar pagamento')
-        // Mesmo com erro, redirecionar para o Telegram
-        const telegramUrl = 'https://t.me/lynxdevz'
-        window.open(telegramUrl, '_blank')
       } finally {
         setLoading(false)
       }
@@ -276,6 +288,92 @@ export default function Plans() {
               </div>
             )}
 
+            {paymentMethod === 'CRYPTO' && paymentData && (
+              <div className="space-y-4">
+                {paymentData.fallback ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-sm text-yellow-800 mb-4">
+                      <strong>Atenção:</strong> Sistema de pagamento automático temporariamente indisponível.
+                    </p>
+                    <p className="text-sm text-yellow-800 mb-4">
+                      Entre em contato via Telegram para completar o pagamento:
+                    </p>
+                    <a
+                      href={paymentData.telegramLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block w-full text-center bg-blue-500 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-600 transition-colors"
+                    >
+                      Abrir Telegram
+                    </a>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm font-semibold text-blue-900 mb-2">Valor a pagar:</p>
+                      <p className="text-2xl font-bold text-blue-900 mb-1">
+                        {paymentData.bitcoinAmount?.toFixed(8)} {paymentData.currency || 'BTC'}
+                      </p>
+                      <p className="text-sm text-blue-700">
+                        (R$ {paymentData.originalAmount?.toFixed(2)})
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Endereço Bitcoin
+                      </label>
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <input
+                          type="text"
+                          value={paymentData.bitcoinAddress || ''}
+                          readOnly
+                          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg font-mono text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          onClick={(e) => (e.target as HTMLInputElement).select()}
+                        />
+                        <button
+                          onClick={() => {
+                            if (paymentData.bitcoinAddress) {
+                              navigator.clipboard.writeText(paymentData.bitcoinAddress)
+                              toast.success('Endereço copiado!')
+                            }
+                          }}
+                          className="px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium whitespace-nowrap"
+                        >
+                          Copiar
+                        </button>
+                      </div>
+                    </div>
+
+                    {paymentData.qrCode && (
+                      <div className="flex justify-center bg-gray-50 p-4 rounded-lg">
+                        <QRCode 
+                          value={paymentData.qrCode} 
+                          size={256} 
+                          className="w-48 h-48 sm:w-64 sm:h-64"
+                        />
+                      </div>
+                    )}
+
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-sm text-green-800 mb-2">
+                        <strong>Rede:</strong> {paymentData.network || 'Bitcoin'}
+                      </p>
+                      <p className="text-xs text-green-700">
+                        Envie exatamente <strong>{paymentData.bitcoinAmount?.toFixed(8)} {paymentData.currency || 'BTC'}</strong> para o endereço acima.
+                        O pagamento será processado automaticamente após confirmação na rede.
+                      </p>
+                    </div>
+
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                      <p className="text-sm text-yellow-800">
+                        <strong>⚠️ Importante:</strong> Verifique o endereço antes de enviar. Transações de criptomoedas são irreversíveis.
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             <button
               onClick={() => {

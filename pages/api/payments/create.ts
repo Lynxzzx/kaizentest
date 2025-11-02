@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { createAsaasPayment, createAsaasCustomer, getAsaasCustomerByEmail, updateAsaasCustomer, getAsaasCustomer, getAsaasPayment, getAsaasPixQrCode } from '@/lib/asaas'
+import { createPaymentAddress, convertBrlToCrypto } from '@/lib/binance'
 import { format } from 'date-fns'
 import { generateCPF, cleanCpfCnpj } from '@/lib/utils'
 
@@ -316,25 +317,69 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       }
     } else if (method === 'BITCOIN') {
-      // Criar registro de pagamento com link do Telegram
-      const telegramLink = `https://t.me/lynxdevz`
-      
-      const payment = await prisma.payment.create({
-        data: {
-          userId: session.user.id,
-          planId: plan.id,
-          amount: plan.price,
-          method: 'BITCOIN',
-          status: 'PENDING',
-          telegramLink
-        }
-      })
+      // Criar pagamento via Binance (criptomoedas)
+      try {
+        // Calcular valor em BTC
+        const btcAmount = await convertBrlToCrypto(plan.price, 'BTC')
+        
+        // Criar registro de pagamento primeiro
+        const payment = await prisma.payment.create({
+          data: {
+            userId: session.user.id,
+            planId: plan.id,
+            amount: plan.price,
+            method: 'BITCOIN',
+            status: 'PENDING'
+          }
+        })
 
-      return res.json({
-        id: payment.id,
-        telegramLink,
-        message: 'Contact lynxdevz on Telegram to complete payment'
-      })
+        // Gerar endereço de pagamento
+        const paymentAddress = await createPaymentAddress({
+          paymentId: payment.id,
+          amount: btcAmount,
+          currency: 'BTC'
+        })
+
+        // Atualizar pagamento com endereço Bitcoin
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            bitcoinAddress: paymentAddress.address
+          }
+        })
+
+        return res.json({
+          id: payment.id,
+          bitcoinAddress: paymentAddress.address,
+          bitcoinAmount: btcAmount,
+          network: paymentAddress.network,
+          qrCode: paymentAddress.qrCode,
+          originalAmount: plan.price,
+          currency: 'BTC'
+        })
+      } catch (error: any) {
+        console.error('Error creating Binance payment:', error)
+        // Fallback para Telegram se Binance falhar
+        const telegramLink = `https://t.me/lynxdevz`
+        
+        const payment = await prisma.payment.create({
+          data: {
+            userId: session.user.id,
+            planId: plan.id,
+            amount: plan.price,
+            method: 'BITCOIN',
+            status: 'PENDING',
+            telegramLink
+          }
+        })
+
+        return res.json({
+          id: payment.id,
+          telegramLink,
+          message: 'Contact lynxdevz on Telegram to complete payment',
+          fallback: true
+        })
+      }
     }
 
     return res.status(400).json({ error: 'Invalid payment method' })
