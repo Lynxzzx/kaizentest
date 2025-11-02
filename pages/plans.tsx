@@ -239,7 +239,7 @@ export default function Plans() {
               Pagamento via {paymentMethod}
             </h2>
             
-            {paymentMethod === 'PIX' && (
+            {paymentMethod === 'PIX' && paymentData && (
               <div className="space-y-4">
                 {(paymentData.pixQrCodeImage || paymentData.pixQrCode || paymentData.pixCopyPaste) ? (
                   <>
