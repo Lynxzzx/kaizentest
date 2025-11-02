@@ -63,11 +63,11 @@ export default function BroadcastBanner() {
   if (broadcasts.length === 0) return null
 
   return (
-    <>
+    <div className="relative z-[100]">
       {broadcasts.map((broadcast) => (
         <div
           key={broadcast.id}
-          className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 text-white p-4 shadow-xl border-b border-blue-500 relative z-[100]"
+          className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 text-white p-4 shadow-xl border-b border-blue-500"
         >
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex-1">
@@ -89,7 +89,7 @@ export default function BroadcastBanner() {
           </div>
         </div>
       ))}
-    </>
+    </div>
   )
 }
 
