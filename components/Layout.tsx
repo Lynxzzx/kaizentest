@@ -165,15 +165,15 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                   <button
                     onClick={async () => {
-                      // Sempre redireciona para a página principal usando a URL atual do navegador
-                      // Isso garante que não vai para localhost em produção
-                      const callbackUrl = typeof window !== 'undefined' 
-                        ? window.location.origin 
-                        : '/'
+                      // Fazer logout sem redirecionamento automático do NextAuth
+                      // Isso evita o problema com localhost
+                      await signOut({ redirect: false })
                       
-                      await signOut({ 
-                        callbackUrl: callbackUrl 
-                      })
+                      // Redirecionar manualmente para a página principal usando caminho relativo
+                      // Isso garante que sempre vai para a URL correta do site, não localhost
+                      if (typeof window !== 'undefined') {
+                        window.location.href = '/'
+                      }
                     }}
                     className="px-3 py-1.5 md:px-4 md:py-2 bg-red-50 text-red-600 rounded-lg text-sm md:text-base font-medium hover:bg-red-100 transition-colors border border-red-200"
                   >
