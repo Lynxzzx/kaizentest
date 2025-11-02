@@ -68,12 +68,12 @@ export const authOptions: NextAuthOptions = {
     }
   },
   pages: {
-    signIn: '/login'
+    signIn: '/login',
+    signOut: '/' // Sempre redireciona para a página principal ao fazer logout
   },
   session: {
     strategy: 'jwt'
   },
   secret: process.env.NEXTAUTH_SECRET
-}
 
 export default NextAuth(authOptions)
