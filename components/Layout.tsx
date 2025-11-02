@@ -84,19 +84,43 @@ export default function Layout({ children }: LayoutProps) {
                         >
                           Resgatar Chave
                         </Link>
+                        <button
+                          onClick={() => setChatboxOpen(!chatboxOpen)}
+                          className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${
+                            chatboxOpen
+                              ? 'bg-primary-600 text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span>💬</span>
+                          <span>Chat</span>
+                        </button>
                       </>
                     )}
                     {session.user.role === 'OWNER' && (
-                      <Link
-                        href="/tickets"
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                          router.pathname === '/tickets'
-                            ? 'bg-primary-600 text-white'
-                            : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        Tickets
-                      </Link>
+                      <>
+                        <Link
+                          href="/tickets"
+                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                            router.pathname === '/tickets'
+                              ? 'bg-primary-600 text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          Tickets
+                        </Link>
+                        <button
+                          onClick={() => setChatboxOpen(!chatboxOpen)}
+                          className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${
+                            chatboxOpen
+                              ? 'bg-primary-600 text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                          }`}
+                        >
+                          <span>💬</span>
+                          <span>Chat</span>
+                        </button>
+                      </>
                     )}
                   </div>
                   {/* Mobile Menu Button */}
@@ -230,20 +254,50 @@ export default function Layout({ children }: LayoutProps) {
                     >
                       Resgatar Chave
                     </Link>
+                    <button
+                      onClick={() => {
+                        setChatboxOpen(!chatboxOpen)
+                        setMobileMenuOpen(false)
+                      }}
+                      className={`px-4 py-3 rounded-lg font-medium transition-all flex items-center space-x-2 ${
+                        chatboxOpen
+                          ? 'bg-primary-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <span>💬</span>
+                      <span>Chat</span>
+                    </button>
                   </>
                 )}
                 {session.user.role === 'OWNER' && (
-                  <Link
-                    href="/tickets"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                      router.pathname === '/tickets'
-                        ? 'bg-primary-600 text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    Tickets
-                  </Link>
+                  <>
+                    <Link
+                      href="/tickets"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                        router.pathname === '/tickets'
+                          ? 'bg-primary-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      Tickets
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setChatboxOpen(!chatboxOpen)
+                        setMobileMenuOpen(false)
+                      }}
+                      className={`px-4 py-3 rounded-lg font-medium transition-all flex items-center space-x-2 ${
+                        chatboxOpen
+                          ? 'bg-primary-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      <span>💬</span>
+                      <span>Chat</span>
+                    </button>
+                  </>
                 )}
                 <div className="pt-4 border-t border-gray-200">
                   <div className="px-4 py-2">

@@ -37,16 +37,19 @@ export default function BroadcastBanner() {
   const loadBroadcasts = async () => {
     try {
       const response = await axios.get('/api/broadcast')
-      const activeBroadcasts = (response.data.broadcasts || []).filter(
-        (b: Broadcast) => {
-          const isDismissed = dismissed.includes(b.id)
-          const isExpired = b.expiresAt && new Date(b.expiresAt) <= new Date()
-          return !isDismissed && !isExpired
-        }
-      )
+      const allBroadcasts = response.data.broadcasts || []
+      
+      // Filtrar broadcasts: não descartados, não expirados e ativos
+      const activeBroadcasts = allBroadcasts.filter((b: Broadcast) => {
+        const isDismissed = dismissed.includes(b.id)
+        const isExpired = b.expiresAt ? new Date(b.expiresAt) <= new Date() : false
+        return !isDismissed && !isExpired
+      })
+      
       setBroadcasts(activeBroadcasts)
     } catch (error: any) {
       console.error('Error loading broadcasts:', error)
+      setBroadcasts([])
     }
   }
 
