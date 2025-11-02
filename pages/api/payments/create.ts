@@ -319,10 +319,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else if (method === 'BITCOIN') {
       // Criar pagamento via Binance (criptomoedas)
       try {
+        console.log('💰 Iniciando pagamento via Bitcoin...')
+        console.log('📊 Plano:', plan.name, '- Valor:', plan.price)
+        
         // Calcular valor em BTC
+        console.log('🔄 Convertendo BRL para BTC...')
         const btcAmount = await convertBrlToCrypto(plan.price, 'BTC')
+        console.log('✅ Valor convertido:', btcAmount, 'BTC')
         
         // Criar registro de pagamento primeiro
+        console.log('💾 Criando registro de pagamento no banco...')
         const payment = await prisma.payment.create({
           data: {
             userId: session.user.id,
@@ -332,13 +338,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             status: 'PENDING'
           }
         })
+        console.log('✅ Pagamento criado:', payment.id)
 
         // Gerar endereço de pagamento
+        console.log('🔐 Gerando endereço Bitcoin...')
         const paymentAddress = await createPaymentAddress({
           paymentId: payment.id,
           amount: btcAmount,
           currency: 'BTC'
         })
+        console.log('✅ Endereço gerado:', paymentAddress.address)
 
         // Atualizar pagamento com endereço Bitcoin
         await prisma.payment.update({
@@ -347,8 +356,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             bitcoinAddress: paymentAddress.address
           }
         })
+        console.log('✅ Pagamento atualizado com endereço Bitcoin')
 
-        return res.json({
+        const response = {
           id: payment.id,
           bitcoinAddress: paymentAddress.address,
           bitcoinAmount: btcAmount,
@@ -356,28 +366,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           qrCode: paymentAddress.qrCode,
           originalAmount: plan.price,
           currency: 'BTC'
-        })
-      } catch (error: any) {
-        console.error('Error creating Binance payment:', error)
-        // Fallback para Telegram se Binance falhar
-        const telegramLink = `https://t.me/lynxdevz`
+        }
         
-        const payment = await prisma.payment.create({
-          data: {
-            userId: session.user.id,
-            planId: plan.id,
-            amount: plan.price,
-            method: 'BITCOIN',
-            status: 'PENDING',
-            telegramLink
-          }
-        })
-
-        return res.json({
-          id: payment.id,
-          telegramLink,
-          message: 'Contact lynxdevz on Telegram to complete payment',
-          fallback: true
+        console.log('✅ Retornando resposta:', JSON.stringify(response, null, 2))
+        return res.json(response)
+      } catch (error: any) {
+        console.error('❌ Error creating Binance payment:', error)
+        console.error('Error stack:', error.stack)
+        console.error('Error message:', error.message)
+        
+        // Só usar fallback se for um erro crítico, senão retornar erro para o cliente
+        // Não usar fallback automático - deixar o usuário saber que houve erro
+        return res.status(500).json({
+          error: 'Erro ao criar pagamento via criptomoedas',
+          details: error.message,
+          fallback: true,
+          telegramLink: 'https://t.me/lynxdevz'
         })
       }
     }

@@ -69,23 +69,67 @@ export default function Plans() {
       setPaymentMethod(method)
       
       try {
+        console.log('🚀 Criando pagamento via criptomoedas...')
         const response = await axios.post('/api/payments/create', {
           planId: plan.id,
           method: 'BITCOIN' // Usar BITCOIN internamente para manter compatibilidade
         })
         
-        setPaymentData(response.data)
-        setQrCodeImageError(false)
+        console.log('✅ Resposta recebida:', response.data)
         
-        // Se houver fallback (Telegram), redirecionar
-        if (response.data.fallback && response.data.telegramLink) {
-          window.open(response.data.telegramLink, '_blank')
-          toast.success('Redirecionando para o Telegram...')
-        } else {
+        // Se retornar erro com fallback, usar Telegram
+        if (response.data.error && response.data.fallback) {
+          console.log('⚠️ Erro na criação, usando fallback Telegram')
+          setPaymentData({
+            id: response.data.id || Date.now().toString(),
+            fallback: true,
+            telegramLink: response.data.telegramLink || 'https://t.me/lynxdevz',
+            message: response.data.message || 'Contact lynxdevz on Telegram to complete payment'
+          })
+          toast.error(response.data.error || 'Erro ao criar pagamento. Redirecionando para Telegram...')
+          if (response.data.telegramLink) {
+            setTimeout(() => {
+              window.open(response.data.telegramLink, '_blank')
+            }, 1000)
+          }
+        } else if (response.data.bitcoinAddress) {
+          // Sucesso - dados do Binance recebidos
+          console.log('✅ Dados Binance recebidos com sucesso!')
+          console.log('📋 Dados completos:', JSON.stringify(response.data, null, 2))
+          setPaymentData(response.data)
+          setQrCodeImageError(false)
           toast.success('Pagamento via criptomoedas criado com sucesso!')
+          // Garantir que o modal apareça
+          setPaymentMethod('CRYPTO')
+          setSelectedPlan(plan)
+        } else {
+          // Dados incompletos - verificar o que foi retornado
+          console.error('❌ Resposta incompleta:', response.data)
+          console.error('❌ Resposta não tem bitcoinAddress')
+          console.error('❌ Keys na resposta:', Object.keys(response.data))
+          toast.error('Erro: Dados de pagamento incompletos. Verifique o console para mais detalhes.')
         }
       } catch (error: any) {
-        toast.error(error.response?.data?.error || 'Erro ao criar pagamento')
+        console.error('❌ Erro ao criar pagamento:', error)
+        console.error('Error response:', error.response?.data)
+        
+        // Se o erro tiver dados de fallback, usar
+        if (error.response?.data?.fallback) {
+          setPaymentData({
+            id: error.response.data.id || Date.now().toString(),
+            fallback: true,
+            telegramLink: error.response.data.telegramLink || 'https://t.me/lynxdevz',
+            message: error.response.data.message || 'Contact lynxdevz on Telegram to complete payment'
+          })
+          toast.error(error.response?.data?.error || 'Erro ao criar pagamento. Redirecionando para Telegram...')
+          if (error.response?.data?.telegramLink) {
+            setTimeout(() => {
+              window.open(error.response.data.telegramLink, '_blank')
+            }, 1000)
+          }
+        } else {
+          toast.error(error.response?.data?.error || 'Erro ao criar pagamento. Tente novamente.')
+        }
       } finally {
         setLoading(false)
       }
@@ -203,7 +247,7 @@ export default function Plans() {
       </div>
 
       {/* Payment Modal */}
-      {paymentData && selectedPlan && paymentMethod && (
+      {(paymentData || (paymentMethod === 'CRYPTO' && loading)) && selectedPlan && paymentMethod && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full mx-4 shadow-2xl my-4">
             <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-900">
