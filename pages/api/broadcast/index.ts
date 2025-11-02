@@ -7,6 +7,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'GET') {
     // GET não requer autenticação - broadcasts são públicos
     try {
+      console.log('📢 Buscando broadcasts ativos...')
+      
       const broadcasts = await prisma.broadcastMessage.findMany({
         where: {
           isActive: true,
@@ -28,10 +30,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
+      console.log('📢 Broadcasts encontrados:', broadcasts.length)
+      console.log('📢 Broadcasts:', broadcasts.map(b => ({ id: b.id, title: b.title, isActive: b.isActive })))
+
       return res.json({ broadcasts })
     } catch (error: any) {
-      console.error('Error fetching broadcasts:', error)
-      return res.status(500).json({ error: 'Error fetching broadcasts' })
+      console.error('❌ Error fetching broadcasts:', error)
+      console.error('❌ Error stack:', error.stack)
+      return res.status(500).json({ error: 'Error fetching broadcasts', details: error.message })
     }
   }
 

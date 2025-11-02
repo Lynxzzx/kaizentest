@@ -17,47 +17,70 @@ interface Broadcast {
 }
 
 export default function BroadcastBanner() {
-  const { data: session } = useSession()
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([])
   const [dismissed, setDismissed] = useState<string[]>([])
 
-  useEffect(() => {
-    loadBroadcasts()
-    const interval = setInterval(loadBroadcasts, 30000) // Atualizar a cada 30 segundos
-    return () => clearInterval(interval)
-  }, [dismissed])
-
+  // Carregar dismissed do localStorage na inicialização
   useEffect(() => {
     const stored = localStorage.getItem('dismissedBroadcasts')
     if (stored) {
-      setDismissed(JSON.parse(stored))
+      try {
+        const parsed = JSON.parse(stored)
+        setDismissed(parsed || [])
+      } catch (e) {
+        console.error('Error parsing dismissed broadcasts:', e)
+        setDismissed([])
+      }
     }
   }, [])
 
-  const loadBroadcasts = async () => {
-    try {
-      const response = await axios.get('/api/broadcast')
-      const allBroadcasts = response.data.broadcasts || []
-      
-      // Filtrar broadcasts: não descartados, não expirados e ativos
-      const activeBroadcasts = allBroadcasts.filter((b: Broadcast) => {
-        const isDismissed = dismissed.includes(b.id)
-        const isExpired = b.expiresAt ? new Date(b.expiresAt) <= new Date() : false
-        return !isDismissed && !isExpired
-      })
-      
-      setBroadcasts(activeBroadcasts)
-    } catch (error: any) {
-      console.error('Error loading broadcasts:', error)
-      setBroadcasts([])
+  // Carregar broadcasts sempre que dismissed mudar OU na inicialização
+  useEffect(() => {
+    const loadBroadcasts = async () => {
+      try {
+        console.log('📢 Carregando broadcasts...')
+        const response = await axios.get('/api/broadcast')
+        const allBroadcasts = response.data.broadcasts || []
+        
+        console.log('📢 Broadcasts recebidos:', allBroadcasts.length)
+        
+        // Filtrar broadcasts: não descartados e não expirados
+        const activeBroadcasts = allBroadcasts.filter((b: Broadcast) => {
+          const isDismissed = dismissed.includes(b.id)
+          const isExpired = b.expiresAt ? new Date(b.expiresAt) <= new Date() : false
+          const shouldShow = !isDismissed && !isExpired
+          
+          if (!shouldShow) {
+            console.log('📢 Broadcast filtrado:', b.id, { isDismissed, isExpired })
+          }
+          
+          return shouldShow
+        })
+        
+        console.log('📢 Broadcasts ativos:', activeBroadcasts.length)
+        setBroadcasts(activeBroadcasts)
+      } catch (error: any) {
+        console.error('❌ Error loading broadcasts:', error)
+        console.error('❌ Error details:', error.response?.data || error.message)
+        setBroadcasts([])
+      }
     }
-  }
+
+    // Carregar imediatamente
+    loadBroadcasts()
+    
+    // Atualizar a cada 30 segundos
+    const interval = setInterval(loadBroadcasts, 30000)
+    
+    return () => clearInterval(interval)
+  }, [dismissed])
 
   const handleDismiss = (id: string) => {
     const newDismissed = [...dismissed, id]
     setDismissed(newDismissed)
     localStorage.setItem('dismissedBroadcasts', JSON.stringify(newDismissed))
-    setBroadcasts(broadcasts.filter(b => b.id !== id))
+    // Atualizar lista local imediatamente
+    setBroadcasts(prev => prev.filter(b => b.id !== id))
   }
 
   if (broadcasts.length === 0) return null
