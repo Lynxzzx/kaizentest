@@ -47,9 +47,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Você já utilizou um código de afiliado' })
     }
 
+    // VALIDAÇÃO DE SEGURANÇA: Prevenir auto-resgate
     if (currentUser.id === referrer.id) {
       console.log('User trying to use own code')
       return res.status(400).json({ error: 'Você não pode usar seu próprio código' })
+    }
+
+    // VALIDAÇÃO ADICIONAL: Verificar se são do mesmo dispositivo
+    if (currentUser.deviceFingerprint && referrer.deviceFingerprint) {
+      if (currentUser.deviceFingerprint === referrer.deviceFingerprint) {
+        console.log('User trying to use code from same device')
+        return res.status(403).json({ 
+          error: 'Não é permitido resgatar código de afiliado do mesmo dispositivo por questões de segurança.' 
+        })
+      }
+    }
+
+    // Verificar se o referrer tem o mesmo device fingerprint (mesmo dispositivo tentando resgatar seu próprio código)
+    if (currentUser.deviceFingerprint) {
+      const sameDeviceReferrer = await prisma.user.findFirst({
+        where: {
+          deviceFingerprint: currentUser.deviceFingerprint,
+          id: referrer.id
+        }
+      })
+      
+      if (sameDeviceReferrer) {
+        console.log('User trying to use code from same device (device fingerprint match)')
+        return res.status(403).json({ 
+          error: 'Não é permitido resgatar código de afiliado do mesmo dispositivo por questões de segurança.' 
+        })
+      }
     }
 
     // Verificar se já existe recompensa para este usuário

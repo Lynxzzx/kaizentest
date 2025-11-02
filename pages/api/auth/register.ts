@@ -71,7 +71,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         username,
         email: email || null,
         password: hashedPassword,
-        role: 'USER'
+        role: 'USER',
+        deviceFingerprint: deviceFingerprint || null // Armazenar device fingerprint
       }
     }).catch((err) => {
       console.error('Error creating user:', err)

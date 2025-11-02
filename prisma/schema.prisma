@@ -33,6 +33,7 @@ model User {
   lastFreeGenerationDate DateTime? // Última data que usou geração grátis
   bio           String? // Biografia do usuário
   profilePicture String? // URL da foto de perfil
+  deviceFingerprint String? // Hash único do dispositivo para prevenção de múltiplas contas
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   generatedAccounts GeneratedAccount[]
