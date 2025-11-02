@@ -45,9 +45,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login')
-    } else if (session?.user?.role === 'OWNER') {
-      router.push('/admin')
     }
+    // Removido bloqueio de OWNER - agora pode usar dashboard normalmente
   }, [session, status, router])
 
   useEffect(() => {

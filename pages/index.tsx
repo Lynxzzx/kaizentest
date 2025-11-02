@@ -25,10 +25,10 @@ export default function Home() {
             </p>
             {session ? (
               <Link
-                href={session.user.role === 'OWNER' ? '/admin' : '/dashboard'}
+                href="/dashboard"
                 className="inline-block bg-white text-primary-600 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-bold hover:bg-primary-50 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
               >
-                {session.user.role === 'OWNER' ? t('admin') : t('dashboard')}
+                {t('dashboard')}
               </Link>
             ) : (
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">

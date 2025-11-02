@@ -35,6 +35,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState({ bio: '', profilePicture: '' })
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     if (username && typeof username === 'string') {
@@ -57,6 +58,52 @@ export default function ProfilePage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo de arquivo
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      toast.error('Tipo de arquivo inválido. Use JPEG, PNG, GIF ou WebP')
+      return
+    }
+
+    // Validar tamanho (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Imagem muito grande. Tamanho máximo: 5MB')
+      return
+    }
+
+    setUploading(true)
+    const reader = new FileReader()
+    
+    reader.onloadend = async () => {
+      const base64String = reader.result as string
+      try {
+        const response = await axios.post('/api/profile/upload', {
+          image: base64String
+        })
+        setEditData({ ...editData, profilePicture: response.data.profilePicture })
+        toast.success('Foto de perfil atualizada!')
+        if (username && typeof username === 'string') {
+          loadProfile(username)
+        }
+      } catch (error: any) {
+        toast.error(error.response?.data?.error || 'Erro ao fazer upload da foto')
+      } finally {
+        setUploading(false)
+      }
+    }
+
+    reader.onerror = () => {
+      toast.error('Erro ao ler arquivo')
+      setUploading(false)
+    }
+
+    reader.readAsDataURL(file)
   }
 
   const handleSaveProfile = async () => {
@@ -166,14 +213,34 @@ export default function ProfilePage() {
                 {isEditing ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-300 mb-2">Foto de Perfil (URL)</label>
-                      <input
-                        type="text"
-                        value={editData.profilePicture}
-                        onChange={(e) => setEditData({ ...editData, profilePicture: e.target.value })}
-                        placeholder="https://exemplo.com/foto.jpg"
-                        className="w-full bg-gray-800 text-white rounded-lg px-4 py-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+                      <label className="block text-sm font-semibold text-gray-300 mb-2">Foto de Perfil</label>
+                      <div className="flex flex-col space-y-3">
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                          id="profile-picture-upload"
+                          disabled={uploading}
+                        />
+                        <label
+                          htmlFor="profile-picture-upload"
+                          className={`flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-purple-700 transition-all cursor-pointer disabled:opacity-50 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          {uploading ? '📤 Enviando...' : '📸 Enviar Foto do Dispositivo'}
+                        </label>
+                        <div className="text-xs text-gray-400 text-center">
+                          Ou use URL:
+                        </div>
+                        <input
+                          type="text"
+                          value={editData.profilePicture}
+                          onChange={(e) => setEditData({ ...editData, profilePicture: e.target.value })}
+                          placeholder="https://exemplo.com/foto.jpg"
+                          className="w-full bg-gray-800 text-white rounded-lg px-4 py-2 border border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-400 mt-1">Tamanho máximo: 5MB (JPEG, PNG, GIF, WebP)</p>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-300 mb-2">Biografia</label>
