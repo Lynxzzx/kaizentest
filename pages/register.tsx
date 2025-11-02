@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
 import Link from 'next/link'
 import axios from 'axios'
+import { getStoredDeviceFingerprint } from '@/lib/device-fingerprint'
 import toast from 'react-hot-toast'
 
 export default function Register() {
@@ -34,10 +35,14 @@ export default function Register() {
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000)
 
+      // Obter device fingerprint para segurança
+      const deviceFingerprint = getStoredDeviceFingerprint()
+      
       const response = await axios.post('/api/auth/register', {
         username,
         email,
-        password
+        password,
+        deviceFingerprint
       }, {
         signal: controller.signal,
         timeout: 30000
