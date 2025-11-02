@@ -114,19 +114,19 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">{t('dashboard')}</h1>
-          <p className="text-gray-600">Bem-vindo, {session.user.username}!</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">{t('dashboard')}</h1>
+          <p className="text-sm sm:text-base text-gray-600">Bem-vindo, {session.user.username}!</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
           {/* Plan Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{t('myPlan')}</h2>
-              <span className="text-4xl">📋</span>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('myPlan')}</h2>
+              <span className="text-3xl sm:text-4xl">📋</span>
             </div>
             {userPlan?.plan ? (
               <div className="space-y-4">
@@ -170,12 +170,12 @@ export default function Dashboard() {
           </div>
 
           {/* Generate Account Card */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">{t('generateAccount')}</h2>
-              <span className="text-4xl">⚡</span>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('generateAccount')}</h2>
+              <span className="text-3xl sm:text-4xl">⚡</span>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   {t('selectService')}
@@ -183,7 +183,7 @@ export default function Dashboard() {
                 <select
                   value={selectedService}
                   onChange={(e) => setSelectedService(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none bg-white"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none bg-white"
                 >
                   <option value="">Selecione um serviço</option>
                   {services
@@ -198,7 +198,7 @@ export default function Dashboard() {
               <button
                 onClick={handleGenerateAccount}
                 disabled={loading || !selectedService}
-                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 sm:py-4 rounded-lg text-sm sm:text-base font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none touch-manipulation"
               >
                 {loading ? (
                   <span className="flex items-center justify-center">
@@ -228,8 +228,8 @@ export default function Dashboard() {
 
         {/* Generated Account */}
         {generatedAccount && (
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200 animate-slide-up">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Conta Gerada com Sucesso! ✅</h2>
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200 animate-slide-up mb-6 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Conta Gerada com Sucesso! ✅</h2>
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-green-100">
@@ -257,8 +257,8 @@ export default function Dashboard() {
         )}
 
         {/* Available Services */}
-        <div className="mt-8 bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Serviços Disponíveis</h2>
+        <div className="mt-6 sm:mt-8 bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Serviços Disponíveis</h2>
           {services.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {services.map((service) => (

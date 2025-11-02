@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const errors = []
 
     for (let i = 0; i < accounts.length; i++) {
-      const account = accounts[i].trim()
+      const account: string = String(accounts[i]).trim()
       
       // Validar formato email:pass
       if (!account.includes(':')) {
@@ -37,7 +37,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         continue
       }
 
-      const [email, password] = account.split(':').map(s => s.trim())
+      const parts: string[] = account.split(':')
+      const email: string = parts[0]?.trim() || ''
+      const password: string = parts[1]?.trim() || ''
       
       if (!email || !password) {
         errors.push(`Linha ${i + 1}: Email ou senha vazios`)

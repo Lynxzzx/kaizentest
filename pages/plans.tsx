@@ -108,38 +108,38 @@ export default function Plans() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-gray-900 mb-4">{t('plans')}</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">{t('plans')}</h1>
+          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto px-4">
             Escolha o plano ideal para você e tenha acesso a todos os nossos serviços
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
           {plans.map((plan, index) => (
             <div
               key={plan.id}
-              className={`bg-white rounded-2xl shadow-xl p-8 border-2 transition-all transform hover:-translate-y-2 hover:shadow-2xl ${
-                index === 1 ? 'border-primary-500 scale-105' : 'border-gray-200 hover:border-primary-300'
+              className={`bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border-2 transition-all transform hover:-translate-y-2 hover:shadow-2xl ${
+                index === 1 ? 'border-primary-500 sm:scale-105' : 'border-gray-200 hover:border-primary-300'
               }`}
             >
               {index === 1 && (
-                <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white text-center py-2 rounded-lg mb-4 -mt-2 mx-8">
-                  <span className="font-bold text-sm">MAIS POPULAR</span>
+                <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white text-center py-1.5 sm:py-2 rounded-lg mb-3 sm:mb-4 -mt-2 mx-4 sm:mx-8">
+                  <span className="font-bold text-xs sm:text-sm">MAIS POPULAR</span>
                 </div>
               )}
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-              <p className="text-gray-600 mb-6 min-h-[60px]">{plan.description}</p>
-              <div className="mb-6">
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+              <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 min-h-[60px]">{plan.description}</p>
+              <div className="mb-4 sm:mb-6">
                 <div className="flex items-baseline mb-2">
-                  <span className="text-4xl font-extrabold text-gray-900">R$</span>
-                  <span className="text-5xl font-extrabold text-gray-900 ml-1">{plan.price.toFixed(2)}</span>
+                  <span className="text-3xl sm:text-4xl font-extrabold text-gray-900">R$</span>
+                  <span className="text-4xl sm:text-5xl font-extrabold text-gray-900 ml-1">{plan.price.toFixed(2)}</span>
                 </div>
-                <p className="text-gray-500 text-sm">ou {plan.duration} dias</p>
+                <p className="text-gray-500 text-xs sm:text-sm">ou {plan.duration} dias</p>
               </div>
-              <div className="space-y-3 mb-6">
+              <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
                 <div className="flex items-center text-gray-700">
                   <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -159,11 +159,11 @@ export default function Plans() {
                   <span>Acesso a todos os serviços</span>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3">
                 <button
                   onClick={() => handlePayment(plan, 'PIX')}
                   disabled={loading}
-                  className={`w-full py-3 rounded-lg font-bold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 ${
+                  className={`w-full py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-bold transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 touch-manipulation ${
                     index === 1
                       ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800'
                       : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800'
@@ -174,7 +174,7 @@ export default function Plans() {
                 <button
                   onClick={() => handlePayment(plan, 'CRYPTO')}
                   disabled={loading}
-                  className="w-full py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg font-bold hover:from-orange-700 hover:to-orange-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50"
+                  className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg text-sm sm:text-base font-bold hover:from-orange-700 hover:to-orange-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 touch-manipulation"
                 >
                   Pagar via Criptomoedas
                 </button>
@@ -192,9 +192,9 @@ export default function Plans() {
 
       {/* Payment Modal */}
       {paymentData && selectedPlan && paymentMethod && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl">
-            <h2 className="text-2xl font-bold mb-6 text-gray-900">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full mx-4 shadow-2xl my-4">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-900">
               Pagamento via {paymentMethod}
             </h2>
             
@@ -202,13 +202,13 @@ export default function Plans() {
               <div className="space-y-4">
                 {(paymentData.pixQrCodeImage || paymentData.pixQrCode || paymentData.pixCopyPaste) ? (
                   <>
-                    <div className="flex justify-center bg-gray-50 p-4 rounded-lg">
+                    <div className="flex justify-center bg-gray-50 p-3 sm:p-4 rounded-lg">
                       {paymentData.pixQrCodeImage && !qrCodeImageError ? (
                         // Exibir imagem base64 diretamente (QR code oficial do Asaas)
                         <img 
                           src={paymentData.pixQrCodeImage} 
                           alt="QR Code PIX" 
-                          className="w-64 h-64 object-contain mx-auto"
+                          className="w-48 h-48 sm:w-64 sm:h-64 object-contain mx-auto"
                           onError={(e) => {
                             console.error('Erro ao carregar imagem QR code')
                             console.error('Image src length:', paymentData.pixQrCodeImage?.length)
@@ -221,10 +221,13 @@ export default function Plans() {
                         />
                       ) : paymentData.pixCopyPaste || paymentData.pixQrCode ? (
                         // Gerar QR code a partir do código copia e cola como fallback
-                        <QRCode 
-                          value={paymentData.pixCopyPaste || paymentData.pixQrCode || ''} 
-                          size={256} 
-                        />
+                        <div className="flex justify-center">
+                          <QRCode 
+                            value={paymentData.pixCopyPaste || paymentData.pixQrCode || ''} 
+                            size={256} 
+                            className="w-48 h-48 sm:w-64 sm:h-64"
+                          />
+                        </div>
                       ) : (
                         <div className="w-64 h-64 flex items-center justify-center text-gray-500">
                           <p>Carregando QR code...</p>
@@ -280,7 +283,7 @@ export default function Plans() {
                 setSelectedPlan(null)
                 setPaymentMethod(null)
               }}
-              className="mt-6 w-full bg-gray-100 text-gray-800 px-4 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+              className="mt-4 sm:mt-6 w-full bg-gray-100 text-gray-800 px-4 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-gray-200 transition-colors touch-manipulation"
             >
               Fechar
             </button>

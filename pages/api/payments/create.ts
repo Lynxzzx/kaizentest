@@ -128,11 +128,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
 
+        // Validar que asaasCustomerId existe
+        if (!asaasCustomerId) {
+          throw new Error('Erro: ID do cliente Asaas não encontrado. Tente novamente.')
+        }
+
         // Criar pagamento no Asaas
+        // Type assertion: após a verificação acima, asaasCustomerId não pode ser null
+        const customerId: string = asaasCustomerId
         const dueDate = format(new Date(Date.now() + 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
         
         const asaasPayment = await createAsaasPayment({
-          customer: asaasCustomerId,
+          customer: customerId,
           billingType: 'PIX',
           value: plan.price,
           dueDate,
