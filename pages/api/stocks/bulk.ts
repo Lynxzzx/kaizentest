@@ -37,7 +37,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         continue
       }
 
-      const [email, password] = account.split(':').map((s: string) => s.trim())
+      const parts = account.split(':')
+      const email = parts[0]?.trim() || ''
+      const password = parts[1]?.trim() || ''
       
       if (!email || !password) {
         errors.push(`Linha ${i + 1}: Email ou senha vazios`)
