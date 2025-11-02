@@ -367,9 +367,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             })
             console.log('✅ Pagamento criado:', payment.id)
           } catch (createError: any) {
-            // Se falhar por qualquer motivo, tentar buscar novamente
+            // Se falhar por constraint única, buscar novamente
             if (createError.code === 'P2002') {
-              console.log('⚠️ Pagamento duplicado detectado, buscando existente...')
+              console.log('⚠️ Pagamento duplicado detectado (P2002), buscando existente...')
+              // Buscar novamente - pode ter sido criado por outra requisição
               payment = await prisma.payment.findFirst({
                 where: {
                   userId: session.user.id,
@@ -383,7 +384,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               })
               
               if (!payment) {
-                throw new Error('Erro ao criar pagamento: conflito de ID')
+                // Se ainda não encontrou, buscar qualquer pagamento pendente deste usuário
+                console.log('⚠️ Buscando qualquer pagamento pendente do usuário...')
+                payment = await prisma.payment.findFirst({
+                  where: {
+                    userId: session.user.id,
+                    status: 'PENDING'
+                  },
+                  orderBy: {
+                    createdAt: 'desc'
+                  }
+                })
+              }
+              
+              if (!payment) {
+                // Não lançar erro aqui - deixar o catch final tratar
+                console.warn('⚠️ Não foi possível encontrar pagamento existente após erro P2002')
+                throw createError // Re-lançar para o catch final tratar
+              } else {
+                console.log('✅ Pagamento encontrado após erro P2002:', payment.id)
               }
             } else {
               throw createError
@@ -391,6 +410,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         } else {
           console.log('✅ Usando pagamento existente:', payment.id)
+        }
+        
+        // Se ainda não temos um pagamento válido, lançar erro
+        if (!payment) {
+          throw new Error('Não foi possível criar ou encontrar o pagamento')
         }
 
         // Gerar endereço de pagamento - função local, sempre funciona
@@ -447,7 +471,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // NUNCA retornar fallback Telegram - sempre tentar criar dados Binance
         // Criar dados básicos mesmo com erro
         try {
-          // Verificar se já existe um pagamento pendente
+          // Buscar qualquer pagamento pendente do usuário (método não importa aqui)
           let payment = await prisma.payment.findFirst({
             where: {
               userId: session.user.id,
@@ -460,13 +484,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
           })
           
+          // Se não encontrou um BTC, buscar qualquer pagamento pendente
+          if (!payment) {
+            console.log('⚠️ Pagamento BTC não encontrado, buscando qualquer pagamento pendente...')
+            payment = await prisma.payment.findFirst({
+              where: {
+                userId: session.user.id,
+                status: 'PENDING'
+              },
+              orderBy: {
+                createdAt: 'desc'
+              }
+            })
+          }
+          
           const defaultBtcPrice = 50000
           const usdBrlRate = 5.0
           const amountUsd = plan.price / usdBrlRate
           const btcAmount = Math.round((amountUsd / defaultBtcPrice) * 100000000) / 100000000
           
-          // Criar pagamento apenas se não existir
+          // Criar pagamento apenas se não existir NENHUM pagamento pendente
           if (!payment) {
+            console.log('💾 Tentando criar pagamento no catch final...')
             try {
               payment = await prisma.payment.create({
                 data: {
@@ -477,23 +516,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   status: 'PENDING'
                 }
               })
+              console.log('✅ Pagamento criado no catch final:', payment.id)
             } catch (createError: any) {
               // Se falhar por constraint única, buscar novamente
               if (createError.code === 'P2002') {
+                console.log('⚠️ Erro P2002 no catch final, buscando pagamento existente...')
+                // Buscar qualquer pagamento pendente do usuário
                 payment = await prisma.payment.findFirst({
                   where: {
                     userId: session.user.id,
-                    planId: plan.id,
-                    method: 'BITCOIN',
                     status: 'PENDING'
                   },
                   orderBy: {
                     createdAt: 'desc'
                   }
                 })
-              }
-              
-              if (!payment) {
+                
+                if (!payment) {
+                  console.error('❌ Não foi possível criar ou encontrar nenhum pagamento pendente')
+                  throw new Error('Não foi possível criar ou encontrar o pagamento após múltiplas tentativas')
+                } else {
+                  console.log('✅ Pagamento encontrado após P2002 no catch final:', payment.id)
+                }
+              } else {
                 throw createError
               }
             }
@@ -501,6 +546,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           
           if (!payment) {
             throw new Error('Não foi possível criar ou encontrar o pagamento')
+          }
+          
+          // Se o pagamento encontrado não for BTC, converter para BTC ou usar os dados existentes
+          if (payment.method !== 'BITCOIN') {
+            console.log('⚠️ Pagamento encontrado não é BTC, mas retornando dados BTC mesmo assim')
           }
           
           // Gerar endereço simples se não tiver
