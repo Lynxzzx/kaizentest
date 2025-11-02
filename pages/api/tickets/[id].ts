@@ -48,12 +48,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'PUT') {
     try {
-      // Atualizar ticket (admin pode mudar status e prioridade)
+      // Atualizar ticket (admin pode mudar status e prioridade, usuário pode marcar como resolvido/fechado)
       const { status, priority } = req.body
-
-      if (session.user.role !== 'OWNER') {
-        return res.status(403).json({ error: 'Only admin can update tickets' })
-      }
 
       const ticket = await prisma.ticket.findUnique({
         where: { id: id as string }
@@ -63,15 +59,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(404).json({ error: 'Ticket not found' })
       }
 
+      // Verificar permissão
+      const isOwner = session.user.role === 'OWNER' || session.user.role === 'ADMIN' || session.user.role === 'MODERATOR'
+      const isTicketOwner = ticket.userId === session.user.id
+
+      if (!isOwner && !isTicketOwner) {
+        return res.status(403).json({ error: 'Forbidden' })
+      }
+
       // Validar status e prioridade
       const validStatuses = ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED']
       const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 
       const updateData: any = {}
+      
+      // Usuários podem apenas marcar como RESOLVED ou CLOSED
       if (status && validStatuses.includes(status)) {
+        if (!isOwner && (status === 'OPEN' || status === 'IN_PROGRESS')) {
+          return res.status(403).json({ error: 'Only admins can set status to OPEN or IN_PROGRESS' })
+        }
         updateData.status = status
       }
+      
+      // Apenas admins podem mudar prioridade
       if (priority && validPriorities.includes(priority)) {
+        if (!isOwner) {
+          return res.status(403).json({ error: 'Only admins can change priority' })
+        }
         updateData.priority = priority
       }
 
@@ -82,11 +96,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           user: {
             select: {
               username: true,
-              email: true
+              email: true,
+              profilePicture: true,
+              role: true
             }
           },
           replies: {
-            orderBy: { createdAt: 'asc' }
+            orderBy: { createdAt: 'asc' },
+            include: {
+              user: {
+                select: {
+                  username: true,
+                  profilePicture: true,
+                  role: true
+                }
+              }
+            }
           }
         }
       })

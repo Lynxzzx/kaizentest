@@ -232,6 +232,13 @@ export default function AdminDashboard() {
               <span className="text-3xl mb-2">👥</span>
               <span className="font-semibold">Usuários</span>
             </Link>
+            <Link
+              href="/admin/broadcast"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <span className="text-3xl mb-2">📢</span>
+              <span className="font-semibold">Broadcast</span>
+            </Link>
           </div>
         </div>
 

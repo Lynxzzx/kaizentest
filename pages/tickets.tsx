@@ -314,6 +314,42 @@ export default function Tickets() {
                 </p>
               </div>
 
+              {/* Botões de ação para o dono do ticket */}
+              {selectedTicket.user.username === session?.user.username && 
+               selectedTicket.status !== 'CLOSED' && 
+               selectedTicket.status !== 'RESOLVED' && (
+                <div className="mb-6 flex flex-wrap gap-3">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await axios.put(`/api/tickets/${selectedTicket.id}`, { status: 'RESOLVED' })
+                        toast.success('Ticket marcado como resolvido!')
+                        loadTicketDetails(selectedTicket.id)
+                      } catch (error: any) {
+                        toast.error('Erro ao atualizar ticket')
+                      }
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-bold hover:from-green-600 hover:to-green-700 transition-all"
+                  >
+                    ✓ Marcar como Resolvido
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await axios.put(`/api/tickets/${selectedTicket.id}`, { status: 'CLOSED' })
+                        toast.success('Ticket fechado!')
+                        loadTicketDetails(selectedTicket.id)
+                      } catch (error: any) {
+                        toast.error('Erro ao fechar ticket')
+                      }
+                    }}
+                    className="px-4 py-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg font-bold hover:from-gray-600 hover:to-gray-700 transition-all"
+                  >
+                    ✕ Fechar Ticket
+                  </button>
+                </div>
+              )}
+
               <div className="space-y-4 mb-6">
                 <h3 className="font-bold text-gray-900">Respostas ({selectedTicket.replies.length})</h3>
                 {selectedTicket.replies.map((reply) => (

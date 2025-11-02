@@ -46,7 +46,8 @@ export default function AdminUsers() {
   const [editData, setEditData] = useState({
     planId: '',
     planExpiresAt: '',
-    isBanned: false
+    isBanned: false,
+    role: 'USER'
   })
 
   useEffect(() => {
@@ -89,7 +90,8 @@ export default function AdminUsers() {
     setEditData({
       planId: user.plan?.id || '',
       planExpiresAt: user.planExpiresAt ? format(new Date(user.planExpiresAt), 'yyyy-MM-dd') : '',
-      isBanned: user.isBanned
+      isBanned: user.isBanned,
+      role: user.role
     })
   }
 
@@ -103,11 +105,33 @@ export default function AdminUsers() {
         planId: editData.planId || null,
         planExpiresAt: editData.planExpiresAt || null
       })
+      
+      // Promover usuário se o role mudou
+      if (editData.role !== editingUser.role) {
+        await axios.put('/api/admin/promote', {
+          userId: editingUser.id,
+          role: editData.role
+        })
+      }
+      
       toast.success('Usuário atualizado com sucesso!')
       setEditingUser(null)
       loadUsers()
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao atualizar usuário')
+    }
+  }
+
+  const handlePromote = async (userId: string, newRole: string) => {
+    try {
+      await axios.put('/api/admin/promote', {
+        userId,
+        role: newRole
+      })
+      toast.success('Usuário promovido com sucesso!')
+      loadUsers()
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao promover usuário')
     }
   }
 
@@ -168,6 +192,19 @@ export default function AdminUsers() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Cargo</label>
+              <select
+                value={editData.role}
+                onChange={(e) => setEditData({ ...editData, role: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="USER">👤 Usuário</option>
+                <option value="MODERATOR">🛡️ Moderador</option>
+                <option value="ADMIN">🔧 Administrador</option>
+                <option value="OWNER">👑 Owner</option>
+              </select>
+            </div>
             <div className="flex items-center">
               <input
                 type="checkbox"
@@ -204,6 +241,7 @@ export default function AdminUsers() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuário</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cargo</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plano</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gerações</th>
@@ -221,6 +259,19 @@ export default function AdminUsers() {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {user.email || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                    user.role === 'OWNER' ? 'bg-yellow-100 text-yellow-800' :
+                    user.role === 'ADMIN' ? 'bg-red-100 text-red-800' :
+                    user.role === 'MODERATOR' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {user.role === 'OWNER' ? '👑 Owner' :
+                     user.role === 'ADMIN' ? '🔧 Admin' :
+                     user.role === 'MODERATOR' ? '🛡️ Moderador' :
+                     '👤 Usuário'}
+                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">

@@ -4,6 +4,8 @@ import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
 import Logo from './Logo'
+import Chatbox from './Chatbox'
+import BroadcastBanner from './BroadcastBanner'
 
 interface LayoutProps {
   children: ReactNode
@@ -14,9 +16,11 @@ export default function Layout({ children }: LayoutProps) {
   const { t, locale, changeLanguage } = useTranslation()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [chatboxOpen, setChatboxOpen] = useState(false)
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
+      <BroadcastBanner />
       <nav className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 md:h-20">
@@ -121,6 +125,14 @@ export default function Layout({ children }: LayoutProps) {
               </select>
               {session ? (
                 <div className="flex items-center space-x-2 md:space-x-3">
+                  <Link
+                    href={`/profile/${session.user.username}`}
+                    className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-xs">
+                      {session.user.username.charAt(0).toUpperCase()}
+                    </div>
+                  </Link>
                   <div className="hidden md:block text-right">
                     <p className="text-sm font-semibold text-gray-900">{session.user.username}</p>
                     <p className="text-xs text-gray-500">
@@ -256,6 +268,7 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </footer>
+      {session && <Chatbox isOpen={chatboxOpen} onToggle={() => setChatboxOpen(!chatboxOpen)} />}
     </div>
   )
 }

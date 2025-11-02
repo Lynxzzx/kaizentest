@@ -31,6 +31,8 @@ model User {
   bannedBy      String?  @db.ObjectId // Admin que baniu
   dailyFreeGenerations Int @default(0) // Gerações grátis usadas hoje
   lastFreeGenerationDate DateTime? // Última data que usou geração grátis
+  bio           String? // Biografia do usuário
+  profilePicture String? // URL da foto de perfil
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   generatedAccounts GeneratedAccount[]
@@ -38,10 +40,13 @@ model User {
   redeemedKeys  RedeemedKey[]
   tickets       Ticket[]
   affiliateRewards AffiliateReward[]
+  chatMessages  ChatMessage[]
 }
 
 enum UserRole {
   OWNER
+  ADMIN
+  MODERATOR
   USER
 }
 
@@ -192,4 +197,22 @@ model AffiliateReward {
   referredUserId String  @db.ObjectId // Usuário que foi indicado
   rewardedGenerations Int @default(2) // Gerações ganhas
   createdAt     DateTime @default(now())
+}
+
+model ChatMessage {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message     String
+  createdAt   DateTime @default(now())
+}
+
+model BroadcastMessage {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId // Owner/Admin que criou
+  title       String?
+  message     String
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime? // Opcional: mensagem expira
 }
