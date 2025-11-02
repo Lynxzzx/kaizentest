@@ -1,0 +1,312 @@
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/router'
+import { useTranslation } from '@/lib/i18n-helper'
+import Link from 'next/link'
+import axios from 'axios'
+import toast from 'react-hot-toast'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale/pt-BR'
+
+interface Stats {
+  overview: {
+    totalUsers: number
+    totalServices: number
+    totalPlans: number
+    totalStocks: number
+    availableStocks: number
+    usedStocks: number
+    totalPayments: number
+    paidPayments: number
+    totalRevenue: number
+    totalKeys: number
+    usedKeys: number
+    totalAccounts: number
+  }
+  recentUsers: Array<{
+    id: string
+    username: string
+    email: string | null
+    createdAt: string
+    plan: { name: string } | null
+  }>
+  recentPayments: Array<{
+    id: string
+    amount: number
+    status: string
+    method: string
+    createdAt: string
+    user: { username: string }
+    plan: { name: string }
+  }>
+}
+
+export default function AdminDashboard() {
+  const { t } = useTranslation()
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const [stats, setStats] = useState<Stats | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+    } else if (session?.user?.role !== 'OWNER') {
+      router.push('/dashboard')
+    }
+  }, [session, status, router])
+
+  useEffect(() => {
+    if (session?.user?.role === 'OWNER') {
+      loadStats()
+      const interval = setInterval(loadStats, 30000) // Atualizar a cada 30 segundos
+      return () => clearInterval(interval)
+    }
+  }, [session])
+
+  const loadStats = async () => {
+    try {
+      const response = await axios.get('/api/admin/stats')
+      setStats(response.data)
+    } catch (error) {
+      toast.error('Erro ao carregar estatísticas')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+          <p className="mt-4 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (session?.user?.role !== 'OWNER') {
+    return null
+  }
+
+  const statCards = stats ? [
+    {
+      title: 'Total de Usuários',
+      value: stats.overview.totalUsers,
+      icon: '👥',
+      color: 'bg-blue-500',
+      link: '/admin'
+    },
+    {
+      title: 'Receita Total',
+      value: `R$ ${stats.overview.totalRevenue.toFixed(2)}`,
+      icon: '💰',
+      color: 'bg-green-500',
+      link: '/admin'
+    },
+    {
+      title: 'Pagamentos Confirmados',
+      value: stats.overview.paidPayments,
+      icon: '✅',
+      color: 'bg-emerald-500',
+      link: '/admin'
+    },
+    {
+      title: 'Estoques Disponíveis',
+      value: stats.overview.availableStocks,
+      icon: '📦',
+      color: 'bg-purple-500',
+      link: '/admin/stocks'
+    },
+    {
+      title: 'Serviços Ativos',
+      value: stats.overview.totalServices,
+      icon: '🛠️',
+      color: 'bg-indigo-500',
+      link: '/admin/services'
+    },
+    {
+      title: 'Planos',
+      value: stats.overview.totalPlans,
+      icon: '📋',
+      color: 'bg-pink-500',
+      link: '/admin/plans'
+    },
+    {
+      title: 'Contas Geradas',
+      value: stats.overview.totalAccounts,
+      icon: '🎫',
+      color: 'bg-yellow-500',
+      link: '/admin'
+    },
+    {
+      title: 'Chaves Disponíveis',
+      value: stats.overview.totalKeys - stats.overview.usedKeys,
+      icon: '🔑',
+      color: 'bg-orange-500',
+      link: '/admin/keys'
+    }
+  ] : []
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Painel Administrativo</h1>
+              <p className="mt-1 text-sm text-gray-500">Bem-vindo, {session?.user?.username}</p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={loadStats}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md"
+              >
+                Atualizar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {statCards.map((card, index) => (
+            <Link
+              key={index}
+              href={card.link}
+              className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 p-6 border-l-4 border-transparent hover:border-primary-500"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
+                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                </div>
+                <div className={`${card.color} rounded-full p-3 text-2xl`}>
+                  {card.icon}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">Ações Rápidas</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Link
+              href="/admin/services"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <span className="text-3xl mb-2">🛠️</span>
+              <span className="font-semibold">Serviços</span>
+            </Link>
+            <Link
+              href="/admin/stocks"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <span className="text-3xl mb-2">📦</span>
+              <span className="font-semibold">Estoques</span>
+            </Link>
+            <Link
+              href="/admin/plans"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-lg hover:from-pink-600 hover:to-pink-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <span className="text-3xl mb-2">📋</span>
+              <span className="font-semibold">Planos</span>
+            </Link>
+            <Link
+              href="/admin/keys"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <span className="text-3xl mb-2">🔑</span>
+              <span className="font-semibold">Chaves</span>
+            </Link>
+            <Link
+              href="/admin/users"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <span className="text-3xl mb-2">👥</span>
+              <span className="font-semibold">Usuários</span>
+            </Link>
+          </div>
+        </div>
+
+        {stats && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Recent Users */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Usuários Recentes</h2>
+              <div className="space-y-3">
+                {stats.recentUsers.length > 0 ? (
+                  stats.recentUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div>
+                        <p className="font-semibold text-gray-900">{user.username}</p>
+                        <p className="text-sm text-gray-500">
+                          {user.email || 'Sem email'} • {user.plan?.name || 'Sem plano'}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {format(new Date(user.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                        </p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center py-4">Nenhum usuário recente</p>
+                )}
+              </div>
+            </div>
+
+            {/* Recent Payments */}
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Pagamentos Recentes</h2>
+              <div className="space-y-3">
+                {stats.recentPayments.length > 0 ? (
+                  stats.recentPayments.map((payment) => (
+                    <div
+                      key={payment.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div>
+                        <p className="font-semibold text-gray-900">{payment.user.username}</p>
+                        <p className="text-sm text-gray-500">
+                          {payment.plan.name} • {payment.method}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {format(new Date(payment.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-green-600">R$ {payment.amount.toFixed(2)}</p>
+                        <span
+                          className={`inline-block px-2 py-1 rounded-full text-xs ${
+                            payment.status === 'PAID'
+                              ? 'bg-green-100 text-green-800'
+                              : payment.status === 'PENDING'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          {payment.status === 'PAID' ? 'Pago' : payment.status === 'PENDING' ? 'Pendente' : 'Cancelado'}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-gray-500 text-center py-4">Nenhum pagamento recente</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

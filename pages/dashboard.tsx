@@ -1,0 +1,294 @@
+import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/router'
+import { useTranslation } from '@/lib/i18n-helper'
+import axios from 'axios'
+import toast from 'react-hot-toast'
+import { format } from 'date-fns'
+import { ptBR } from 'date-fns/locale/pt-BR'
+
+interface Service {
+  id: string
+  name: string
+  description: string
+  icon: string
+  _count: {
+    stocks: number
+  }
+}
+
+interface Plan {
+  id: string
+  name: string
+  description: string
+  price: number
+  duration: number
+  maxGenerations: number
+}
+
+interface UserPlan {
+  plan: Plan | null
+  planExpiresAt: Date | null
+}
+
+export default function Dashboard() {
+  const { t } = useTranslation()
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const [services, setServices] = useState<Service[]>([])
+  const [userPlan, setUserPlan] = useState<UserPlan | null>(null)
+  const [selectedService, setSelectedService] = useState<string>('')
+  const [generatedAccount, setGeneratedAccount] = useState<any>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login')
+    } else if (session?.user?.role === 'OWNER') {
+      router.push('/admin')
+    }
+  }, [session, status, router])
+
+  useEffect(() => {
+    if (session) {
+      loadServices()
+      loadUserPlan()
+    }
+  }, [session])
+
+  const loadServices = async () => {
+    try {
+      const response = await axios.get('/api/services')
+      setServices(response.data)
+    } catch (error) {
+      toast.error('Erro ao carregar serviços')
+    }
+  }
+
+  const loadUserPlan = async () => {
+    try {
+      const response = await axios.get('/api/users/me')
+      setUserPlan({
+        plan: response.data.plan,
+        planExpiresAt: response.data.planExpiresAt ? new Date(response.data.planExpiresAt) : null
+      })
+    } catch (error) {
+      console.error('Error loading user plan')
+    }
+  }
+
+  const handleGenerateAccount = async () => {
+    if (!selectedService) {
+      toast.error('Selecione um serviço')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await axios.post('/api/accounts/generate', {
+        serviceId: selectedService
+      })
+      setGeneratedAccount(response.data)
+      toast.success('Conta gerada com sucesso!')
+      loadUserPlan() // Recarregar plano para atualizar contagens
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao gerar conta')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
+          <p className="mt-4 text-gray-600">Carregando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return null
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">{t('dashboard')}</h1>
+          <p className="text-gray-600">Bem-vindo, {session.user.username}!</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Plan Card */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">{t('myPlan')}</h2>
+              <span className="text-4xl">📋</span>
+            </div>
+            {userPlan?.plan ? (
+              <div className="space-y-4">
+                <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-6 border border-primary-200">
+                  <h3 className="text-xl font-bold text-primary-900 mb-2">{userPlan.plan.name}</h3>
+                  <p className="text-primary-700 mb-4">{userPlan.plan.description}</p>
+                  {userPlan.planExpiresAt && (
+                    <div className="flex items-center justify-between pt-4 border-t border-primary-200">
+                      <span className="text-sm text-primary-600 font-medium">Expira em:</span>
+                      <span className="text-sm font-bold text-primary-900">
+                        {format(new Date(userPlan.planExpiresAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-gray-600">Duração</p>
+                    <p className="font-bold text-gray-900">{userPlan.plan.duration} dias</p>
+                  </div>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-gray-600">Gerações</p>
+                    <p className="font-bold text-gray-900">
+                      {userPlan.plan.maxGenerations === 0 ? 'Ilimitadas' : userPlan.plan.maxGenerations}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-5xl mb-4">💳</div>
+                <p className="text-gray-600 mb-6">Você não possui um plano ativo</p>
+                <a
+                  href="/plans"
+                  className="inline-block bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                >
+                  Ver Planos
+                </a>
+              </div>
+            )}
+          </div>
+
+          {/* Generate Account Card */}
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">{t('generateAccount')}</h2>
+              <span className="text-4xl">⚡</span>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  {t('selectService')}
+                </label>
+                <select
+                  value={selectedService}
+                  onChange={(e) => setSelectedService(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none bg-white"
+                >
+                  <option value="">Selecione um serviço</option>
+                  {services
+                    .filter((service) => service._count.stocks > 0)
+                    .map((service) => (
+                      <option key={service.id} value={service.id}>
+                        {service.name} ({service._count.stocks} {t('available')})
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <button
+                onClick={handleGenerateAccount}
+                disabled={loading || !selectedService}
+                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Gerando...
+                  </span>
+                ) : (
+                  t('generateAccount')
+                )}
+              </button>
+              {!userPlan?.plan && (
+                <div className="text-sm text-center">
+                  <p className="text-red-600 mb-2">
+                    Você não possui um plano ativo
+                  </p>
+                  <p className="text-green-600 font-medium">
+                    💡 Você tem 2 gerações grátis por dia!
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Generated Account */}
+        {generatedAccount && (
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200 animate-slide-up">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Conta Gerada com Sucesso! ✅</h2>
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-green-100">
+                  <span className="font-semibold text-gray-700">Usuário:</span>
+                  <span className="font-mono font-bold text-gray-900">{generatedAccount.username}</span>
+                </div>
+                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-green-100">
+                  <span className="font-semibold text-gray-700">Senha:</span>
+                  <span className="font-mono font-bold text-gray-900">{generatedAccount.password}</span>
+                </div>
+                {generatedAccount.email && (
+                  <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-green-100">
+                    <span className="font-semibold text-gray-700">Email:</span>
+                    <span className="font-mono font-bold text-gray-900">{generatedAccount.email}</span>
+                  </div>
+                )}
+              </div>
+              <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <p className="text-sm text-yellow-800">
+                  <strong>⚠️ Importante:</strong> Salve estas credenciais em um local seguro. Elas não serão exibidas novamente.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Available Services */}
+        <div className="mt-8 bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Serviços Disponíveis</h2>
+          {services.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {services.map((service) => (
+                <div
+                  key={service.id}
+                  className={`p-4 rounded-lg border-2 transition-all ${
+                    service._count.stocks > 0
+                      ? 'border-green-200 bg-green-50 hover:bg-green-100'
+                      : 'border-red-200 bg-red-50 opacity-60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-gray-900">{service.name}</h3>
+                      <p className="text-sm text-gray-600">{service._count.stocks} disponíveis</p>
+                    </div>
+                    {service._count.stocks > 0 ? (
+                      <span className="text-2xl">✅</span>
+                    ) : (
+                      <span className="text-2xl">❌</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-600 text-center py-8">Nenhum serviço disponível no momento.</p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
