@@ -164,8 +164,16 @@ export default function Layout({ children }: LayoutProps) {
                     </p>
                   </div>
                   <button
-                    onClick={() => {
-                      signOut({ callbackUrl: '/' })
+                    onClick={async () => {
+                      // Sempre redireciona para a página principal usando a URL atual do navegador
+                      // Isso garante que não vai para localhost em produção
+                      const callbackUrl = typeof window !== 'undefined' 
+                        ? window.location.origin 
+                        : '/'
+                      
+                      await signOut({ 
+                        callbackUrl: callbackUrl 
+                      })
                     }}
                     className="px-3 py-1.5 md:px-4 md:py-2 bg-red-50 text-red-600 rounded-lg text-sm md:text-base font-medium hover:bg-red-100 transition-colors border border-red-200"
                   >
