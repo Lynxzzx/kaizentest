@@ -323,6 +323,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log('📊 Plano:', plan.name, '- Valor:', plan.price)
       
       try {
+        // Verificar se já existe um pagamento pendente para este usuário e plano
+        let payment = await prisma.payment.findFirst({
+          where: {
+            userId: session.user.id,
+            planId: plan.id,
+            method: 'BITCOIN',
+            status: 'PENDING'
+          },
+          orderBy: {
+            createdAt: 'desc'
+          }
+        })
+        
         // Calcular valor em BTC - tentar API primeiro, usar padrão se falhar
         let btcAmount: number
         try {
@@ -339,18 +352,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.log('✅ Usando valor padrão:', btcAmount, 'BTC')
         }
         
-        // Criar registro de pagamento primeiro
-        console.log('💾 Criando registro de pagamento no banco...')
-        const payment = await prisma.payment.create({
-          data: {
-            userId: session.user.id,
-            planId: plan.id,
-            amount: plan.price,
-            method: 'BITCOIN',
-            status: 'PENDING'
+        // Criar registro de pagamento apenas se não existir
+        if (!payment) {
+          console.log('💾 Criando registro de pagamento no banco...')
+          try {
+            payment = await prisma.payment.create({
+              data: {
+                userId: session.user.id,
+                planId: plan.id,
+                amount: plan.price,
+                method: 'BITCOIN',
+                status: 'PENDING'
+              }
+            })
+            console.log('✅ Pagamento criado:', payment.id)
+          } catch (createError: any) {
+            // Se falhar por qualquer motivo, tentar buscar novamente
+            if (createError.code === 'P2002') {
+              console.log('⚠️ Pagamento duplicado detectado, buscando existente...')
+              payment = await prisma.payment.findFirst({
+                where: {
+                  userId: session.user.id,
+                  planId: plan.id,
+                  method: 'BITCOIN',
+                  status: 'PENDING'
+                },
+                orderBy: {
+                  createdAt: 'desc'
+                }
+              })
+              
+              if (!payment) {
+                throw new Error('Erro ao criar pagamento: conflito de ID')
+              }
+            } else {
+              throw createError
+            }
           }
-        })
-        console.log('✅ Pagamento criado:', payment.id)
+        } else {
+          console.log('✅ Usando pagamento existente:', payment.id)
+        }
 
         // Gerar endereço de pagamento - função local, sempre funciona
         console.log('🔐 Gerando endereço Bitcoin...')
@@ -406,42 +447,95 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // NUNCA retornar fallback Telegram - sempre tentar criar dados Binance
         // Criar dados básicos mesmo com erro
         try {
+          // Verificar se já existe um pagamento pendente
+          let payment = await prisma.payment.findFirst({
+            where: {
+              userId: session.user.id,
+              planId: plan.id,
+              method: 'BITCOIN',
+              status: 'PENDING'
+            },
+            orderBy: {
+              createdAt: 'desc'
+            }
+          })
+          
           const defaultBtcPrice = 50000
           const usdBrlRate = 5.0
           const amountUsd = plan.price / usdBrlRate
           const btcAmount = Math.round((amountUsd / defaultBtcPrice) * 100000000) / 100000000
           
-          // Tentar criar pagamento mesmo com erro
-          const payment = await prisma.payment.create({
-            data: {
-              userId: session.user.id,
-              planId: plan.id,
-              amount: plan.price,
-              method: 'BITCOIN',
-              status: 'PENDING'
+          // Criar pagamento apenas se não existir
+          if (!payment) {
+            try {
+              payment = await prisma.payment.create({
+                data: {
+                  userId: session.user.id,
+                  planId: plan.id,
+                  amount: plan.price,
+                  method: 'BITCOIN',
+                  status: 'PENDING'
+                }
+              })
+            } catch (createError: any) {
+              // Se falhar por constraint única, buscar novamente
+              if (createError.code === 'P2002') {
+                payment = await prisma.payment.findFirst({
+                  where: {
+                    userId: session.user.id,
+                    planId: plan.id,
+                    method: 'BITCOIN',
+                    status: 'PENDING'
+                  },
+                  orderBy: {
+                    createdAt: 'desc'
+                  }
+                })
+              }
+              
+              if (!payment) {
+                throw createError
+              }
             }
-          })
+          }
           
-          // Gerar endereço simples
-          const simpleHash = payment.id.replace(/[^a-z0-9]/gi, '').substring(0, 30)
-          const simpleAddress = `bc1${simpleHash}`
+          if (!payment) {
+            throw new Error('Não foi possível criar ou encontrar o pagamento')
+          }
           
-          await prisma.payment.update({
-            where: { id: payment.id },
-            data: {
-              bitcoinAddress: simpleAddress
-            }
-          })
-          
-          return res.json({
-            id: payment.id,
-            bitcoinAddress: simpleAddress,
-            bitcoinAmount: btcAmount,
-            network: 'Bitcoin',
-            qrCode: `bitcoin:${simpleAddress}?amount=${btcAmount}`,
-            originalAmount: plan.price,
-            currency: 'BTC'
-          })
+          // Gerar endereço simples se não tiver
+          if (!payment.bitcoinAddress) {
+            const simpleHash = payment.id.replace(/[^a-z0-9]/gi, '').substring(0, 30)
+            const simpleAddress = `bc1${simpleHash}`
+            
+            await prisma.payment.update({
+              where: { id: payment.id },
+              data: {
+                bitcoinAddress: simpleAddress
+              }
+            })
+            
+            return res.json({
+              id: payment.id,
+              bitcoinAddress: simpleAddress,
+              bitcoinAmount: btcAmount,
+              network: 'Bitcoin',
+              qrCode: `bitcoin:${simpleAddress}?amount=${btcAmount}`,
+              originalAmount: plan.price,
+              currency: 'BTC'
+            })
+          } else {
+            // Retornar pagamento existente
+            return res.json({
+              id: payment.id,
+              bitcoinAddress: payment.bitcoinAddress,
+              bitcoinAmount: btcAmount,
+              network: 'Bitcoin',
+              qrCode: `bitcoin:${payment.bitcoinAddress}?amount=${btcAmount}`,
+              originalAmount: plan.price,
+              currency: 'BTC'
+            })
+          }
         } catch (finalError: any) {
           console.error('❌ Erro FINAL ao criar pagamento:', finalError)
           return res.status(500).json({
