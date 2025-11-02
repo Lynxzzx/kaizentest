@@ -141,8 +141,7 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                   <button
                     onClick={() => {
-                      const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-                      signOut({ callbackUrl: `${baseUrl}/` })
+                      signOut({ callbackUrl: '/' })
                     }}
                     className="px-3 py-1.5 md:px-4 md:py-2 bg-red-50 text-red-600 rounded-lg text-sm md:text-base font-medium hover:bg-red-100 transition-colors border border-red-200"
                   >

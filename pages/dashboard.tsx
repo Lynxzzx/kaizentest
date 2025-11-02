@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n-helper'
 import axios from 'axios'
 import toast from 'react-hot-toast'
@@ -116,9 +117,18 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">{t('dashboard')}</h1>
-          <p className="text-sm sm:text-base text-gray-600">Bem-vindo, {session.user.username}!</p>
+        <div className="mb-6 sm:mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">{t('dashboard')}</h1>
+            <p className="text-sm sm:text-base text-gray-600">Bem-vindo, {session.user.username}!</p>
+          </div>
+          <Link
+            href={`/profile/${session.user.username}`}
+            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all shadow-md"
+          >
+            <span>👤</span>
+            <span className="font-bold">Ver Perfil</span>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">

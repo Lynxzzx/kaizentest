@@ -22,12 +22,10 @@ export default function BroadcastBanner() {
   const [dismissed, setDismissed] = useState<string[]>([])
 
   useEffect(() => {
-    if (session) {
-      loadBroadcasts()
-      const interval = setInterval(loadBroadcasts, 30000) // Atualizar a cada 30 segundos
-      return () => clearInterval(interval)
-    }
-  }, [session])
+    loadBroadcasts()
+    const interval = setInterval(loadBroadcasts, 30000) // Atualizar a cada 30 segundos
+    return () => clearInterval(interval)
+  }, [])
 
   useEffect(() => {
     const stored = localStorage.getItem('dismissedBroadcasts')
@@ -55,7 +53,7 @@ export default function BroadcastBanner() {
     setBroadcasts(broadcasts.filter(b => b.id !== id))
   }
 
-  if (!session || broadcasts.length === 0) return null
+  if (broadcasts.length === 0) return null
 
   return (
     <>

@@ -4,13 +4,8 @@ import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const session = await getServerSession(req, res, authOptions)
-
-  if (!session) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-
   if (req.method === 'GET') {
+    // GET não requer autenticação - broadcasts são públicos
     try {
       const broadcasts = await prisma.broadcastMessage.findMany({
         where: {
@@ -38,6 +33,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('Error fetching broadcasts:', error)
       return res.status(500).json({ error: 'Error fetching broadcasts' })
     }
+  }
+
+  const session = await getServerSession(req, res, authOptions)
+
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' })
   }
 
   if (req.method === 'POST') {
