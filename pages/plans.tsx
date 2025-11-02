@@ -76,24 +76,12 @@ export default function Plans() {
         })
         
         console.log('✅ Resposta recebida:', response.data)
+        console.log('✅ Status HTTP:', response.status)
+        console.log('✅ Tem bitcoinAddress?', !!response.data.bitcoinAddress)
+        console.log('✅ Tem fallback?', !!response.data.fallback)
         
-        // Se retornar erro com fallback, usar Telegram
-        if (response.data.error && response.data.fallback) {
-          console.log('⚠️ Erro na criação, usando fallback Telegram')
-          setPaymentData({
-            id: response.data.id || Date.now().toString(),
-            fallback: true,
-            telegramLink: response.data.telegramLink || 'https://t.me/lynxdevz',
-            message: response.data.message || 'Contact lynxdevz on Telegram to complete payment'
-          })
-          toast.error(response.data.error || 'Erro ao criar pagamento. Redirecionando para Telegram...')
-          if (response.data.telegramLink) {
-            setTimeout(() => {
-              window.open(response.data.telegramLink, '_blank')
-            }, 1000)
-          }
-        } else if (response.data.bitcoinAddress) {
-          // Sucesso - dados do Binance recebidos
+        // SEMPRE verificar primeiro se tem bitcoinAddress (sucesso Binance)
+        if (response.data.bitcoinAddress) {
           console.log('✅ Dados Binance recebidos com sucesso!')
           console.log('📋 Dados completos:', JSON.stringify(response.data, null, 2))
           setPaymentData(response.data)
@@ -103,35 +91,32 @@ export default function Plans() {
           setPaymentMethod('CRYPTO')
           setSelectedPlan(plan)
         } else {
-          // Dados incompletos - verificar o que foi retornado
-          console.error('❌ Resposta incompleta:', response.data)
-          console.error('❌ Resposta não tem bitcoinAddress')
+          // Sem bitcoinAddress - mostrar erro mas NÃO redirecionar
+          console.error('❌ Resposta não contém bitcoinAddress')
+          console.error('❌ Resposta completa:', response.data)
           console.error('❌ Keys na resposta:', Object.keys(response.data))
-          toast.error('Erro: Dados de pagamento incompletos. Verifique o console para mais detalhes.')
+          toast.error('Erro: Dados de pagamento incompletos. Tente novamente.')
+          setLoading(false)
         }
       } catch (error: any) {
-        console.error('❌ Erro ao criar pagamento:', error)
-        console.error('Error response:', error.response?.data)
+        console.error('❌ Erro HTTP ao criar pagamento:', error)
+        console.error('❌ Status HTTP:', error.response?.status)
+        console.error('❌ Error response data:', error.response?.data)
+        console.error('❌ Error message:', error.message)
         
-        // Se o erro tiver dados de fallback, usar
-        if (error.response?.data?.fallback) {
-          setPaymentData({
-            id: error.response.data.id || Date.now().toString(),
-            fallback: true,
-            telegramLink: error.response.data.telegramLink || 'https://t.me/lynxdevz',
-            message: error.response.data.message || 'Contact lynxdevz on Telegram to complete payment'
-          })
-          toast.error(error.response?.data?.error || 'Erro ao criar pagamento. Redirecionando para Telegram...')
-          if (error.response?.data?.telegramLink) {
-            setTimeout(() => {
-              window.open(error.response.data.telegramLink, '_blank')
-            }, 1000)
-          }
-        } else {
-          toast.error(error.response?.data?.error || 'Erro ao criar pagamento. Tente novamente.')
-        }
-      } finally {
+        // NUNCA redirecionar para Telegram automaticamente
+        // Sempre mostrar erro ao usuário
+        const errorMessage = error.response?.data?.error || error.response?.data?.details || error.message || 'Erro ao criar pagamento. Tente novamente.'
+        toast.error(errorMessage)
         setLoading(false)
+        
+        // Se ainda assim tiver bitcoinAddress no erro (caso raro), usar
+        if (error.response?.data?.bitcoinAddress) {
+          console.log('⚠️ Erro HTTP mas tem bitcoinAddress, usando dados')
+          setPaymentData(error.response.data)
+          setPaymentMethod('CRYPTO')
+          setSelectedPlan(plan)
+        }
       }
       return
     }
