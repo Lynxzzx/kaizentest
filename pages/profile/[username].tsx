@@ -7,7 +7,6 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
 import Layout from '@/components/Layout'
-import Chatbox from '@/components/Chatbox'
 
 interface UserProfile {
   id: string
@@ -37,7 +36,6 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState({ bio: '', profilePicture: '' })
   const [saving, setSaving] = useState(false)
-  const [chatboxOpen, setChatboxOpen] = useState(false)
 
   useEffect(() => {
     if (username && typeof username === 'string') {
@@ -267,7 +265,6 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
-      <Chatbox isOpen={chatboxOpen} onToggle={() => setChatboxOpen(!chatboxOpen)} />
     </Layout>
   )
 }

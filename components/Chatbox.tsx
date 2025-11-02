@@ -96,7 +96,7 @@ export default function Chatbox({ isOpen, onToggle }: ChatboxProps) {
       {/* Botão flutuante */}
       <button
         onClick={onToggle}
-        className={`fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center ${
+        className={`fixed bottom-6 right-6 z-[60] w-16 h-16 rounded-full shadow-2xl transition-all duration-300 flex items-center justify-center ${
           isOpen
             ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
             : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
@@ -111,7 +111,7 @@ export default function Chatbox({ isOpen, onToggle }: ChatboxProps) {
 
       {/* Chatbox */}
       {isOpen && (
-        <div className="fixed bottom-24 right-0 md:right-6 z-50 w-full md:w-full md:max-w-md h-[600px] md:h-[600px] max-h-[85vh] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-t-2xl md:rounded-2xl shadow-2xl border border-gray-700 flex flex-col overflow-hidden">
+        <div className="fixed bottom-24 right-0 md:right-6 z-[60] w-full md:w-full md:max-w-md h-[600px] md:h-[600px] max-h-[85vh] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-t-2xl md:rounded-2xl shadow-2xl border border-gray-700 flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 flex items-center justify-between">
             <div className="flex items-center space-x-3">
