@@ -1,6 +1,7 @@
 import { useTranslation } from '@/lib/i18n-helper'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
+import Logo from '@/components/Logo'
 
 export default function Home() {
   const { t } = useTranslation()
@@ -13,6 +14,9 @@ export default function Home() {
         <div className="absolute inset-0 bg-black opacity-10"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-24 lg:py-32">
           <div className="text-center">
+            <div className="flex justify-center mb-6 sm:mb-8">
+              <Logo size="lg" showText={false} className="justify-center" />
+            </div>
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 animate-fade-in px-2">
               {t('siteName')}
             </h1>

@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
+import Logo from './Logo'
 
 interface LayoutProps {
   children: ReactNode
@@ -20,14 +21,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 md:h-20">
             <div className="flex items-center space-x-4 md:space-x-8">
-              <Link href="/" className="flex items-center space-x-2 group">
-                <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform">
-                  <span className="text-white font-bold text-lg md:text-xl">K</span>
-                </div>
-                <span className="text-lg md:text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
-                  {t('siteName')}
-                </span>
-              </Link>
+              <Logo size="md" showText={false} />
               {session && (
                 <>
                   {/* Desktop Menu */}
@@ -255,8 +249,10 @@ export default function Layout({ children }: LayoutProps) {
       <footer className="bg-white border-t border-gray-200 mt-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600">
-            <p className="font-semibold mb-2">{t('siteName')}</p>
-            <p className="text-sm">© {new Date().getFullYear()} Todos os direitos reservados</p>
+            <div className="flex justify-center mb-4">
+              <Logo size="sm" showText={true} className="justify-center" />
+            </div>
+            <p className="text-sm">© {new Date().getFullYear()} Kaizen Gerador. Todos os direitos reservados</p>
           </div>
         </div>
       </footer>
