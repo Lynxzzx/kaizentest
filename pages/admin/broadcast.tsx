@@ -5,7 +5,6 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
-import Layout from '@/components/Layout'
 
 interface Broadcast {
   id: string
@@ -49,7 +48,7 @@ export default function BroadcastPage() {
 
   const loadBroadcasts = async () => {
     try {
-      const response = await axios.get('/api/broadcast')
+      const response = await axios.get('/api/broadcast/admin')
       setBroadcasts(response.data.broadcasts || [])
     } catch (error: any) {
       toast.error('Erro ao carregar broadcasts')
@@ -87,14 +86,12 @@ export default function BroadcastPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
-            <p className="mt-4 text-gray-300 text-lg">Carregando...</p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+          <p className="mt-4 text-gray-300 text-lg">Carregando...</p>
         </div>
-      </Layout>
+      </div>
     )
   }
 
@@ -103,7 +100,6 @@ export default function BroadcastPage() {
   }
 
   return (
-    <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-8">
@@ -228,7 +224,6 @@ export default function BroadcastPage() {
           )}
         </div>
       </div>
-    </Layout>
   )
 }
 

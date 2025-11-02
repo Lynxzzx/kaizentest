@@ -6,7 +6,6 @@ import Image from 'next/image'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
-import Layout from '@/components/Layout'
 
 interface UserProfile {
   id: string
@@ -90,33 +89,29 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
-            <p className="mt-4 text-gray-300 text-lg">Carregando perfil...</p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+          <p className="mt-4 text-gray-300 text-lg">Carregando perfil...</p>
         </div>
-      </Layout>
+      </div>
     )
   }
 
   if (!profile) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-6xl mb-4">😕</div>
-            <p className="text-gray-300 text-xl mb-2">Perfil não encontrado</p>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-purple-700 transition-all"
-            >
-              Voltar
-            </button>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-4">😕</div>
+          <p className="text-gray-300 text-xl mb-2">Perfil não encontrado</p>
+          <button
+            onClick={() => router.push('/dashboard')}
+            className="mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-purple-700 transition-all"
+          >
+            Voltar
+          </button>
         </div>
-      </Layout>
+      </div>
     )
   }
 
@@ -124,7 +119,6 @@ export default function ProfilePage() {
   const isOwnProfile = session?.user.id === profile.id
 
   return (
-    <Layout>
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
           {/* Header Card */}
@@ -265,7 +259,6 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
-    </Layout>
   )
 }
 

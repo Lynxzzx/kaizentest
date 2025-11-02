@@ -34,9 +34,13 @@ export default function Chatbox({ isOpen, onToggle }: ChatboxProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (isOpen && session) {
+    if (session) {
       loadMessages()
-      const interval = setInterval(loadMessages, 3000) // Atualizar a cada 3 segundos
+      const interval = setInterval(() => {
+        if (isOpen) {
+          loadMessages()
+        }
+      }, 3000) // Atualizar a cada 3 segundos
       return () => clearInterval(interval)
     }
   }, [isOpen, session])
