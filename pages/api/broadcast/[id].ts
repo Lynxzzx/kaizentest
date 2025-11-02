@@ -29,7 +29,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         where: { id: id as string },
         data: {
           isActive: isActive !== undefined ? isActive : true
-        },
+        }
+      })
+
+      // Buscar dados do usuário separadamente se necessário
+      const broadcastWithUser = await prisma.broadcastMessage.findUnique({
+        where: { id: broadcast.id },
         include: {
           user: {
             select: {
@@ -40,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
-      return res.json({ broadcast })
+      return res.json({ broadcast: broadcastWithUser || broadcast })
     } catch (error: any) {
       console.error('Error updating broadcast:', error)
       return res.status(500).json({ error: 'Error updating broadcast' })
