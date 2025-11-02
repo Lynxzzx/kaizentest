@@ -25,7 +25,7 @@ export default function BroadcastBanner() {
     loadBroadcasts()
     const interval = setInterval(loadBroadcasts, 30000) // Atualizar a cada 30 segundos
     return () => clearInterval(interval)
-  }, [])
+  }, [dismissed])
 
   useEffect(() => {
     const stored = localStorage.getItem('dismissedBroadcasts')
