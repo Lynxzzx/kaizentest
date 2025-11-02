@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     console.log('Register API called:', { username: req.body?.username })
-    const { username, email, password } = req.body
+    const { username, email, password, deviceFingerprint } = req.body
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' })
@@ -26,6 +26,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (password.length < 6) {
       return res.status(400).json({ error: 'Password must be at least 6 characters' })
+    }
+
+    // VALIDAÇÃO DE SEGURANÇA: Verificar device fingerprint
+    if (deviceFingerprint) {
+      const existingDevice = await prisma.user.findFirst({
+        where: { deviceFingerprint }
+      })
+
+      if (existingDevice) {
+        console.log('Device already has an account:', deviceFingerprint)
+        return res.status(403).json({ 
+          error: 'Este dispositivo já possui uma conta. Para sua segurança, cada dispositivo pode criar apenas uma conta.' 
+        })
+      }
     }
 
     console.log('Checking existing users...')
