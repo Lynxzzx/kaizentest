@@ -41,6 +41,7 @@ model User {
   tickets       Ticket[]
   affiliateRewards AffiliateReward[]
   chatMessages  ChatMessage[]
+  broadcasts    BroadcastMessage[]
 }
 
 enum UserRole {
@@ -210,6 +211,7 @@ model ChatMessage {
 model BroadcastMessage {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   userId      String   @db.ObjectId // Owner/Admin que criou
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String?
   message     String
   isActive    Boolean  @default(true)
