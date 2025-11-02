@@ -106,7 +106,8 @@ function getNetworkForCurrency(currency: CryptocurrencyType): string {
 
 /**
  * Verifica se um pagamento foi recebido
- * Em produção, isso deve consultar a Binance Pay API
+ * Em produção, isso deve consultar a Binance Pay API ou Blockchain
+ * Por enquanto, verifica usando APIs públicas de blockchain
  */
 export async function checkPaymentStatus(address: string, currency: CryptocurrencyType): Promise<{
   received: boolean
@@ -114,9 +115,15 @@ export async function checkPaymentStatus(address: string, currency: Cryptocurren
   confirmations?: number
 }> {
   try {
-    // Em produção, fazer requisição real à Binance Pay API
-    // Por enquanto, retornamos um status padrão
-    // Este método deve ser implementado com a API real da Binance
+    // TODO: Implementar verificação real via Binance Pay API ou APIs de blockchain
+    // Por enquanto, esta é uma implementação placeholder
+    // Para Bitcoin, poderia usar: https://blockstream.info/api/address/{address}
+    // Para Ethereum, poderia usar: https://api.etherscan.io/api
+    
+    console.log(`🔍 Verificando pagamento: ${address} (${currency})`)
+    
+    // Implementação real deve consultar a blockchain ou Binance Pay
+    // Retornando false por padrão - deve ser implementado conforme necessidade
     
     return {
       received: false,
