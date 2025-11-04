@@ -308,6 +308,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } catch (error: any) {
         console.error('Error creating Asaas payment:', error)
         
+        // Verificar se é erro de chave não configurada
+        if (error.message?.includes('não está configurada') || error.message?.includes('not configured')) {
+          const hasAsaasKey = !!process.env.ASAAS_API_KEY
+          const keyPrefix = hasAsaasKey ? process.env.ASAAS_API_KEY?.substring(0, 15) : 'NÃO CONFIGURADA'
+          
+          return res.status(500).json({ 
+            error: 'ASAAS_API_KEY não está configurada no servidor',
+            message: 'A chave de API do Asaas não foi encontrada nas variáveis de ambiente do Vercel.',
+            debug: {
+              hasApiKey: hasAsaasKey,
+              keyPrefix: keyPrefix,
+              nodeEnv: process.env.NODE_ENV,
+              vercelEnv: process.env.VERCEL_ENV,
+              checkEndpoint: '/api/debug/asaas-key (apenas para OWNER)',
+              instructions: [
+                '1. Acesse o Vercel: https://vercel.com',
+                '2. Vá em Settings > Environment Variables',
+                '3. Adicione ASAAS_API_KEY com sua chave completa do Asaas',
+                '4. Marque TODOS os ambientes: Production, Preview, Development',
+                '5. Clique em Save',
+                '6. Faça um REDEPLOY (não apenas push - precisa redeployar)',
+                '7. O .env local NÃO funciona no Vercel - DEVE configurar no painel',
+                '8. Após redeploy, verifique em /api/debug/asaas-key se a chave está carregada'
+              ]
+            }
+          })
+        }
+        
         // Verificar se é erro de autenticação
         if (error.response?.status === 401 || error.name === 'AsaasAuthenticationError') {
           const errorMessage = error.response?.data?.errors?.[0]?.description || 
@@ -317,6 +345,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           // Verificar se a chave está configurada
           const hasAsaasKey = !!process.env.ASAAS_API_KEY
           const keyPrefix = hasAsaasKey ? process.env.ASAAS_API_KEY?.substring(0, 15) : 'NÃO CONFIGURADA'
+          const keyLength = process.env.ASAAS_API_KEY?.length || 0
           
           return res.status(401).json({ 
             error: 'Erro de autenticação com o Asaas',
@@ -325,11 +354,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             debug: {
               hasApiKey: hasAsaasKey,
               keyPrefix: keyPrefix,
+              keyLength: keyLength,
+              checkEndpoint: '/api/debug/asaas-key (apenas para OWNER)',
               instructions: [
                 '1. Verifique se ASAAS_API_KEY está configurada no Vercel (Settings > Environment Variables)',
-                '2. Verifique se a chave está correta no painel do Asaas',
-                '3. Após alterar, faça um REDEPLOY no Vercel para aplicar as mudanças',
-                '4. O .env local NÃO é usado no Vercel - você precisa configurar nas variáveis de ambiente do Vercel'
+                '2. Verifique se a chave está CORRETA e COMPLETA no painel do Asaas',
+                '3. Verifique se a chave não expirou ou foi revogada',
+                '4. Após alterar, faça um REDEPLOY no Vercel (não apenas push)',
+                '5. O .env local NÃO é usado no Vercel',
+                '6. Verifique em /api/debug/asaas-key se a chave está sendo carregada corretamente'
               ]
             }
           })
