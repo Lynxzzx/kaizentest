@@ -6,7 +6,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const asaasApiKey = process.env.ASAAS_API_KEY
+  // Tentar múltiplas formas de acessar a variável
+  const asaasApiKey1 = process.env.ASAAS_API_KEY
+  const asaasApiKey2 = process.env['ASAAS_API_KEY']
+  const asaasApiKey3 = (process.env as any).ASAAS_API_KEY
+  const asaasApiKey = asaasApiKey1 || asaasApiKey2 || asaasApiKey3
+  
   const asaasApiUrl = process.env.ASAAS_API_URL
   
   // Listar todas as variáveis que contêm "ASAAS" ou "API"
@@ -17,6 +22,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Verificar se a variável existe mas está vazia
   const asaasKeyExists = 'ASAAS_API_KEY' in process.env
   const asaasKeyHasValue = !!asaasApiKey && asaasApiKey.trim().length > 0
+  
+  // Debug detalhado: tentar acessar o valor de diferentes formas
+  const debugAccess = {
+    directAccess: process.env.ASAAS_API_KEY,
+    bracketAccess: process.env['ASAAS_API_KEY'],
+    anyAccess: (process.env as any).ASAAS_API_KEY,
+    typeDirect: typeof process.env.ASAAS_API_KEY,
+    typeBracket: typeof process.env['ASAAS_API_KEY'],
+    valueDirect: process.env.ASAAS_API_KEY === undefined ? 'undefined' : process.env.ASAAS_API_KEY === '' ? 'empty string' : 'has value',
+    valueBracket: process.env['ASAAS_API_KEY'] === undefined ? 'undefined' : process.env['ASAAS_API_KEY'] === '' ? 'empty string' : 'has value',
+    // Tentar acessar via Object.getOwnPropertyDescriptor
+    descriptor: Object.getOwnPropertyDescriptor(process.env, 'ASAAS_API_KEY'),
+    // Verificar se está na lista de chaves
+    inKeys: allEnvKeys.includes('ASAAS_API_KEY'),
+    // Verificar se há variações do nome (com espaços, etc)
+    keyVariations: allEnvKeys.filter(k => k.toUpperCase().replace(/[^A-Z0-9_]/g, '') === 'ASAAS_API_KEY')
+  }
 
   return res.json({
     asaas: {
@@ -45,7 +67,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       asaasRelatedVars: asaasRelatedVars,
       apiRelatedVars: apiRelatedVars,
       hasAsaasApiKey: !!process.env.ASAAS_API_KEY,
-      hasAsaasApiUrl: !!process.env.ASAAS_API_URL
+      hasAsaasApiUrl: !!process.env.ASAAS_API_URL,
+      accessMethods: debugAccess,
+      // Tentar acessar o valor bruto
+      rawValue: process.env.ASAAS_API_KEY,
+      rawValueType: typeof process.env.ASAAS_API_KEY,
+      rawValueLength: process.env.ASAAS_API_KEY?.length || 0,
+      // Verificar se há problema com caracteres especiais
+      firstChar: process.env.ASAAS_API_KEY?.[0] || 'N/A',
+      firstCharCode: process.env.ASAAS_API_KEY?.[0]?.charCodeAt(0) || 'N/A',
+      // Verificar todas as variáveis ASAAS
+      allAsaasVars: Object.fromEntries(
+        asaasRelatedVars.map(key => [key, {
+          exists: key in process.env,
+          hasValue: !!(process.env as any)[key],
+          valueType: typeof (process.env as any)[key],
+          valueLength: ((process.env as any)[key]?.length || 0),
+          valuePreview: (process.env as any)[key] ? String((process.env as any)[key]).substring(0, 20) : 'N/A'
+        }])
+      )
     },
     instructions: !asaasKeyExists ? {
       step1: 'Acesse: https://vercel.com/dashboard',
