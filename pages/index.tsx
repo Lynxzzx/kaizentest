@@ -24,7 +24,7 @@ export default function Home() {
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-3xl blur-2xl opacity-50"></div>
               <div className="relative bg-white/10 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/20 shadow-2xl">
-                <Logo size="xl" showText={false} className="justify-center" />
+                <Logo size="lg" showText={false} className="justify-center" />
               </div>
             </div>
           </div>
