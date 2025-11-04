@@ -14,35 +14,78 @@ function getAsaasApiKey(): string {
 
   const ASAAS_API_KEY_ENV = process.env.ASAAS_API_KEY
 
-  // Log detalhado se não encontrar
-  if (!ASAAS_API_KEY_ENV) {
-    console.error('❌ ERRO CRÍTICO: ASAAS_API_KEY não está configurada!')
-    console.error('   process.env.ASAAS_API_KEY:', typeof ASAAS_API_KEY_ENV, ASAAS_API_KEY_ENV)
+  // Detectar se a variável existe mas está vazia (string vazia)
+  const isStringEmpty = typeof ASAAS_API_KEY_ENV === 'string' && ASAAS_API_KEY_ENV.trim().length === 0
+  const isUndefinedOrNull = ASAAS_API_KEY_ENV === undefined || ASAAS_API_KEY_ENV === null
+
+  // Log detalhado se não encontrar ou estiver vazia
+  if (isUndefinedOrNull || isStringEmpty) {
+    if (isStringEmpty) {
+      console.error('❌ ERRO CRÍTICO: ASAAS_API_KEY existe mas está VAZIA (string vazia)!')
+      console.error('   Isso significa que a variável foi criada no Vercel mas o valor não foi salvo corretamente.')
+      console.error('   Tipo:', typeof ASAAS_API_KEY_ENV)
+      console.error('   Valor:', JSON.stringify(ASAAS_API_KEY_ENV))
+      console.error('   Tamanho:', ASAAS_API_KEY_ENV?.length || 0)
+    } else {
+      console.error('❌ ERRO CRÍTICO: ASAAS_API_KEY não está configurada!')
+      console.error('   process.env.ASAAS_API_KEY:', typeof ASAAS_API_KEY_ENV, ASAAS_API_KEY_ENV)
+    }
     console.error('   Todas as variáveis de ambiente disponíveis:', Object.keys(process.env).length, 'variáveis')
     console.error('   Variáveis que contêm "ASAAS":', Object.keys(process.env).filter(k => k.toUpperCase().includes('ASAAS')))
     console.error('   Variáveis que contêm "API":', Object.keys(process.env).filter(k => k.toUpperCase().includes('API')).slice(0, 10))
     console.error('')
-    console.error('   ⚠️ INSTRUÇÕES DETALHADAS PARA CONFIGURAR NO VERCEL:')
-    console.error('   1. Acesse: https://vercel.com/dashboard')
-    console.error('   2. Selecione seu projeto')
-    console.error('   3. Vá em Settings (⚙️) > Environment Variables')
-    console.error('   4. Clique em "Add New"')
-    console.error('   5. Nome: ASAAS_API_KEY (EXATAMENTE assim, maiúsculas)')
-    console.error('   6. Valor: Cole sua chave completa do Asaas (começa com $aact_prod_...)')
-    console.error('   7. IMPORTANTE: Marque TODOS os ambientes:')
-    console.error('      ✅ Production')
-    console.error('      ✅ Preview')  
-    console.error('      ✅ Development')
-    console.error('   8. Clique em "Save"')
-    console.error('   9. VÁ EM DEPLOYMENTS > Clique nos 3 pontos (⋯) do último deployment > "Redeploy"')
-    console.error('   10. AGUARDE o redeploy completar (pode levar 1-2 minutos)')
+    if (isStringEmpty) {
+      console.error('   ⚠️ SOLUÇÃO PARA VARIÁVEL VAZIA:')
+      console.error('   1. Acesse: https://vercel.com/dashboard')
+      console.error('   2. Selecione seu projeto')
+      console.error('   3. Vá em Settings (⚙️) > Environment Variables')
+      console.error('   4. DELETE a variável ASAAS_API_KEY (clique no ícone de lixeira 🗑️)')
+      console.error('   5. Clique em "Add New" para criar NOVAMENTE')
+      console.error('   6. Nome: ASAAS_API_KEY (EXATAMENTE assim, maiúsculas, SEM espaços)')
+      console.error('   7. Valor: Cole sua chave COMPLETA do Asaas')
+      console.error('      - Copie a chave do painel do Asaas')
+      console.error('      - Deve começar com $aact_prod_... ou $aact_hmlg_...')
+      console.error('      - Deve ter mais de 100 caracteres')
+      console.error('      - NÃO adicione espaços ou quebras de linha')
+      console.error('      - Cole usando Ctrl+V (não Shift+Insert)')
+      console.error('   8. IMPORTANTE: Marque TODOS os ambientes:')
+      console.error('      ✅ Production (obrigatório!)')
+      console.error('      ✅ Preview')  
+      console.error('      ✅ Development')
+      console.error('   9. Verifique se o valor aparece no campo antes de salvar')
+      console.error('   10. Clique em "Save"')
+      console.error('   11. VÁ EM DEPLOYMENTS > Clique nos 3 pontos (⋯) do último deployment > "Redeploy"')
+      console.error('   12. AGUARDE o redeploy completar (pode levar 1-2 minutos)')
+      console.error('')
+      console.error('   ⚠️ DICA: Se persistir, tente usar o Vercel CLI:')
+      console.error('      vercel env add ASAAS_API_KEY production')
+      console.error('      (Cole a chave quando solicitado)')
+    } else {
+      console.error('   ⚠️ INSTRUÇÕES DETALHADAS PARA CONFIGURAR NO VERCEL:')
+      console.error('   1. Acesse: https://vercel.com/dashboard')
+      console.error('   2. Selecione seu projeto')
+      console.error('   3. Vá em Settings (⚙️) > Environment Variables')
+      console.error('   4. Clique em "Add New"')
+      console.error('   5. Nome: ASAAS_API_KEY (EXATAMENTE assim, maiúsculas)')
+      console.error('   6. Valor: Cole sua chave completa do Asaas (começa com $aact_prod_...)')
+      console.error('   7. IMPORTANTE: Marque TODOS os ambientes:')
+      console.error('      ✅ Production')
+      console.error('      ✅ Preview')  
+      console.error('      ✅ Development')
+      console.error('   8. Clique em "Save"')
+      console.error('   9. VÁ EM DEPLOYMENTS > Clique nos 3 pontos (⋯) do último deployment > "Redeploy"')
+      console.error('   10. AGUARDE o redeploy completar (pode levar 1-2 minutos)')
+    }
     console.error('')
     console.error('   ⚠️ PROBLEMAS COMUNS:')
     console.error('   - Variável configurada mas não marcada para Production')
     console.error('   - Não fez REDEPLOY após adicionar (só push não funciona)')
     console.error('   - Nome da variável com espaços ou errado (deve ser exatamente: ASAAS_API_KEY)')
     console.error('   - Chave incompleta (deve ter mais de 100 caracteres)')
-    throw new Error('ASAAS_API_KEY não está configurada no servidor. Verifique no Vercel: Settings > Environment Variables (certifique-se de marcar Production e fazer REDEPLOY).')
+    console.error('   - Variável salva vazia (delete e crie novamente)')
+    throw new Error(isStringEmpty 
+      ? 'ASAAS_API_KEY existe mas está VAZIA! Delete e crie novamente no Vercel com o valor correto.'
+      : 'ASAAS_API_KEY não está configurada no servidor. Verifique no Vercel: Settings > Environment Variables (certifique-se de marcar Production e fazer REDEPLOY).')
   }
 
   // Remover espaços extras e garantir que a chave está completa

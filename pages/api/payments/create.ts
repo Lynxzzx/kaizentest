@@ -43,6 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const asaasKeyValue = process.env.ASAAS_API_KEY
       const asaasKeyType = typeof asaasApiKeyCheck
       const asaasKeyLength = asaasApiKeyCheck?.length || 0
+      const isStringEmpty = typeof asaasApiKeyCheck === 'string' && asaasApiKeyCheck.trim().length === 0
       
       // Verificar todas as formas possíveis
       const allEnvKeys = Object.keys(process.env)
@@ -50,64 +51,81 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       
       console.log('🔍 DEBUG ASAAS_API_KEY DETALHADO:', {
         exists: hasAsaasKeyInEnv,
-        hasValue: !!asaasApiKeyCheck,
+        hasValue: !!asaasApiKeyCheck && !isStringEmpty,
         type: asaasKeyType,
         length: asaasKeyLength,
         isUndefined: asaasApiKeyCheck === undefined,
-        isEmpty: asaasApiKeyCheck === '',
+        isEmpty: isStringEmpty,
         isNull: asaasApiKeyCheck === null,
-        valuePreview: asaasApiKeyCheck ? asaasApiKeyCheck.substring(0, 20) : 'N/A',
+        valuePreview: asaasApiKeyCheck && !isStringEmpty ? asaasApiKeyCheck.substring(0, 20) : 'N/A',
         directAccess: process.env.ASAAS_API_KEY,
         bracketAccess: process.env['ASAAS_API_KEY'],
         allAsaasKeys: asaasKeys,
         envKeysCount: allEnvKeys.length
       })
       
-      if (!asaasApiKeyCheck || (typeof asaasApiKeyCheck === 'string' && asaasApiKeyCheck.trim().length === 0)) {
-        console.error('❌ ASAAS_API_KEY não encontrada ou VAZIA no process.env')
-        console.error('   Variável existe?', hasAsaasKeyInEnv)
-        console.error('   Valor direto:', asaasKeyValue)
-        console.error('   Valor com bracket:', process.env['ASAAS_API_KEY'])
-        console.error('   Tipo:', asaasKeyType)
-        console.error('   Tamanho:', asaasKeyLength)
+      if (!asaasApiKeyCheck || isStringEmpty) {
+        if (isStringEmpty) {
+          console.error('❌ ASAAS_API_KEY existe mas está VAZIA (string vazia)!')
+          console.error('   Isso significa que a variável foi criada no Vercel mas o valor não foi salvo corretamente.')
+          console.error('   Tipo:', asaasKeyType)
+          console.error('   Valor:', JSON.stringify(asaasKeyValue))
+          console.error('   Tamanho:', asaasKeyLength)
+        } else {
+          console.error('❌ ASAAS_API_KEY não encontrada no process.env')
+          console.error('   Variável existe?', hasAsaasKeyInEnv)
+          console.error('   Valor direto:', asaasKeyValue)
+        }
         console.error('   Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('ASAAS') || k.includes('API')).slice(0, 20))
         console.error('   NODE_ENV:', process.env.NODE_ENV)
         console.error('   VERCEL_ENV:', process.env.VERCEL_ENV)
         console.error('   VERCEL:', process.env.VERCEL)
         return res.status(500).json({
-          error: hasAsaasKeyInEnv ? 'ASAAS_API_KEY está VAZIA' : 'ASAAS_API_KEY não configurada',
-          message: hasAsaasKeyInEnv 
-            ? '⚠️ A variável ASAAS_API_KEY existe no Vercel mas está VAZIA! Edite e adicione o valor da chave.'
+          error: isStringEmpty ? 'ASAAS_API_KEY está VAZIA' : 'ASAAS_API_KEY não configurada',
+          message: isStringEmpty 
+            ? '⚠️ A variável ASAAS_API_KEY existe no Vercel mas está VAZIA! Delete e crie novamente com o valor correto.'
             : 'A variável ASAAS_API_KEY não está configurada no servidor Vercel.',
           debug: {
             keyExists: hasAsaasKeyInEnv,
-            hasValue: !!asaasApiKeyCheck,
+            hasValue: !!asaasApiKeyCheck && !isStringEmpty,
             valueType: asaasKeyType,
             valueLength: asaasKeyLength,
             isUndefined: asaasApiKeyCheck === undefined,
-            isEmpty: asaasApiKeyCheck === '',
+            isEmpty: isStringEmpty,
+            isStringEmpty: isStringEmpty,
             nodeEnv: process.env.NODE_ENV,
             vercelEnv: process.env.VERCEL_ENV,
             allAsaasVars: Object.keys(process.env).filter(k => k.toUpperCase().includes('ASAAS')),
             checkEndpoint: '/api/debug/env-public'
           },
-          instructions: hasAsaasKeyInEnv ? [
+          instructions: isStringEmpty ? [
             '⚠️ PROBLEMA ENCONTRADO: A variável ASAAS_API_KEY existe mas está VAZIA!',
             '',
-            'SOLUÇÃO:',
+            'SOLUÇÃO: DELETE E CRIE NOVAMENTE',
             '1. Acesse: https://vercel.com/dashboard',
             '2. Selecione seu projeto',
             '3. Vá em Settings (⚙️) > Environment Variables',
-            '4. Clique em ASAAS_API_KEY para EDITAR',
-            '5. No campo "Value", cole sua chave completa do Asaas',
-            '6. A chave deve começar com $aact_prod_... ou $aact_hmlg_...',
-            '7. A chave deve ter mais de 100 caracteres',
-            '8. Verifique se está marcada para Production ✅',
-            '9. Clique em "Save"',
-            '10. VÁ EM DEPLOYMENTS > Clique nos 3 pontos (⋯) > "Redeploy"',
-            '11. AGUARDE o redeploy completar (1-2 minutos)',
+            '4. DELETE a variável ASAAS_API_KEY (clique no ícone de lixeira 🗑️)',
+            '5. Clique em "Add New" para criar NOVAMENTE',
+            '6. Nome: ASAAS_API_KEY (EXATAMENTE assim, maiúsculas, SEM espaços)',
+            '7. Valor: Cole sua chave COMPLETA do Asaas',
+            '   - Copie a chave do painel do Asaas',
+            '   - Deve começar com $aact_prod_... ou $aact_hmlg_...',
+            '   - Deve ter mais de 100 caracteres',
+            '   - NÃO adicione espaços ou quebras de linha',
+            '   - Cole usando Ctrl+V (não Shift+Insert)',
+            '8. IMPORTANTE: Marque TODOS os ambientes:',
+            '   ✅ Production (obrigatório!)',
+            '   ✅ Preview',
+            '   ✅ Development',
+            '9. Verifique se o valor aparece no campo antes de salvar',
+            '10. Clique em "Save"',
+            '11. VÁ EM DEPLOYMENTS > Clique nos 3 pontos (⋯) > "Redeploy"',
+            '12. AGUARDE o redeploy completar (1-2 minutos)',
             '',
-            '⚠️ IMPORTANTE: Após editar, você DEVE fazer REDEPLOY!'
+            '⚠️ DICA: Se persistir, tente usar o Vercel CLI:',
+            '   vercel env add ASAAS_API_KEY production',
+            '   (Cole a chave quando solicitado)'
           ] : [
             '1. Acesse: https://vercel.com/dashboard',
             '2. Selecione seu projeto',
