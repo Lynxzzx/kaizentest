@@ -36,32 +36,77 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (method === 'PIX') {
       // Verificar se a chave está configurada ANTES de tentar usar
       const asaasApiKeyCheck = process.env.ASAAS_API_KEY
-      if (!asaasApiKeyCheck) {
-        console.error('❌ ASAAS_API_KEY não encontrada no process.env')
+      
+      // Debug detalhado
+      const hasAsaasKeyInEnv = 'ASAAS_API_KEY' in process.env
+      const asaasKeyValue = process.env.ASAAS_API_KEY
+      const asaasKeyType = typeof asaasApiKeyCheck
+      const asaasKeyLength = asaasApiKeyCheck?.length || 0
+      
+      console.log('🔍 DEBUG ASAAS_API_KEY:', {
+        exists: hasAsaasKeyInEnv,
+        hasValue: !!asaasApiKeyCheck,
+        type: asaasKeyType,
+        length: asaasKeyLength,
+        isUndefined: asaasApiKeyCheck === undefined,
+        isEmpty: asaasApiKeyCheck === '',
+        valuePreview: asaasApiKeyCheck ? asaasApiKeyCheck.substring(0, 20) : 'N/A'
+      })
+      
+      if (!asaasApiKeyCheck || asaasApiKeyCheck.trim().length === 0) {
+        console.error('❌ ASAAS_API_KEY não encontrada ou VAZIA no process.env')
+        console.error('   Variável existe?', hasAsaasKeyInEnv)
+        console.error('   Valor:', asaasKeyValue)
+        console.error('   Tipo:', asaasKeyType)
+        console.error('   Tamanho:', asaasKeyLength)
         console.error('   Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('ASAAS') || k.includes('API')).slice(0, 20))
         console.error('   NODE_ENV:', process.env.NODE_ENV)
         console.error('   VERCEL_ENV:', process.env.VERCEL_ENV)
         return res.status(500).json({
-          error: 'ASAAS_API_KEY não configurada',
-          message: 'A chave de API do Asaas não está configurada no servidor Vercel.',
-          instructions: [
+          error: hasAsaasKeyInEnv ? 'ASAAS_API_KEY está VAZIA' : 'ASAAS_API_KEY não configurada',
+          message: hasAsaasKeyInEnv 
+            ? '⚠️ A variável ASAAS_API_KEY existe no Vercel mas está VAZIA! Edite e adicione o valor da chave.'
+            : 'A variável ASAAS_API_KEY não está configurada no servidor Vercel.',
+          debug: {
+            keyExists: hasAsaasKeyInEnv,
+            hasValue: !!asaasApiKeyCheck,
+            valueType: asaasKeyType,
+            valueLength: asaasKeyLength,
+            isUndefined: asaasApiKeyCheck === undefined,
+            isEmpty: asaasApiKeyCheck === '',
+            nodeEnv: process.env.NODE_ENV,
+            vercelEnv: process.env.VERCEL_ENV,
+            allAsaasVars: Object.keys(process.env).filter(k => k.toUpperCase().includes('ASAAS')),
+            checkEndpoint: '/api/debug/env-public'
+          },
+          instructions: hasAsaasKeyInEnv ? [
+            '⚠️ PROBLEMA ENCONTRADO: A variável ASAAS_API_KEY existe mas está VAZIA!',
+            '',
+            'SOLUÇÃO:',
+            '1. Acesse: https://vercel.com/dashboard',
+            '2. Selecione seu projeto',
+            '3. Vá em Settings (⚙️) > Environment Variables',
+            '4. Clique em ASAAS_API_KEY para EDITAR',
+            '5. No campo "Value", cole sua chave completa do Asaas',
+            '6. A chave deve começar com $aact_prod_... ou $aact_hmlg_...',
+            '7. A chave deve ter mais de 100 caracteres',
+            '8. Verifique se está marcada para Production ✅',
+            '9. Clique em "Save"',
+            '10. VÁ EM DEPLOYMENTS > Clique nos 3 pontos (⋯) > "Redeploy"',
+            '11. AGUARDE o redeploy completar (1-2 minutos)',
+            '',
+            '⚠️ IMPORTANTE: Após editar, você DEVE fazer REDEPLOY!'
+          ] : [
             '1. Acesse: https://vercel.com/dashboard',
             '2. Selecione seu projeto',
             '3. Vá em Settings > Environment Variables',
             '4. Adicione ASAAS_API_KEY (nome EXATO)',
             '5. Cole sua chave completa do Asaas',
             '6. Marque TODOS: Production, Preview, Development',
-            '7. Clique em Save',
+            '7. Clique em "Save"',
             '8. VÁ EM DEPLOYMENTS > ⋯ > Redeploy',
             '9. AGUARDE o redeploy completar'
-          ],
-          debug: {
-            hasKey: false,
-            nodeEnv: process.env.NODE_ENV,
-            vercelEnv: process.env.VERCEL_ENV,
-            allAsaasVars: Object.keys(process.env).filter(k => k.toUpperCase().includes('ASAAS')),
-            checkEndpoint: '/api/debug/asaas-key'
-          }
+          ]
         })
       }
       
