@@ -2,18 +2,47 @@ import axios from 'axios'
 
 // Função para obter e validar a chave de API
 function getAsaasApiKey(): string {
+  // Log detalhado de debug ANTES de acessar process.env
+  if (!(getAsaasApiKey as any).debugLogged) {
+    console.log('🔍 DEBUG: Verificando variáveis de ambiente...')
+    console.log('   NODE_ENV:', process.env.NODE_ENV)
+    console.log('   VERCEL_ENV:', process.env.VERCEL_ENV)
+    console.log('   VERCEL:', process.env.VERCEL)
+    console.log('   Todas as variáveis que começam com ASAAS:', Object.keys(process.env).filter(k => k.includes('ASAAS')))
+    ;(getAsaasApiKey as any).debugLogged = true
+  }
+
   const ASAAS_API_KEY_ENV = process.env.ASAAS_API_KEY
 
+  // Log detalhado se não encontrar
   if (!ASAAS_API_KEY_ENV) {
     console.error('❌ ERRO CRÍTICO: ASAAS_API_KEY não está configurada!')
-    console.error('   Configure a variável de ambiente ASAAS_API_KEY no Vercel:')
-    console.error('   1. Vá em Settings > Environment Variables')
-    console.error('   2. Adicione ASAAS_API_KEY com sua chave completa do Asaas')
-    console.error('   3. Selecione os ambientes (Production, Preview, Development)')
-    console.error('   4. Clique em Save')
-    console.error('   5. Faça um REDEPLOY após adicionar a variável')
-    console.error('   Exemplo: ASAAS_API_KEY=$aact_prod_...')
-    throw new Error('ASAAS_API_KEY não está configurada. Configure no Vercel: Settings > Environment Variables e faça um REDEPLOY.')
+    console.error('   process.env.ASAAS_API_KEY:', typeof ASAAS_API_KEY_ENV, ASAAS_API_KEY_ENV)
+    console.error('   Todas as variáveis de ambiente disponíveis:', Object.keys(process.env).length, 'variáveis')
+    console.error('   Variáveis que contêm "ASAAS":', Object.keys(process.env).filter(k => k.toUpperCase().includes('ASAAS')))
+    console.error('   Variáveis que contêm "API":', Object.keys(process.env).filter(k => k.toUpperCase().includes('API')).slice(0, 10))
+    console.error('')
+    console.error('   ⚠️ INSTRUÇÕES DETALHADAS PARA CONFIGURAR NO VERCEL:')
+    console.error('   1. Acesse: https://vercel.com/dashboard')
+    console.error('   2. Selecione seu projeto')
+    console.error('   3. Vá em Settings (⚙️) > Environment Variables')
+    console.error('   4. Clique em "Add New"')
+    console.error('   5. Nome: ASAAS_API_KEY (EXATAMENTE assim, maiúsculas)')
+    console.error('   6. Valor: Cole sua chave completa do Asaas (começa com $aact_prod_...)')
+    console.error('   7. IMPORTANTE: Marque TODOS os ambientes:')
+    console.error('      ✅ Production')
+    console.error('      ✅ Preview')  
+    console.error('      ✅ Development')
+    console.error('   8. Clique em "Save"')
+    console.error('   9. VÁ EM DEPLOYMENTS > Clique nos 3 pontos (⋯) do último deployment > "Redeploy"')
+    console.error('   10. AGUARDE o redeploy completar (pode levar 1-2 minutos)')
+    console.error('')
+    console.error('   ⚠️ PROBLEMAS COMUNS:')
+    console.error('   - Variável configurada mas não marcada para Production')
+    console.error('   - Não fez REDEPLOY após adicionar (só push não funciona)')
+    console.error('   - Nome da variável com espaços ou errado (deve ser exatamente: ASAAS_API_KEY)')
+    console.error('   - Chave incompleta (deve ter mais de 100 caracteres)')
+    throw new Error('ASAAS_API_KEY não está configurada no servidor. Verifique no Vercel: Settings > Environment Variables (certifique-se de marcar Production e fazer REDEPLOY).')
   }
 
   // Remover espaços extras e garantir que a chave está completa
@@ -24,19 +53,18 @@ function getAsaasApiKey(): string {
     console.error('❌ ERRO: Chave de API parece estar incompleta!')
     console.error('   Tamanho da chave:', ASAAS_API_KEY.length)
     console.error('   Chave deve ter pelo menos 50 caracteres')
+    console.error('   Prefixo da chave:', ASAAS_API_KEY.substring(0, 20))
     throw new Error('Chave de API do Asaas parece estar incompleta. Verifique se copiou a chave completa do painel do Asaas.')
   }
 
   // Log detalhado para debug (apenas na primeira chamada)
   if (!(getAsaasApiKey as any).logged) {
-    console.log('🔑 ASAAS_API_KEY carregada:', {
-      hasKey: !!ASAAS_API_KEY,
-      length: ASAAS_API_KEY.length,
-      prefix: ASAAS_API_KEY.substring(0, 15),
-      suffix: ASAAS_API_KEY.substring(ASAAS_API_KEY.length - 10),
-      startsWithProd: ASAAS_API_KEY.startsWith('$aact_prod_'),
-      startsWithSandbox: ASAAS_API_KEY.startsWith('$aact_hmlg_')
-    })
+    console.log('✅ ASAAS_API_KEY carregada com sucesso!')
+    console.log('   Tamanho:', ASAAS_API_KEY.length, 'caracteres')
+    console.log('   Prefixo:', ASAAS_API_KEY.substring(0, 20))
+    console.log('   Sufixo:', ASAAS_API_KEY.substring(ASAAS_API_KEY.length - 10))
+    console.log('   É produção?', ASAAS_API_KEY.startsWith('$aact_prod_'))
+    console.log('   É sandbox?', ASAAS_API_KEY.startsWith('$aact_hmlg_'))
     ;(getAsaasApiKey as any).logged = true
   }
 
