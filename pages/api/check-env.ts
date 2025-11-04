@@ -17,6 +17,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const isSandboxKey = hasAsaasKey && asaasApiKey.startsWith('$aact_hmlg_')
   const asaasApiUrl = process.env.ASAAS_API_URL || 'NOT_SET'
   
+  // Debug adicional
+  const nodeEnv = process.env.NODE_ENV
+  const vercelEnv = process.env.VERCEL_ENV
+  const allEnvVars = Object.keys(process.env)
+  const asaasRelatedVars = allEnvVars.filter(k => k.toUpperCase().includes('ASAAS'))
+  
   return res.json({
     hasDatabaseUrl: hasDbUrl,
     isAtlas: isAtlas,
@@ -31,7 +37,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       : '⚠️ DATABASE_URL não está configurada corretamente',
     asaas: {
       hasApiKey: hasAsaasKey,
-      keyPrefix: hasAsaasKey ? asaasApiKey.substring(0, 15) : 'NOT_SET',
+      keyPrefix: hasAsaasKey ? asaasApiKey.substring(0, 20) : 'NOT_SET',
+      keyLength: hasAsaasKey ? asaasApiKey.length : 0,
       isProdKey,
       isSandboxKey,
       apiUrl: asaasApiUrl,
@@ -43,10 +50,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? '✅ Chave de SANDBOX detectada'
         : '⚠️ Formato da chave não reconhecido (deve começar com $aact_prod_ ou $aact_hmlg_)'
     },
+    debug: {
+      nodeEnv,
+      vercelEnv,
+      totalEnvVars: allEnvVars.length,
+      asaasRelatedVars: asaasRelatedVars,
+      hasAsaasApiKey: !!process.env.ASAAS_API_KEY,
+      hasAsaasApiUrl: !!process.env.ASAAS_API_URL
+    },
     instructions: {
       vercel: 'Para configurar no Vercel: Vá em Settings > Environment Variables e adicione ASAAS_API_KEY com sua chave do Asaas',
       local: 'Para desenvolvimento local: Adicione ASAAS_API_KEY no arquivo .env na raiz do projeto',
-      redeploy: hasAsaasKey ? '⚠️ IMPORTANTE: Após alterar variáveis no Vercel, faça um redeploy para aplicar as mudanças!' : null
+      redeploy: hasAsaasKey ? '⚠️ IMPORTANTE: Após alterar variáveis no Vercel, faça um redeploy para aplicar as mudanças!' : '⚠️ CRÍTICO: Configure ASAAS_API_KEY no Vercel e faça um REDEPLOY!'
     }
   })
 }

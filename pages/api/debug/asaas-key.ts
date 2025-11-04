@@ -6,9 +6,22 @@ import { authOptions } from '../auth/[...nextauth]'
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
 
-  // Apenas admin pode ver
-  if (!session || session.user.role !== 'OWNER') {
-    return res.status(401).json({ error: 'Unauthorized' })
+  // Verificar autenticação - mas retornar informações úteis mesmo sem autenticação
+  if (!session) {
+    return res.status(401).json({ 
+      error: 'Unauthorized',
+      message: 'Você precisa estar logado para acessar este endpoint',
+      loginUrl: '/login'
+    })
+  }
+
+  if (session.user.role !== 'OWNER') {
+    return res.status(403).json({ 
+      error: 'Forbidden',
+      message: 'Apenas OWNER pode acessar este endpoint',
+      yourRole: session.user.role,
+      requiredRole: 'OWNER'
+    })
   }
 
   if (req.method !== 'GET') {
