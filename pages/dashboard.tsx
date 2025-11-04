@@ -260,9 +260,9 @@ export default function Dashboard() {
           </div>
 
           {/* Generate Account Card */}
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200">
+          <div className={getCardClasses()}>
             <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('generateAccount')}</h2>
+              <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>{t('generateAccount')}</h2>
               <span className="text-3xl sm:text-4xl">⚡</span>
             </div>
             <div className="space-y-3 sm:space-y-4">
