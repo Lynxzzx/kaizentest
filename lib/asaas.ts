@@ -1,71 +1,101 @@
 import axios from 'axios'
 
-const ASAAS_API_KEY_ENV = process.env.ASAAS_API_KEY
+// Função para obter e validar a chave de API
+function getAsaasApiKey(): string {
+  const ASAAS_API_KEY_ENV = process.env.ASAAS_API_KEY
 
-if (!ASAAS_API_KEY_ENV) {
-  console.error('❌ ERRO CRÍTICO: ASAAS_API_KEY não está configurada!')
-  console.error('   Configure a variável de ambiente ASAAS_API_KEY no seu arquivo .env ou nas variáveis de ambiente do servidor.')
-  console.error('   Exemplo: ASAAS_API_KEY=$aact_prod_...')
-  throw new Error('ASAAS_API_KEY não está configurada. Verifique as variáveis de ambiente.')
+  if (!ASAAS_API_KEY_ENV) {
+    console.error('❌ ERRO CRÍTICO: ASAAS_API_KEY não está configurada!')
+    console.error('   Configure a variável de ambiente ASAAS_API_KEY no Vercel:')
+    console.error('   1. Vá em Settings > Environment Variables')
+    console.error('   2. Adicione ASAAS_API_KEY com sua chave completa do Asaas')
+    console.error('   3. Selecione os ambientes (Production, Preview, Development)')
+    console.error('   4. Clique em Save')
+    console.error('   5. Faça um REDEPLOY após adicionar a variável')
+    console.error('   Exemplo: ASAAS_API_KEY=$aact_prod_...')
+    throw new Error('ASAAS_API_KEY não está configurada. Configure no Vercel: Settings > Environment Variables e faça um REDEPLOY.')
+  }
+
+  // Remover espaços extras e garantir que a chave está completa
+  const ASAAS_API_KEY = ASAAS_API_KEY_ENV.trim()
+
+  // Validar tamanho mínimo
+  if (ASAAS_API_KEY.length < 50) {
+    console.error('❌ ERRO: Chave de API parece estar incompleta!')
+    console.error('   Tamanho da chave:', ASAAS_API_KEY.length)
+    console.error('   Chave deve ter pelo menos 50 caracteres')
+    throw new Error('Chave de API do Asaas parece estar incompleta. Verifique se copiou a chave completa do painel do Asaas.')
+  }
+
+  // Log detalhado para debug (apenas na primeira chamada)
+  if (!(getAsaasApiKey as any).logged) {
+    console.log('🔑 ASAAS_API_KEY carregada:', {
+      hasKey: !!ASAAS_API_KEY,
+      length: ASAAS_API_KEY.length,
+      prefix: ASAAS_API_KEY.substring(0, 15),
+      suffix: ASAAS_API_KEY.substring(ASAAS_API_KEY.length - 10),
+      startsWithProd: ASAAS_API_KEY.startsWith('$aact_prod_'),
+      startsWithSandbox: ASAAS_API_KEY.startsWith('$aact_hmlg_')
+    })
+    ;(getAsaasApiKey as any).logged = true
+  }
+
+  return ASAAS_API_KEY
 }
 
-// Remover espaços extras e garantir que a chave está completa
-const ASAAS_API_KEY: string = ASAAS_API_KEY_ENV.trim()
+// Função para obter a URL da API baseada na chave
+function getAsaasApiUrl(): string {
+  try {
+    const ASAAS_API_KEY = getAsaasApiKey()
+    
+    // Detectar ambiente baseado na chave de API
+    const isProdKey = ASAAS_API_KEY.startsWith('$aact_prod_')
+    const isSandboxKey = ASAAS_API_KEY.startsWith('$aact_hmlg_')
+    
+    const envUrl = process.env.ASAAS_API_URL
 
-// Log detalhado para debug
-console.log('🔑 ASAAS_API_KEY carregada:', {
-  hasKey: !!ASAAS_API_KEY,
-  length: ASAAS_API_KEY.length,
-  prefix: ASAAS_API_KEY.substring(0, 15),
-  suffix: ASAAS_API_KEY.substring(ASAAS_API_KEY.length - 10),
-  startsWithProd: ASAAS_API_KEY.startsWith('$aact_prod_'),
-  startsWithSandbox: ASAAS_API_KEY.startsWith('$aact_hmlg_')
-})
-
-// Detectar ambiente baseado na chave de API
-// A chave de produção deve usar URL de produção, chave de sandbox deve usar URL de sandbox
-const isProdKey = ASAAS_API_KEY.startsWith('$aact_prod_')
-const isSandboxKey = ASAAS_API_KEY.startsWith('$aact_hmlg_')
-
-let ASAAS_API_URL: string
-const envUrl = process.env.ASAAS_API_URL
-
-// Se há URL no .env, verificar compatibilidade
-if (envUrl) {
-  const isProdUrl = envUrl.includes('api.asaas.com') && !envUrl.includes('sandbox')
-  const isSandboxUrl = envUrl.includes('sandbox')
-  
-  // Verificar incompatibilidade
-  if ((isProdKey && isSandboxUrl) || (isSandboxKey && isProdUrl)) {
-    // Há incompatibilidade - corrigir automaticamente
-    if (isProdKey) {
-      ASAAS_API_URL = 'https://api.asaas.com/v3'
-      console.warn('⚠️ AVISO: URL do .env é SANDBOX mas a chave é PRODUÇÃO!')
-      console.warn('   Corrigindo automaticamente para:', ASAAS_API_URL)
-    } else if (isSandboxKey) {
-      ASAAS_API_URL = 'https://api-sandbox.asaas.com/v3'
-      console.warn('⚠️ AVISO: URL do .env é PRODUÇÃO mas a chave é SANDBOX!')
-      console.warn('   Corrigindo automaticamente para:', ASAAS_API_URL)
+    // Se há URL no .env, verificar compatibilidade
+    if (envUrl) {
+      const isProdUrl = envUrl.includes('api.asaas.com') && !envUrl.includes('sandbox')
+      const isSandboxUrl = envUrl.includes('sandbox')
+      
+      // Verificar incompatibilidade
+      if ((isProdKey && isSandboxUrl) || (isSandboxKey && isProdUrl)) {
+        // Há incompatibilidade - corrigir automaticamente
+        if (isProdKey) {
+          console.warn('⚠️ AVISO: URL do .env é SANDBOX mas a chave é PRODUÇÃO!')
+          console.warn('   Corrigindo automaticamente para: https://api.asaas.com/v3')
+          return 'https://api.asaas.com/v3'
+        } else if (isSandboxKey) {
+          console.warn('⚠️ AVISO: URL do .env é PRODUÇÃO mas a chave é SANDBOX!')
+          console.warn('   Corrigindo automaticamente para: https://api-sandbox.asaas.com/v3')
+          return 'https://api-sandbox.asaas.com/v3'
+        } else {
+          return envUrl
+        }
+      } else {
+        // Compatível, usar do .env
+        console.log('📦 Usando ASAAS_API_URL do .env:', envUrl)
+        return envUrl
+      }
     } else {
-      ASAAS_API_URL = envUrl
+      // Não há URL no .env, detectar pela chave
+      if (isProdKey) {
+        console.log('📦 Detectado: Chave de PRODUÇÃO - usando URL de produção')
+        return 'https://api.asaas.com/v3'
+      } else if (isSandboxKey) {
+        console.log('🧪 Detectado: Chave de SANDBOX - usando URL de sandbox')
+        return 'https://api-sandbox.asaas.com/v3'
+      } else {
+        // Não conseguiu detectar, usar sandbox por padrão
+        console.warn('⚠️ Não foi possível detectar o ambiente pela chave, usando SANDBOX por padrão')
+        return 'https://api-sandbox.asaas.com/v3'
+      }
     }
-  } else {
-    // Compatível, usar do .env
-    ASAAS_API_URL = envUrl
-    console.log('📦 Usando ASAAS_API_URL do .env:', ASAAS_API_URL)
-  }
-} else {
-  // Não há URL no .env, detectar pela chave
-  if (isProdKey) {
-    ASAAS_API_URL = 'https://api.asaas.com/v3'
-    console.log('📦 Detectado: Chave de PRODUÇÃO - usando URL de produção')
-  } else if (isSandboxKey) {
-    ASAAS_API_URL = 'https://api-sandbox.asaas.com/v3'
-    console.log('🧪 Detectado: Chave de SANDBOX - usando URL de sandbox')
-  } else {
-    // Não conseguiu detectar, usar sandbox por padrão
-    ASAAS_API_URL = 'https://api-sandbox.asaas.com/v3'
-    console.warn('⚠️ Não foi possível detectar o ambiente pela chave, usando SANDBOX por padrão')
+  } catch (error) {
+    // Se não conseguir obter a chave, usar produção por padrão
+    console.warn('⚠️ Não foi possível detectar o ambiente, usando PRODUÇÃO por padrão')
+    return 'https://api.asaas.com/v3'
   }
 }
 
@@ -86,19 +116,14 @@ interface CreatePaymentData {
 
 export async function createAsaasCustomer(data: CreateCustomerData) {
   try {
+    const ASAAS_API_KEY = getAsaasApiKey()
+    const ASAAS_API_URL = getAsaasApiUrl()
+    
     console.log('Creating Asaas customer with data:', JSON.stringify(data, null, 2))
     console.log('Using API URL:', ASAAS_API_URL)
     console.log('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
     console.log('API Key length:', ASAAS_API_KEY.length)
     console.log('API Key ends with:', ASAAS_API_KEY.substring(ASAAS_API_KEY.length - 10))
-    
-    // Verificar se a chave não está vazia ou truncada
-    if (!ASAAS_API_KEY || ASAAS_API_KEY.length < 50) {
-      console.error('❌ ERRO: Chave de API parece estar incompleta ou muito curta!')
-      console.error('   Tamanho da chave:', ASAAS_API_KEY.length)
-      console.error('   Chave deve ter pelo menos 50 caracteres')
-      throw new Error('Chave de API do Asaas parece estar incompleta. Verifique se está configurada corretamente no Vercel.')
-    }
     
     const response = await axios.post(
       `${ASAAS_API_URL}/customers`,
@@ -116,9 +141,16 @@ export async function createAsaasCustomer(data: CreateCustomerData) {
   } catch (error: any) {
     const errorData = error.response?.data || error.message
     console.error('Asaas API Error (Create Customer):', JSON.stringify(errorData, null, 2))
-    console.error('API URL used:', ASAAS_API_URL)
-    console.error('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
-    console.error('API Key length:', ASAAS_API_KEY.length)
+    
+    try {
+      const ASAAS_API_KEY = getAsaasApiKey()
+      const ASAAS_API_URL = getAsaasApiUrl()
+      console.error('API URL used:', ASAAS_API_URL)
+      console.error('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
+      console.error('API Key length:', ASAAS_API_KEY.length)
+    } catch (keyError) {
+      console.error('Não foi possível obter informações da chave:', keyError)
+    }
     
     // Verificar se é erro de autenticação
     if (error.response?.status === 401) {
@@ -155,6 +187,9 @@ export async function createAsaasCustomer(data: CreateCustomerData) {
 
 export async function getAsaasCustomerByEmail(email: string) {
   try {
+    const ASAAS_API_KEY = getAsaasApiKey()
+    const ASAAS_API_URL = getAsaasApiUrl()
+    
     const response = await axios.get(
       `${ASAAS_API_URL}/customers?email=${encodeURIComponent(email)}`,
       {
@@ -176,6 +211,9 @@ export async function getAsaasCustomerByEmail(email: string) {
 
 export async function getAsaasCustomer(customerId: string) {
   try {
+    const ASAAS_API_KEY = getAsaasApiKey()
+    const ASAAS_API_URL = getAsaasApiUrl()
+    
     const response = await axios.get(
       `${ASAAS_API_URL}/customers/${customerId}`,
       {
@@ -193,6 +231,9 @@ export async function getAsaasCustomer(customerId: string) {
 
 export async function updateAsaasCustomer(customerId: string, data: Partial<CreateCustomerData>) {
   try {
+    const ASAAS_API_KEY = getAsaasApiKey()
+    const ASAAS_API_URL = getAsaasApiUrl()
+    
     console.log('Updating Asaas customer:', customerId, 'with data:', JSON.stringify(data, null, 2))
     
     const response = await axios.put(
@@ -225,18 +266,13 @@ export async function updateAsaasCustomer(customerId: string, data: Partial<Crea
 
 export async function createAsaasPayment(data: CreatePaymentData) {
   try {
+    const ASAAS_API_KEY = getAsaasApiKey()
+    const ASAAS_API_URL = getAsaasApiUrl()
+    
     console.log('Creating Asaas payment with data:', JSON.stringify(data, null, 2))
     console.log('Using API URL:', ASAAS_API_URL)
     console.log('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
     console.log('API Key length:', ASAAS_API_KEY.length)
-    
-    // Verificar se a chave não está vazia ou truncada
-    if (!ASAAS_API_KEY || ASAAS_API_KEY.length < 50) {
-      console.error('❌ ERRO: Chave de API parece estar incompleta ou muito curta!')
-      console.error('   Tamanho da chave:', ASAAS_API_KEY.length)
-      console.error('   Chave deve ter pelo menos 50 caracteres')
-      throw new Error('Chave de API do Asaas parece estar incompleta. Verifique se está configurada corretamente no Vercel.')
-    }
     
     const response = await axios.post(
       `${ASAAS_API_URL}/payments`,
@@ -255,9 +291,16 @@ export async function createAsaasPayment(data: CreatePaymentData) {
   } catch (error: any) {
     const errorData = error.response?.data || error.message
     console.error('Asaas API Error (Create Payment):', JSON.stringify(errorData, null, 2))
-    console.error('API URL used:', ASAAS_API_URL)
-    console.error('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
-    console.error('API Key length:', ASAAS_API_KEY.length)
+    
+    try {
+      const ASAAS_API_KEY = getAsaasApiKey()
+      const ASAAS_API_URL = getAsaasApiUrl()
+      console.error('API URL used:', ASAAS_API_URL)
+      console.error('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
+      console.error('API Key length:', ASAAS_API_KEY.length)
+    } catch (keyError) {
+      console.error('Não foi possível obter informações da chave:', keyError)
+    }
     
     // Verificar se é erro de autenticação
     if (error.response?.status === 401) {
@@ -282,6 +325,9 @@ export async function createAsaasPayment(data: CreatePaymentData) {
 
 export async function getAsaasPayment(paymentId: string) {
   try {
+    const ASAAS_API_KEY = getAsaasApiKey()
+    const ASAAS_API_URL = getAsaasApiUrl()
+    
     const response = await axios.get(
       `${ASAAS_API_URL}/payments/${paymentId}`,
       {
@@ -299,6 +345,9 @@ export async function getAsaasPayment(paymentId: string) {
 
 export async function getAsaasPixQrCode(paymentId: string) {
   try {
+    const ASAAS_API_KEY = getAsaasApiKey()
+    const ASAAS_API_URL = getAsaasApiUrl()
+    
     console.log('Getting PIX QR Code for payment:', paymentId)
     console.log('Using API URL:', ASAAS_API_URL)
     
@@ -329,7 +378,14 @@ export async function getAsaasPixQrCode(paymentId: string) {
   } catch (error: any) {
     const errorData = error.response?.data || error.message
     console.error('Asaas API Error (Get PIX QR Code):', JSON.stringify(errorData, null, 2))
-    console.error('API URL used:', ASAAS_API_URL)
+    
+    try {
+      const ASAAS_API_URL = getAsaasApiUrl()
+      console.error('API URL used:', ASAAS_API_URL)
+    } catch (keyError) {
+      console.error('Não foi possível obter informações da URL:', keyError)
+    }
+    
     throw error
   }
 }
