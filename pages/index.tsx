@@ -8,109 +8,263 @@ export default function Home() {
   const { data: session } = useSession()
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden relative">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
+
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 text-white">
-        <div className="absolute inset-0 bg-black opacity-10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-24 lg:py-32">
-          <div className="text-center">
-            <div className="flex justify-center mb-6 sm:mb-8">
-              <Logo size="lg" showText={false} className="justify-center" />
+      <section className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 sm:py-24">
+        <div className="max-w-7xl mx-auto text-center">
+          {/* Logo */}
+          <div className="flex justify-center mb-8 sm:mb-12 animate-fade-in">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-3xl blur-2xl opacity-50"></div>
+              <div className="relative bg-white/10 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/20 shadow-2xl">
+                <Logo size="xl" showText={false} className="justify-center" />
+              </div>
             </div>
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6 animate-fade-in px-2">
+          </div>
+
+          {/* Main Heading */}
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6 sm:mb-8 animate-fade-in animation-delay-200">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
               {t('siteName')}
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 text-primary-100 max-w-3xl mx-auto px-4">
-              {t('generate')} {t('accounts')} para os melhores serviços de forma rápida e segura
-            </p>
+            </span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-4 sm:mb-6 text-gray-300 max-w-3xl mx-auto px-4 animate-fade-in animation-delay-400">
+            Gere contas premium para os melhores serviços
+          </p>
+          <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto px-4 mb-8 sm:mb-12 animate-fade-in animation-delay-600">
+            Acesso rápido, seguro e confiável às plataformas mais populares
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center px-4 animate-fade-in animation-delay-800">
             {session ? (
               <Link
                 href="/dashboard"
-                className="inline-block bg-white text-primary-600 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-bold hover:bg-primary-50 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
+                className="group relative px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-lg sm:text-xl font-bold rounded-2xl hover:from-purple-700 hover:to-blue-700 transition-all shadow-2xl hover:shadow-purple-500/50 transform hover:-translate-y-1 hover:scale-105 duration-300 overflow-hidden"
               >
-                {t('dashboard')}
+                <span className="relative z-10 flex items-center gap-2">
+                  <span>🚀</span>
+                  <span>{t('dashboard')}</span>
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               </Link>
             ) : (
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
+              <>
                 <Link
                   href="/register"
-                  className="inline-block bg-white text-primary-600 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-bold hover:bg-primary-50 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
+                  className="group relative px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-lg sm:text-xl font-bold rounded-2xl hover:from-purple-700 hover:to-blue-700 transition-all shadow-2xl hover:shadow-purple-500/50 transform hover:-translate-y-1 hover:scale-105 duration-300 overflow-hidden"
                 >
-                  Começar Agora
+                  <span className="relative z-10 flex items-center gap-2">
+                    <span>✨</span>
+                    <span>Começar Agora</span>
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
                 <Link
                   href="/plans"
-                  className="inline-block bg-primary-500 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-bold hover:bg-primary-400 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 border-2 border-white"
+                  className="group relative px-8 py-4 sm:px-10 sm:py-5 bg-white/10 backdrop-blur-lg text-white text-lg sm:text-xl font-bold rounded-2xl border-2 border-white/30 hover:bg-white/20 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 duration-300"
                 >
-                  Ver Planos
+                  <span className="relative z-10 flex items-center gap-2">
+                    <span>💎</span>
+                    <span>Ver Planos</span>
+                  </span>
                 </Link>
-              </div>
+              </>
             )}
           </div>
+
+          {/* Scroll Indicator */}
+          <div className="mt-16 sm:mt-20 animate-bounce">
+            <div className="w-6 h-10 border-2 border-white/30 rounded-full mx-auto flex items-start justify-center p-2">
+              <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-pulse"></div>
+            </div>
+          </div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-gray-50 to-transparent"></div>
       </section>
 
       {/* Features Section */}
-      <section className="py-12 sm:py-16 md:py-20 bg-white">
+      <section className="relative z-10 py-20 sm:py-24 md:py-32 bg-gradient-to-b from-transparent via-slate-800/50 to-slate-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8 sm:mb-12 md:mb-16">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">Por que escolher a gente?</h2>
-            <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto px-4">
-              Oferecemos a melhor experiência para gerar contas dos serviços que você precisa
+          <div className="text-center mb-12 sm:mb-16 md:mb-20">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
+                Por que escolher a gente?
+              </span>
+            </h2>
+            <p className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto">
+              Tecnologia avançada, segurança máxima e experiência premium
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-2">
-              <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">⚡</div>
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">Rápido e Fácil</h3>
-              <p className="text-sm sm:text-base text-gray-600">
-                Gere contas instantaneamente com apenas alguns cliques. Sem complicações.
-              </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 md:gap-10">
+            {/* Feature 1 */}
+            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">⚡</div>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">Rápido e Instantâneo</h3>
+                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+                  Gere contas em segundos com nossa tecnologia de ponta. Sem espera, sem complicação.
+                </p>
+              </div>
             </div>
-            <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-2">
-              <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">🔒</div>
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">100% Seguro</h3>
-              <p className="text-sm sm:text-base text-gray-600">
-                Seus dados são protegidos com a mais alta segurança e criptografia.
-              </p>
+
+            {/* Feature 2 */}
+            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🔒</div>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">100% Seguro</h3>
+                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+                  Criptografia de nível bancário e proteção avançada para garantir total segurança dos seus dados.
+                </p>
+              </div>
             </div>
-            <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 sm:p-8 rounded-2xl shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-2">
-              <div className="text-4xl sm:text-5xl mb-3 sm:mb-4">🎯</div>
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-3">Variedade de Serviços</h3>
-              <p className="text-sm sm:text-base text-gray-600">
-                Acesso a múltiplos serviços populares com um único plano.
-              </p>
+
+            {/* Feature 3 */}
+            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🎯</div>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">Múltiplos Serviços</h3>
+                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+                  Acesso a diversas plataformas populares com um único plano. Streaming, gaming e muito mais.
+                </p>
+              </div>
+            </div>
+
+            {/* Feature 4 */}
+            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">💎</div>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">Premium Quality</h3>
+                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+                  Contas de alta qualidade testadas e verificadas para garantir a melhor experiência.
+                </p>
+              </div>
+            </div>
+
+            {/* Feature 5 */}
+            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🚀</div>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">Suporte 24/7</h3>
+                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+                  Equipe especializada disponível sempre que precisar. Resolvemos qualquer questão rapidamente.
+                </p>
+              </div>
+            </div>
+
+            {/* Feature 6 */}
+            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
+              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative z-10">
+                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🎁</div>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">Plano Gratuito</h3>
+                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
+                  Comece com 2 gerações grátis por dia. Sem compromisso, sem cartão de crédito.
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-12 sm:py-16 md:py-20 bg-gradient-to-r from-primary-600 to-primary-800 text-white">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6 px-2">Pronto para começar?</h2>
-          <p className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 text-primary-100 px-4">
-            Escolha um plano e tenha acesso imediato a todos os nossos serviços
+      <section className="relative z-10 py-20 sm:py-24 md:py-32 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600">
+        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 sm:mb-8">
+            Pronto para começar?
+          </h2>
+          <p className="text-lg sm:text-xl md:text-2xl mb-8 sm:mb-12 text-white/90 max-w-2xl mx-auto">
+            Escolha um plano e tenha acesso imediato a todos os nossos serviços premium
           </p>
           {!session && (
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center">
               <Link
                 href="/plans"
-                className="inline-block bg-white text-primary-600 px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-bold hover:bg-primary-50 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
+                className="group relative px-8 py-4 sm:px-10 sm:py-5 bg-white text-purple-600 text-lg sm:text-xl font-bold rounded-2xl hover:bg-gray-100 transition-all shadow-2xl hover:shadow-white/50 transform hover:-translate-y-1 hover:scale-105 duration-300"
               >
-                Ver Planos
+                <span className="relative z-10 flex items-center gap-2">
+                  <span>💎</span>
+                  <span>Ver Planos</span>
+                </span>
               </Link>
               <Link
                 href="/register"
-                className="inline-block bg-primary-500 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-lg text-base sm:text-lg font-bold hover:bg-primary-400 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 border-2 border-white"
+                className="group relative px-8 py-4 sm:px-10 sm:py-5 bg-white/10 backdrop-blur-lg text-white text-lg sm:text-xl font-bold rounded-2xl border-2 border-white/30 hover:bg-white/20 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 duration-300"
               >
-                Criar Conta Grátis
+                <span className="relative z-10 flex items-center gap-2">
+                  <span>✨</span>
+                  <span>Criar Conta Grátis</span>
+                </span>
               </Link>
             </div>
           )}
         </div>
       </section>
+
+      {/* Custom CSS for animations */}
+      <style jsx>{`
+        @keyframes blob {
+          0%, 100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        .animation-delay-200 {
+          animation-delay: 0.2s;
+        }
+        .animation-delay-400 {
+          animation-delay: 0.4s;
+        }
+        .animation-delay-600 {
+          animation-delay: 0.6s;
+        }
+        .animation-delay-800 {
+          animation-delay: 0.8s;
+        }
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.8s ease-out forwards;
+          opacity: 0;
+        }
+      `}</style>
     </div>
   )
 }

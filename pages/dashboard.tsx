@@ -139,24 +139,27 @@ export default function Dashboard() {
             </div>
             {userPlan?.plan ? (
               <div className="space-y-4">
-                <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-6 border border-primary-200">
-                  <h3 className="text-xl font-bold text-primary-900 mb-2">{userPlan.plan.name}</h3>
-                  <p className="text-primary-700 mb-4">{userPlan.plan.description}</p>
+                <div className="bg-gradient-to-br from-purple-50 via-blue-50 to-purple-100 rounded-xl p-6 border border-purple-200 shadow-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600">{userPlan.plan.name}</h3>
+                    <span className="text-2xl">💎</span>
+                  </div>
+                  <p className="text-gray-700 mb-4">{userPlan.plan.description}</p>
                   {userPlan.planExpiresAt && (
-                    <div className="flex items-center justify-between pt-4 border-t border-primary-200">
-                      <span className="text-sm text-primary-600 font-medium">Expira em:</span>
-                      <span className="text-sm font-bold text-primary-900">
+                    <div className="flex items-center justify-between pt-4 border-t border-purple-200">
+                      <span className="text-sm text-purple-600 font-medium">Expira em:</span>
+                      <span className="text-sm font-bold text-purple-900">
                         {format(new Date(userPlan.planExpiresAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
                       </span>
                     </div>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-200">
                     <p className="text-gray-600">Duração</p>
                     <p className="font-bold text-gray-900">{userPlan.plan.duration} dias</p>
                   </div>
-                  <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-200">
                     <p className="text-gray-600">Gerações</p>
                     <p className="font-bold text-gray-900">
                       {userPlan.plan.maxGenerations === 0 ? 'Ilimitadas' : userPlan.plan.maxGenerations}
@@ -166,13 +169,33 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="text-center py-8">
-                <div className="text-5xl mb-4">💳</div>
-                <p className="text-gray-600 mb-6">Você não possui um plano ativo</p>
+                <div className="relative inline-block mb-6">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full blur-xl opacity-50"></div>
+                  <div className="relative bg-gradient-to-br from-purple-100 to-blue-100 rounded-full p-6 border-4 border-purple-200">
+                    <div className="text-5xl">🆓</div>
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600 mb-2">
+                  Plano Free
+                </h3>
+                <p className="text-gray-600 mb-4">Você está usando o plano gratuito</p>
+                <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-4 mb-6 border border-purple-200">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600">Gerações diárias</p>
+                      <p className="font-bold text-gray-900">2 grátis</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Status</p>
+                      <p className="font-bold text-green-600">Ativo</p>
+                    </div>
+                  </div>
+                </div>
                 <a
                   href="/plans"
-                  className="inline-block bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
-                  Ver Planos
+                  Upgrade para Premium
                 </a>
               </div>
             )}
