@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
@@ -15,6 +15,14 @@ export default function Register() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [affiliateRef, setAffiliateRef] = useState<string | null>(null)
+
+  // Capturar parâmetro ref da URL
+  useEffect(() => {
+    if (router.query.ref && typeof router.query.ref === 'string') {
+      setAffiliateRef(router.query.ref.toUpperCase())
+    }
+  }, [router.query.ref])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,7 +50,8 @@ export default function Register() {
         username,
         email,
         password,
-        deviceFingerprint
+        deviceFingerprint,
+        affiliateRef: affiliateRef || null // Enviar referência de afiliado se existir
       }, {
         signal: controller.signal,
         timeout: 30000
@@ -102,6 +111,13 @@ export default function Register() {
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Criar Conta</h2>
             <p className="text-gray-600">Junte-se a nós e comece agora</p>
+            {affiliateRef && (
+              <div className="mt-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm text-green-800 font-semibold">
+                  🎁 Você ganhará 2 gerações grátis ao se cadastrar através deste link!
+                </p>
+              </div>
+            )}
           </div>
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

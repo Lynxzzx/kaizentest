@@ -13,8 +13,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   })
 
   try {
-    console.log('Register API called:', { username: req.body?.username })
-    const { username, email, password, deviceFingerprint } = req.body
+    console.log('Register API called:', { username: req.body?.username, affiliateRef: req.body?.affiliateRef })
+    const { username, email, password, deviceFingerprint, affiliateRef } = req.body
 
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' })
@@ -74,6 +74,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('User does not exist, creating...')
 
+    // Processar referência de afiliado se fornecida
+    let referrerId: string | null = null
+    if (affiliateRef) {
+      console.log('Processing affiliate reference:', affiliateRef)
+      const referrer = await prisma.user.findFirst({
+        where: { affiliateCode: affiliateRef.trim().toUpperCase() }
+      })
+
+      if (referrer) {
+        // VALIDAÇÃO: Não permitir auto-referência (mesmo usuário)
+        // Mas não podemos verificar isso aqui porque o usuário ainda não existe
+        // Verificaremos após criar o usuário
+        referrerId = referrer.id
+        console.log('Referrer found:', referrer.id)
+      } else {
+        console.log('Referrer not found for code:', affiliateRef)
+      }
+    }
+
     // Hash da senha
     console.log('Hashing password...')
     const hashedPassword = await hashPassword(password)
@@ -86,7 +105,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         email: email || null,
         password: hashedPassword,
         role: 'USER',
-        deviceFingerprint: deviceFingerprint || null // Armazenar device fingerprint
+        deviceFingerprint: deviceFingerprint || null, // Armazenar device fingerprint
+        referredBy: referrerId || null // Armazenar referência se existir
       }
     }).catch((err) => {
       console.error('Error creating user:', err)
@@ -94,6 +114,93 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     console.log('User created successfully:', user.id)
+
+    // Processar recompensas de afiliado se houver referência
+    if (referrerId && user.id !== referrerId) {
+      try {
+        // Verificar validações de segurança (device fingerprint)
+        const referrer = await prisma.user.findUnique({
+          where: { id: referrerId }
+        })
+
+        if (referrer) {
+          // Verificar se são do mesmo dispositivo
+          if (user.deviceFingerprint && referrer.deviceFingerprint) {
+            if (user.deviceFingerprint === referrer.deviceFingerprint) {
+              console.log('Same device detected, skipping affiliate reward')
+              // Remover referência se for do mesmo dispositivo
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { referredBy: null }
+              })
+            } else {
+              // Criar recompensa de afiliado
+              await prisma.affiliateReward.create({
+                data: {
+                  userId: referrerId,
+                  referredUserId: user.id,
+                  rewardedGenerations: 2
+                }
+              })
+
+              // Adicionar gerações bonus ao referenciador
+              await prisma.user.update({
+                where: { id: referrerId },
+                data: {
+                  bonusGenerations: {
+                    increment: 2
+                  }
+                }
+              })
+
+              // Adicionar 2 gerações grátis ao novo usuário (vindas do afiliado)
+              await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                  bonusGenerations: {
+                    increment: 2
+                  }
+                }
+              })
+
+              console.log('Affiliate reward created successfully for new user')
+            }
+          } else {
+            // Se não há device fingerprint, processar normalmente
+            await prisma.affiliateReward.create({
+              data: {
+                userId: referrerId,
+                referredUserId: user.id,
+                rewardedGenerations: 2
+              }
+            })
+
+            await prisma.user.update({
+              where: { id: referrerId },
+              data: {
+                bonusGenerations: {
+                  increment: 2
+                }
+              }
+            })
+
+            await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                bonusGenerations: {
+                  increment: 2
+                }
+              }
+            })
+
+            console.log('Affiliate reward created successfully for new user (no device fingerprint)')
+          }
+        }
+      } catch (affiliateError: any) {
+        console.error('Error processing affiliate reward:', affiliateError)
+        // Não falhar o registro se houver erro no afiliado
+      }
+    }
 
     // Retornar dados sem senha
     const { password: _, ...userWithoutPassword } = user

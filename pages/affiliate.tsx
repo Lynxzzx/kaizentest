@@ -97,6 +97,17 @@ export default function Affiliate() {
     toast.success('Código copiado para a área de transferência!')
   }
 
+  const copyLinkToClipboard = (code: string) => {
+    const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${code}`
+    navigator.clipboard.writeText(link)
+    toast.success('Link de afiliado copiado para a área de transferência!')
+  }
+
+  const getAffiliateLink = (code: string) => {
+    if (typeof window === 'undefined') return ''
+    return `${window.location.origin}/register?ref=${code}`
+  }
+
   if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -127,9 +138,10 @@ export default function Affiliate() {
             </div>
             {stats?.affiliateCode ? (
               <div className="space-y-4">
+                {/* Código de Afiliado */}
                 <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-6 border border-primary-200">
                   <p className="text-sm text-primary-700 mb-2 font-semibold">Seu código único:</p>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-4">
                     <code className="text-2xl font-bold text-primary-900 font-mono">
                       {stats.affiliateCode}
                     </code>
@@ -141,9 +153,32 @@ export default function Affiliate() {
                     </button>
                   </div>
                 </div>
+
+                {/* Link de Afiliado */}
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
+                  <p className="text-sm text-purple-700 mb-2 font-semibold">Seu link de afiliado:</p>
+                  <div className="flex items-center gap-2 mb-4">
+                    <input
+                      type="text"
+                      value={getAffiliateLink(stats.affiliateCode)}
+                      readOnly
+                      className="flex-1 px-3 py-2 bg-white border border-purple-200 rounded-lg text-sm font-mono text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                    <button
+                      onClick={() => copyLinkToClipboard(stats.affiliateCode!)}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-semibold whitespace-nowrap"
+                    >
+                      Copiar Link
+                    </button>
+                  </div>
+                  <p className="text-xs text-purple-600 mt-2">
+                    Compartilhe este link e ganhe 2 gerações grátis quando alguém se cadastrar!
+                  </p>
+                </div>
+
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-800">
-                    <strong>Como funciona:</strong> Compartilhe este código com seus amigos. Quando eles se cadastrarem usando seu código, você ganha 2 gerações grátis automaticamente!
+                    <strong>Como funciona:</strong> Compartilhe seu código ou link com seus amigos. Quando eles se cadastrarem através do seu link, você ganha 2 gerações grátis e eles também ganham 2 gerações grátis automaticamente!
                   </p>
                 </div>
               </div>
