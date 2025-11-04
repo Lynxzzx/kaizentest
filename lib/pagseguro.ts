@@ -115,12 +115,21 @@ export async function createPagSeguroPixPayment(data: {
       customerData.email = data.customer.email
     }
 
-    // Para PIX, o PagBank usa qr_codes que já contém o amount
-    // Não enviar amount no nível raiz quando usar qr_codes
+    // O endpoint /charges requer payment_method obrigatório
+    // Mas quando usamos qr_codes, não devemos incluir objeto pix dentro de payment_method
+    // Estrutura: payment_method com type: 'PIX' + qr_codes separado
     const chargeData: any = {
       reference_id: data.reference_id,
       customer: customerData,
+      amount: {
+        value: valueInCents,
+        currency: 'BRL'
+      },
       description: data.description,
+      payment_method: {
+        type: 'PIX'
+        // NÃO incluir pix: {} aqui - isso causa erro
+      },
       qr_codes: [
         {
           amount: {
