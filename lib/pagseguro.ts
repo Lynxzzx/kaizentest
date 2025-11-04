@@ -110,8 +110,8 @@ export async function createPagSeguroPixPayment(data: {
     }
 
     // Preparar dados do pagamento
-    // O PagSeguro pode requerer uma estrutura diferente para PIX
-    const paymentData: any = {
+    // O PagSeguro requer payment_method (singular) com type: "PIX"
+    const paymentData = {
       reference_id: data.reference_id,
       customer: customerData,
       amount: {
@@ -119,76 +119,25 @@ export async function createPagSeguroPixPayment(data: {
         currency: 'BRL'
       },
       description: data.description,
-      // Tentar criar charge sem payment_method primeiro, depois gerar PIX
-      // Ou usar estrutura de payment_methods (array)
-      payment_methods: [{
-        type: 'PIX'
-      }]
+      payment_method: {
+        type: 'PIX',
+        pix: {}
+      }
     }
 
     console.log('Criando pagamento PIX no PagSeguro:', JSON.stringify(paymentData, null, 2))
 
     // Criar cobrança PIX
-    let response
-    try {
-      response = await axios.post(
-        `${apiUrl}/charges`,
-        paymentData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+    const response = await axios.post(
+      `${apiUrl}/charges`,
+      paymentData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-      )
-    } catch (firstError: any) {
-      // Se falhar com payment_methods, tentar sem payment_method e gerar PIX depois
-      if (firstError.response?.status === 400) {
-        console.log('⚠️ Tentando criar charge sem payment_method...')
-        const chargeDataWithoutMethod = {
-          reference_id: data.reference_id,
-          customer: customerData,
-          amount: {
-            value: valueInCents,
-            currency: 'BRL'
-          },
-          description: data.description
-        }
-        
-        response = await axios.post(
-          `${apiUrl}/charges`,
-          chargeDataWithoutMethod,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        )
-        
-        // Após criar a charge, gerar o QR code PIX
-        const chargeId = response.data.id
-        const pixResponse = await axios.post(
-          `${apiUrl}/charges/${chargeId}/pix`,
-          {},
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        )
-        
-        return {
-          id: response.data.id,
-          qrCode: pixResponse.data.qr_code || pixResponse.data.qr_code_text || pixResponse.data.text,
-          qrCodeImage: pixResponse.data.qr_code_image || pixResponse.data.qr_code_base64,
-          expiresAt: pixResponse.data.expires_at || new Date(Date.now() + 30 * 60 * 1000).toISOString()
-        }
-      } else {
-        throw firstError
       }
-    }
+    )
 
     console.log('✅ Pagamento PIX criado no PagSeguro:', response.data.id)
     
