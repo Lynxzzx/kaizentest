@@ -2,15 +2,19 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
+import { useTheme } from '@/contexts/ThemeContext'
+import { getThemeClasses } from '@/lib/theme-utils'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 
 export default function Login() {
   const { t } = useTranslation()
+  const { theme } = useTheme()
   const router = useRouter()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const themeClasses = getThemeClasses(theme)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,9 +49,9 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-12 px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-screen flex items-center justify-center ${themeClasses.bg} py-12 px-4 sm:px-6 lg:px-8`}>
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-200">
+        <div className={`${themeClasses.card} rounded-2xl shadow-2xl p-8`}>
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl mb-4">
               <span className="text-white font-bold text-2xl">K</span>

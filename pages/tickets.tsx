@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
+import { useTheme } from '@/contexts/ThemeContext'
+import { getThemeClasses } from '@/lib/theme-utils'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -35,6 +37,7 @@ interface Ticket {
 export default function Tickets() {
   const { t } = useTranslation()
   const { data: session, status } = useSession()
+  const { theme } = useTheme()
   const router = useRouter()
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -46,6 +49,7 @@ export default function Tickets() {
   })
   const [replyMessage, setReplyMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -148,10 +152,10 @@ export default function Tickets() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className={`min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600">Carregando...</p>
+          <div className={`inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${theme === 'dark' ? 'border-purple-500' : 'border-primary-600'}`}></div>
+          <p className={`mt-4 ${themeClasses.text.secondary}`}>Carregando...</p>
         </div>
       </div>
     )
@@ -160,11 +164,11 @@ export default function Tickets() {
   if (!session) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-12 px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-screen ${themeClasses.bg} py-12 px-4 sm:px-6 lg:px-8`}>
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">Suporte</h1>
+            <h1 className={`text-4xl font-bold mb-2 ${themeClasses.text.primary}`}>Suporte</h1>
             <p className="text-gray-600">Gerencie seus tickets de suporte</p>
           </div>
           <button

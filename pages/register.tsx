@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
+import { useTheme } from '@/contexts/ThemeContext'
+import { getThemeClasses } from '@/lib/theme-utils'
 import Link from 'next/link'
 import axios from 'axios'
 import { getStoredDeviceFingerprint } from '@/lib/device-fingerprint'
@@ -9,6 +11,7 @@ import toast from 'react-hot-toast'
 
 export default function Register() {
   const { t } = useTranslation()
+  const { theme } = useTheme()
   const router = useRouter()
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
@@ -16,6 +19,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [affiliateRef, setAffiliateRef] = useState<string | null>(null)
+  const themeClasses = getThemeClasses(theme)
 
   // Capturar parâmetro ref da URL
   useEffect(() => {
@@ -102,15 +106,15 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-12 px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-screen flex items-center justify-center ${themeClasses.bg} py-12 px-4 sm:px-6 lg:px-8`}>
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-200">
+        <div className={`${themeClasses.card} rounded-2xl shadow-2xl p-8`}>
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl mb-4">
               <span className="text-white font-bold text-2xl">K</span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Criar Conta</h2>
-            <p className="text-gray-600">Junte-se a nós e comece agora</p>
+            <h2 className={`text-3xl font-bold mb-2 ${themeClasses.text.primary}`}>Criar Conta</h2>
+            <p className={themeClasses.text.secondary}>Junte-se a nós e comece agora</p>
             {affiliateRef && (
               <div className="mt-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
                 <p className="text-sm text-green-800 font-semibold">

@@ -8,9 +8,11 @@ import toast from 'react-hot-toast'
 export default function RedeemKey() {
   const { t } = useTranslation()
   const { data: session } = useSession()
+  const { theme } = useTheme()
   const router = useRouter()
   const [key, setKey] = useState('')
   const [loading, setLoading] = useState(false)
+  const themeClasses = getThemeClasses(theme)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,19 +30,19 @@ export default function RedeemKey() {
   }
 
   return (
-    <div className="max-w-md mx-auto mt-12 px-4">
-      <div className="bg-white shadow-md rounded-lg px-8 pt-6 pb-8 mb-4">
-        <h2 className="text-2xl font-bold mb-6 text-center">Resgatar Chave</h2>
+    <div className={`max-w-md mx-auto mt-12 px-4 ${themeClasses.bg} min-h-screen py-12`}>
+      <div className={`${themeClasses.card} px-8 pt-6 pb-8 mb-4`}>
+        <h2 className={`text-2xl font-bold mb-6 text-center ${themeClasses.text.primary}`}>Resgatar Chave</h2>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
+            <label className={`block text-sm font-bold mb-2 ${themeClasses.text.primary}`}>
               Chave
             </label>
             <input
               type="text"
               value={key}
               onChange={(e) => setKey(e.target.value.toUpperCase())}
-              className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline font-mono"
+              className={`${themeClasses.input} shadow appearance-none rounded w-full py-2 px-3 leading-tight focus:outline-none focus:shadow-outline font-mono`}
               placeholder="Digite a chave"
               required
             />

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { useSession } from 'next-auth/react'
+import { useTheme } from '@/contexts/ThemeContext'
+import { getThemeClasses } from '@/lib/theme-utils'
 import axios from 'axios'
 import Image from 'next/image'
 import toast from 'react-hot-toast'
@@ -30,12 +32,14 @@ export default function ProfilePage() {
   const router = useRouter()
   const { username } = router.query
   const { data: session } = useSession()
+  const { theme } = useTheme()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState({ bio: '', profilePicture: '' })
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
     if (username && typeof username === 'string') {
@@ -136,10 +140,10 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+      <div className={`min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
-          <p className="mt-4 text-gray-300 text-lg">Carregando perfil...</p>
+          <div className={`inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 ${theme === 'dark' ? 'border-purple-500' : 'border-blue-500'}`}></div>
+          <p className={`mt-4 ${themeClasses.text.secondary} text-lg`}>Carregando perfil...</p>
         </div>
       </div>
     )
@@ -147,10 +151,10 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+      <div className={`min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
         <div className="text-center">
           <div className="text-6xl mb-4">😕</div>
-          <p className="text-gray-300 text-xl mb-2">Perfil não encontrado</p>
+          <p className={`${themeClasses.text.secondary} text-xl mb-2`}>Perfil não encontrado</p>
           <button
             onClick={() => router.push('/dashboard')}
             className="mt-4 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-purple-700 transition-all"
@@ -166,7 +170,7 @@ export default function ProfilePage() {
   const isOwnProfile = session?.user.id === profile.id
 
   return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+      <div className={`min-h-screen ${themeClasses.bg} py-12 px-4 sm:px-6 lg:px-8`}>
         <div className="max-w-4xl mx-auto">
           {/* Header Card */}
           <div className="bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800 rounded-3xl shadow-2xl p-8 mb-8 border border-gray-600">

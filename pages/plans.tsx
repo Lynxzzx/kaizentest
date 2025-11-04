@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
+import { useTheme } from '@/contexts/ThemeContext'
+import { getThemeClasses } from '@/lib/theme-utils'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import QRCode from 'qrcode.react'
@@ -34,6 +36,7 @@ interface PaymentData {
 export default function Plans() {
   const { t } = useTranslation()
   const { data: session } = useSession()
+  const { theme } = useTheme()
   const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
@@ -41,6 +44,7 @@ export default function Plans() {
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null)
   const [loading, setLoading] = useState(false)
   const [qrCodeImageError, setQrCodeImageError] = useState(false)
+  const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
     loadPlans()
@@ -149,11 +153,11 @@ export default function Plans() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8">
+    <div className={`min-h-screen ${themeClasses.bg} py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8`}>
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 mb-3 sm:mb-4 px-2">{t('plans')}</h1>
-          <p className="text-base sm:text-lg md:text-xl text-gray-600 max-w-2xl mx-auto px-4">
+          <h1 className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 px-2 ${themeClasses.text.primary}`}>{t('plans')}</h1>
+          <p className={`text-base sm:text-lg md:text-xl max-w-2xl mx-auto px-4 ${themeClasses.text.secondary}`}>
             Escolha o plano ideal para você e tenha acesso a todos os nossos serviços
           </p>
         </div>
@@ -162,8 +166,8 @@ export default function Plans() {
           {plans.map((plan, index) => (
             <div
               key={plan.id}
-              className={`bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border-2 transition-all transform hover:-translate-y-2 hover:shadow-2xl ${
-                index === 1 ? 'border-primary-500 sm:scale-105' : 'border-gray-200 hover:border-primary-300'
+              className={`${themeClasses.card} border-2 transition-all transform hover:-translate-y-2 hover:shadow-2xl ${
+                index === 1 ? 'border-purple-500 sm:scale-105' : theme === 'dark' ? 'border-white/20 hover:border-purple-500' : 'border-gray-200 hover:border-primary-300'
               }`}
             >
               {index === 1 && (
@@ -171,14 +175,14 @@ export default function Plans() {
                   <span className="font-bold text-xs sm:text-sm">MAIS POPULAR</span>
                 </div>
               )}
-              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-              <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 min-h-[60px]">{plan.description}</p>
+              <h3 className={`text-xl sm:text-2xl font-bold mb-2 ${themeClasses.text.primary}`}>{plan.name}</h3>
+              <p className={`text-sm sm:text-base mb-4 sm:mb-6 min-h-[60px] ${themeClasses.text.secondary}`}>{plan.description}</p>
               <div className="mb-4 sm:mb-6">
                 <div className="flex items-baseline mb-2">
-                  <span className="text-3xl sm:text-4xl font-extrabold text-gray-900">R$</span>
-                  <span className="text-4xl sm:text-5xl font-extrabold text-gray-900 ml-1">{plan.price.toFixed(2)}</span>
+                  <span className={`text-3xl sm:text-4xl font-extrabold ${themeClasses.text.primary}`}>R$</span>
+                  <span className={`text-4xl sm:text-5xl font-extrabold ml-1 ${themeClasses.text.primary}`}>{plan.price.toFixed(2)}</span>
                 </div>
-                <p className="text-gray-500 text-xs sm:text-sm">ou {plan.duration} dias</p>
+                <p className={`${themeClasses.text.muted} text-xs sm:text-sm`}>ou {plan.duration} dias</p>
               </div>
               <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
                 <div className="flex items-center text-gray-700">

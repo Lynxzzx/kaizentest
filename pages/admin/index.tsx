@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
+import { useTheme } from '@/contexts/ThemeContext'
+import { getThemeClasses } from '@/lib/theme-utils'
 import Link from 'next/link'
 import axios from 'axios'
 import toast from 'react-hot-toast'
@@ -44,9 +46,11 @@ interface Stats {
 export default function AdminDashboard() {
   const { t } = useTranslation()
   const { data: session, status } = useSession()
+  const { theme } = useTheme()
   const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
+  const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -77,10 +81,10 @@ export default function AdminDashboard() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className={`min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600">Carregando...</p>
+          <div className={`inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${theme === 'dark' ? 'border-purple-500' : 'border-primary-600'}`}></div>
+          <p className={`mt-4 ${themeClasses.text.secondary}`}>Carregando...</p>
         </div>
       </div>
     )
@@ -150,9 +154,9 @@ export default function AdminDashboard() {
   ] : []
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200">
+    <div className={`min-h-screen ${themeClasses.bg}`}>
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
+      <div className={`${theme === 'dark' ? 'bg-white/10 backdrop-blur-lg border-b border-white/20' : 'bg-white shadow-sm border-b border-gray-200'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
             <div>
