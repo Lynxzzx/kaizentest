@@ -56,8 +56,8 @@ export default function Login() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl mb-4">
               <span className="text-white font-bold text-2xl">K</span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">{t('login')}</h2>
-            <p className="text-gray-600">Entre na sua conta para continuar</p>
+            <h2 className={`text-3xl font-bold mb-2 ${themeClasses.text.primary}`}>{t('login')}</h2>
+            <p className={themeClasses.text.secondary}>Entre na sua conta para continuar</p>
           </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
