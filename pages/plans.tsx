@@ -303,6 +303,11 @@ export default function Plans() {
                         originalAmount: selectedPlan.price
                       } as PaymentData)
                       setLoading(false)
+                      toast.success('Redirecionando para o Telegram...')
+                      // Redirecionar automaticamente para o Telegram após 1 segundo
+                      setTimeout(() => {
+                        window.open(telegramLink, '_blank')
+                      }, 1000)
                     }
                   } catch (error: any) {
                     console.error('Erro ao criar pagamento:', error)
@@ -315,7 +320,11 @@ export default function Plans() {
                       originalAmount: selectedPlan.price
                     } as PaymentData)
                     setLoading(false)
-                    toast.info('Redirecione para o Telegram para completar o pagamento')
+                    toast.success('Redirecionando para o Telegram...')
+                    // Redirecionar automaticamente para o Telegram após 1 segundo
+                    setTimeout(() => {
+                      window.open(telegramLink, '_blank')
+                    }, 1000)
                   }
                 }}
                 className={`w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg text-base font-bold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5`}
