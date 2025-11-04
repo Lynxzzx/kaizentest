@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
-import { createPagSeguroPixPayment } from '@/lib/pagseguro'
+import { createAsaasCustomer, getAsaasCustomerByEmail, updateAsaasCustomer, createAsaasPayment, getAsaasPixQrCode } from '@/lib/asaas'
 import { createPaymentAddress, convertBrlToCrypto } from '@/lib/binance'
 import { generateCPF, cleanCpfCnpj } from '@/lib/utils'
 
@@ -33,27 +33,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (method === 'PIX') {
-      // Verificar se o token do PagSeguro está configurado
-      const pagSeguroToken = process.env.PAGSEGURO_TOKEN
-      
-      if (!pagSeguroToken || (typeof pagSeguroToken === 'string' && pagSeguroToken.trim().length === 0)) {
-        console.error('❌ PAGSEGURO_TOKEN não está configurada!')
-        return res.status(500).json({
-          error: 'PAGSEGURO_TOKEN não configurada',
-          message: 'A variável PAGSEGURO_TOKEN não está configurada no servidor. Configure no Vercel: Settings > Environment Variables',
-          instructions: [
-            '1. Acesse: https://vercel.com/dashboard',
-            '2. Selecione seu projeto',
-            '3. Vá em Settings > Environment Variables',
-            '4. Adicione PAGSEGURO_TOKEN com seu token do PagSeguro',
-            '5. Marque TODOS: Production, Preview, Development',
-            '6. Clique em "Save"',
-            '7. VÁ EM DEPLOYMENTS > ⋯ > Redeploy',
-            '8. AGUARDE o redeploy completar'
-          ]
-        })
-      }
-      
       try {
         const user = await prisma.user.findUnique({
           where: { id: session.user.id }
@@ -79,29 +58,70 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
 
-        // Criar pagamento PIX no PagSeguro
-        const referenceId = `payment_${Date.now()}_${user.id}`
-        
-        const pagSeguroPayment = await createPagSeguroPixPayment({
-          reference_id: referenceId,
-          customer: {
+        // Criar ou atualizar cliente no Asaas
+        let asaasCustomerId = user.asaasCustomerId
+        if (!asaasCustomerId) {
+          console.log('📝 Criando cliente no Asaas...')
+          const asaasCustomer = await createAsaasCustomer({
             name: user.username,
-            email: user.email || '',
-            tax_id: cleanCpfCnpj(cpfCnpj)
-          },
-          amount: plan.price,
+            email: user.email || undefined,
+            cpfCnpj: cleanCpfCnpj(cpfCnpj)
+          })
+          asaasCustomerId = asaasCustomer.id
+          
+          // Salvar ID do cliente no banco
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { asaasCustomerId } as any
+          })
+        } else {
+          // Verificar se o cliente existe e atualizar se necessário
+          try {
+            const existingCustomer = await getAsaasCustomerByEmail(user.email || '')
+            if (existingCustomer && existingCustomer.id !== asaasCustomerId) {
+              asaasCustomerId = existingCustomer.id
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { asaasCustomerId } as any
+              })
+            }
+            
+            // Atualizar CPF/CNPJ se necessário
+            if (cpfCnpj && !existingCustomer?.cpfCnpj) {
+              console.log('📝 Atualizando cliente no Asaas com CPF/CNPJ...')
+              await updateAsaasCustomer(asaasCustomerId, { cpfCnpj: cleanCpfCnpj(cpfCnpj) })
+            }
+          } catch (error: any) {
+            console.warn('⚠️ Não foi possível verificar cliente no Asaas:', error.message)
+          }
+        }
+
+        // Calcular data de vencimento (hoje + 1 dia)
+        const dueDate = new Date()
+        dueDate.setDate(dueDate.getDate() + 1)
+        const dueDateStr = dueDate.toISOString().split('T')[0]
+
+        // Criar pagamento PIX no Asaas
+        const asaasPayment = await createAsaasPayment({
+          customer: asaasCustomerId,
+          billingType: 'PIX',
+          value: plan.price,
+          dueDate: dueDateStr,
           description: `Plano ${plan.name} - Kaizen Gens`
         })
 
+        // Buscar QR code PIX
+        const pixQrCodeData = await getAsaasPixQrCode(asaasPayment.id)
+
         // Preparar QR code image
         let pixQrCodeImage: string | null = null
-        if (pagSeguroPayment.qrCodeImage) {
+        if (pixQrCodeData.qrCodeImage) {
           // Se já vem como data URI, usar diretamente
-          if (pagSeguroPayment.qrCodeImage.startsWith('data:')) {
-            pixQrCodeImage = pagSeguroPayment.qrCodeImage
+          if (pixQrCodeData.qrCodeImage.startsWith('data:')) {
+            pixQrCodeImage = pixQrCodeData.qrCodeImage
           } else {
             // Se vem como base64 puro, adicionar prefixo
-            pixQrCodeImage = `data:image/png;base64,${pagSeguroPayment.qrCodeImage}`
+            pixQrCodeImage = `data:image/png;base64,${pixQrCodeData.qrCodeImage}`
           }
         }
 
@@ -113,23 +133,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             amount: plan.price,
             method: 'PIX',
             status: 'PENDING',
-            asaasId: pagSeguroPayment.id, // Usar campo existente para compatibilidade
-            pixQrCode: pagSeguroPayment.qrCode,
-            pixExpiresAt: pagSeguroPayment.expiresAt ? new Date(pagSeguroPayment.expiresAt) : new Date(Date.now() + 30 * 60 * 1000)
+            asaasId: asaasPayment.id,
+            pixQrCode: pixQrCodeData.qrCode,
+            pixExpiresAt: pixQrCodeData.expiresAt ? new Date(pixQrCodeData.expiresAt) : new Date(Date.now() + 30 * 60 * 1000)
           }
         })
 
         return res.status(200).json({
           paymentId: payment.id,
           qrCodeImage: pixQrCodeImage,
-          pixCopyPaste: pagSeguroPayment.qrCode,
+          pixCopyPaste: pixQrCodeData.qrCode,
           expiresAt: payment.pixExpiresAt
         })
       } catch (error: any) {
         console.error('Error creating PIX payment:', error)
         
         // Verificar se é erro de serviço indisponível
-        if (error.name === 'PagSeguroServiceUnavailableError') {
+        if (error.name === 'AsaasServiceUnavailableError') {
           return res.status(503).json({
             error: 'Serviço temporariamente indisponível',
             message: error.message
@@ -137,7 +157,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         
         // Verificar se é erro de autenticação
-        if (error.name === 'PagSeguroAuthenticationError') {
+        if (error.name === 'AsaasAuthenticationError') {
           return res.status(401).json({
             error: 'Erro de autenticação',
             message: error.message
