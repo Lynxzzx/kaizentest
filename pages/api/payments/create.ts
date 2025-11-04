@@ -96,6 +96,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
 
+        // Garantir que temos um asaasCustomerId válido
+        if (!asaasCustomerId) {
+          throw new Error('Não foi possível criar ou obter o ID do cliente no Asaas')
+        }
+
         // Calcular data de vencimento (hoje + 1 dia)
         const dueDate = new Date()
         dueDate.setDate(dueDate.getDate() + 1)
