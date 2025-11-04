@@ -1,25 +1,31 @@
 import axios from 'axios'
 
-// Função para obter e validar o token do PagSeguro
-function getPagSeguroToken(): string {
+// Função para obter e validar a chave/token do PagSeguro
+function getPagSeguroKey(): string {
+  // Primeiro tentar PAGSEGURO_APP_KEY (chave de aplicação)
+  // Depois tentar PAGSEGURO_TOKEN (token) para compatibilidade
+  const PAGSEGURO_APP_KEY = process.env.PAGSEGURO_APP_KEY
   const PAGSEGURO_TOKEN = process.env.PAGSEGURO_TOKEN
 
-  if (!PAGSEGURO_TOKEN || (typeof PAGSEGURO_TOKEN === 'string' && PAGSEGURO_TOKEN.trim().length === 0)) {
-    console.error('❌ ERRO: PAGSEGURO_TOKEN não está configurada!')
-    console.error('   Configure no .env ou no Vercel: PAGSEGURO_TOKEN=seu_token')
-    throw new Error('PAGSEGURO_TOKEN não está configurada no servidor.')
+  const key = PAGSEGURO_APP_KEY || PAGSEGURO_TOKEN
+
+  if (!key || (typeof key === 'string' && key.trim().length === 0)) {
+    console.error('❌ ERRO: PAGSEGURO_APP_KEY ou PAGSEGURO_TOKEN não está configurada!')
+    console.error('   Configure no .env ou no Vercel: PAGSEGURO_APP_KEY=sua_chave')
+    throw new Error('PAGSEGURO_APP_KEY ou PAGSEGURO_TOKEN não está configurada no servidor.')
   }
 
-  const token = PAGSEGURO_TOKEN.trim()
+  const trimmedKey = key.trim()
 
-  if (!(getPagSeguroToken as any).logged) {
-    console.log('✅ PAGSEGURO_TOKEN carregada com sucesso!')
-    console.log('   Tamanho:', token.length, 'caracteres')
-    console.log('   Prefixo:', token.substring(0, 20))
-    ;(getPagSeguroToken as any).logged = true
+  if (!(getPagSeguroKey as any).logged) {
+    const keyType = PAGSEGURO_APP_KEY ? 'APP_KEY' : 'TOKEN'
+    console.log(`✅ PAGSEGURO_${keyType} carregada com sucesso!`)
+    console.log('   Tamanho:', trimmedKey.length, 'caracteres')
+    console.log('   Prefixo:', trimmedKey.substring(0, 20))
+    ;(getPagSeguroKey as any).logged = true
   }
 
-  return token
+  return trimmedKey
 }
 
 // Função para obter a URL da API baseada no ambiente
@@ -92,7 +98,7 @@ export async function createPagSeguroPixPayment(data: {
   description: string
 }) {
   try {
-    const token = getPagSeguroToken()
+    const key = getPagSeguroKey()
     const apiUrl = getPagSeguroApiUrl()
 
     // Converter valor de reais para centavos
@@ -140,7 +146,8 @@ export async function createPagSeguroPixPayment(data: {
       chargeData,
       {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${key}`,
+          'App-Token': key,
           'Content-Type': 'application/json'
         }
       }
@@ -164,7 +171,8 @@ export async function createPagSeguroPixPayment(data: {
           `${apiUrl}/charges/${chargeId}/pix`,
           {
             headers: {
-              'Authorization': `Bearer ${token}`
+              'Authorization': `Bearer ${key}`,
+          'App-Token': key
             }
           }
         )
@@ -179,7 +187,8 @@ export async function createPagSeguroPixPayment(data: {
             {},
             {
               headers: {
-                'Authorization': `Bearer ${token}`,
+                'Authorization': `Bearer ${key}`,
+          'App-Token': key,
                 'Content-Type': 'application/json'
               }
             }
@@ -262,14 +271,15 @@ export async function createPagSeguroPixPayment(data: {
 // Buscar status de um pagamento
 export async function getPagSeguroPayment(chargeId: string) {
   try {
-    const token = getPagSeguroToken()
+    const key = getPagSeguroKey()
     const apiUrl = getPagSeguroApiUrl()
 
     const response = await axios.get(
       `${apiUrl}/charges/${chargeId}`,
       {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${key}`,
+          'App-Token': key
         }
       }
     )
@@ -284,14 +294,15 @@ export async function getPagSeguroPayment(chargeId: string) {
 // Buscar QR code PIX de um pagamento existente
 export async function getPagSeguroPixQrCode(chargeId: string) {
   try {
-    const token = getPagSeguroToken()
+    const key = getPagSeguroKey()
     const apiUrl = getPagSeguroApiUrl()
 
     const response = await axios.get(
       `${apiUrl}/charges/${chargeId}/pix`,
       {
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${key}`,
+          'App-Token': key
         }
       }
     )
