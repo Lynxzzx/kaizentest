@@ -109,27 +109,23 @@ export async function createPagSeguroPixPayment(data: {
       customerData.email = data.customer.email
     }
 
-    // Preparar dados do pagamento
-    // O PagSeguro requer payment_method (singular) com type: "PIX"
-    const paymentData = {
+    // Preparar dados da cobrança (sem payment_method inicialmente)
+    const chargeData = {
       reference_id: data.reference_id,
       customer: customerData,
       amount: {
         value: valueInCents,
         currency: 'BRL'
       },
-      description: data.description,
-      payment_method: {
-        type: 'PIX'
-      }
+      description: data.description
     }
 
-    console.log('Criando pagamento PIX no PagSeguro:', JSON.stringify(paymentData, null, 2))
+    console.log('Criando cobrança no PagSeguro:', JSON.stringify(chargeData, null, 2))
 
-    // Criar cobrança PIX
-    const response = await axios.post(
+    // Criar cobrança primeiro
+    const chargeResponse = await axios.post(
       `${apiUrl}/charges`,
-      paymentData,
+      chargeData,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -138,26 +134,24 @@ export async function createPagSeguroPixPayment(data: {
       }
     )
 
-    console.log('✅ Pagamento PIX criado no PagSeguro:', response.data.id)
+    console.log('✅ Cobrança criada no PagSeguro:', chargeResponse.data.id)
     
-    // Buscar QR code PIX
-    const chargeId = response.data.id
+    const chargeId = chargeResponse.data.id
+    
+    // Adicionar método de pagamento PIX à cobrança
+    console.log('Adicionando método de pagamento PIX à cobrança...')
+    const pixData = {
+      payment_method: {
+        type: 'PIX'
+      }
+    }
+
     let qrCodeResponse
     try {
-      qrCodeResponse = await axios.get(
-        `${apiUrl}/charges/${chargeId}/pix`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      )
-    } catch (qrError: any) {
-      // Se GET falhar, tentar POST
-      console.log('⚠️ GET falhou, tentando POST para gerar QR code PIX...')
-      qrCodeResponse = await axios.post(
-        `${apiUrl}/charges/${chargeId}/pix`,
-        {},
+      // Tentar adicionar PIX via PUT/PATCH
+      qrCodeResponse = await axios.patch(
+        `${apiUrl}/charges/${chargeId}`,
+        pixData,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -165,10 +159,39 @@ export async function createPagSeguroPixPayment(data: {
           }
         }
       )
+      console.log('✅ Método PIX adicionado via PATCH')
+    } catch (patchError: any) {
+      console.log('⚠️ PATCH falhou, tentando POST para gerar QR code PIX...')
+      try {
+        // Se PATCH falhar, tentar POST para gerar QR code diretamente
+        qrCodeResponse = await axios.post(
+          `${apiUrl}/charges/${chargeId}/pix`,
+          {},
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        )
+        console.log('✅ QR code PIX gerado via POST')
+      } catch (postError: any) {
+        // Se POST também falhar, tentar GET
+        console.log('⚠️ POST falhou, tentando GET para buscar QR code PIX...')
+        qrCodeResponse = await axios.get(
+          `${apiUrl}/charges/${chargeId}/pix`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        )
+        console.log('✅ QR code PIX obtido via GET')
+      }
     }
 
     return {
-      id: response.data.id,
+      id: chargeResponse.data.id,
       qrCode: qrCodeResponse.data.qr_code || qrCodeResponse.data.qr_code_text || qrCodeResponse.data.text || qrCodeResponse.data.pix_copy_paste,
       qrCodeImage: qrCodeResponse.data.qr_code_image || qrCodeResponse.data.qr_code_base64,
       expiresAt: qrCodeResponse.data.expires_at || qrCodeResponse.data.expiration_date || new Date(Date.now() + 30 * 60 * 1000).toISOString()
