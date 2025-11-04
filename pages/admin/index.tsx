@@ -160,8 +160,8 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Painel Administrativo</h1>
-              <p className="mt-1 text-sm text-gray-500">Bem-vindo, {session?.user?.username}</p>
+              <h1 className={`text-3xl font-bold ${themeClasses.text.primary}`}>Painel Administrativo</h1>
+              <p className={`mt-1 text-sm ${themeClasses.text.muted}`}>Bem-vindo, {session?.user?.username}</p>
             </div>
             <div className="flex items-center space-x-3">
               <button
@@ -182,12 +182,12 @@ export default function AdminDashboard() {
             <Link
               key={index}
               href={card.link}
-              className="bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 p-6 border-l-4 border-transparent hover:border-primary-500"
+              className={`${themeClasses.card} rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 p-6 border-l-4 border-transparent hover:border-primary-500`}
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-1">{card.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+                  <p className={`text-sm font-medium mb-1 ${themeClasses.text.secondary}`}>{card.title}</p>
+                  <p className={`text-2xl font-bold ${themeClasses.text.primary}`}>{card.value}</p>
                 </div>
                 <div className={`${card.color} rounded-full p-3 text-2xl`}>
                   {card.icon}
@@ -198,8 +198,8 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Ações Rápidas</h2>
+        <div className={`${themeClasses.card} rounded-xl shadow-md p-6 mb-8`}>
+          <h2 className={`text-xl font-bold mb-4 ${themeClasses.text.primary}`}>Ações Rápidas</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <Link
               href="/admin/services"
@@ -249,48 +249,48 @@ export default function AdminDashboard() {
         {stats && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Recent Users */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Usuários Recentes</h2>
+            <div className={themeClasses.card}>
+              <h2 className={`text-xl font-bold mb-4 ${themeClasses.text.primary}`}>Usuários Recentes</h2>
               <div className="space-y-3">
                 {stats.recentUsers.length > 0 ? (
                   stats.recentUsers.map((user) => (
                     <div
                       key={user.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      className={`flex items-center justify-between p-3 ${theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} rounded-lg transition-colors`}
                     >
                       <div>
-                        <p className="font-semibold text-gray-900">{user.username}</p>
-                        <p className="text-sm text-gray-500">
+                        <p className={`font-semibold ${themeClasses.text.primary}`}>{user.username}</p>
+                        <p className={`text-sm ${themeClasses.text.muted}`}>
                           {user.email || 'Sem email'} • {user.plan?.name || 'Sem plano'}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className={`text-xs ${themeClasses.text.muted} mt-1`}>
                           {format(new Date(user.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
                         </p>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500 text-center py-4">Nenhum usuário recente</p>
+                  <p className={`${themeClasses.text.muted} text-center py-4`}>Nenhum usuário recente</p>
                 )}
               </div>
             </div>
 
             {/* Recent Payments */}
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Pagamentos Recentes</h2>
+            <div className={themeClasses.card}>
+              <h2 className={`text-xl font-bold mb-4 ${themeClasses.text.primary}`}>Pagamentos Recentes</h2>
               <div className="space-y-3">
                 {stats.recentPayments.length > 0 ? (
                   stats.recentPayments.map((payment) => (
                     <div
                       key={payment.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                      className={`flex items-center justify-between p-3 ${theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} rounded-lg transition-colors`}
                     >
                       <div>
-                        <p className="font-semibold text-gray-900">{payment.user.username}</p>
-                        <p className="text-sm text-gray-500">
+                        <p className={`font-semibold ${themeClasses.text.primary}`}>{payment.user.username}</p>
+                        <p className={`text-sm ${themeClasses.text.muted}`}>
                           {payment.plan.name} • {payment.method}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className={`text-xs ${themeClasses.text.muted} mt-1`}>
                           {format(new Date(payment.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
                         </p>
                       </div>
@@ -311,7 +311,7 @@ export default function AdminDashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500 text-center py-4">Nenhum pagamento recente</p>
+                  <p className={`${themeClasses.text.muted} text-center py-4`}>Nenhum pagamento recente</p>
                 )}
               </div>
             </div>

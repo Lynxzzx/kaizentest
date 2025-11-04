@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
+import { getThemeClasses } from '@/lib/theme-utils'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -46,7 +47,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false)
 
   // Classes de tema para o dashboard
-  const getThemeClasses = () => {
+  const getDashboardThemeClasses = () => {
     switch (theme) {
       case 'dark':
         return 'min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8'
@@ -58,6 +59,8 @@ export default function Dashboard() {
         return 'min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8'
     }
   }
+
+  const themeClasses = getThemeClasses(theme)
 
   const getCardClasses = () => {
     switch (theme) {
@@ -170,7 +173,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={getThemeClasses()}>
+    <div className={getDashboardThemeClasses()}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 sm:mb-8 flex justify-between items-center">
           <div>
@@ -267,13 +270,13 @@ export default function Dashboard() {
             </div>
             <div className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className={`block text-sm font-semibold mb-2 ${textClasses.primary}`}>
                   {t('selectService')}
                 </label>
                 <select
                   value={selectedService}
                   onChange={(e) => setSelectedService(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none bg-white"
+                  className={`${getThemeClasses(theme).input} w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
                 >
                   <option value="">Selecione um serviço</option>
                   {services
@@ -320,12 +323,12 @@ export default function Dashboard() {
         {generatedAccount && (
           <div className={`${getCardClasses()} animate-slide-up mb-6 sm:mb-8`}>
             <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${textClasses.primary}`}>Conta Gerada com Sucesso! ✅</h2>
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+            <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200'} rounded-xl p-6`}>
               {/* Formato account:pass */}
               <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">Conta (formato: account:pass):</label>
-                <div className="flex items-center gap-2 p-4 bg-white rounded-lg border border-green-100">
-                  <span className="font-mono font-bold text-gray-900 flex-1 break-all">
+                <label className={`block text-sm font-semibold mb-2 ${textClasses.primary}`}>Conta (formato: account:pass):</label>
+                <div className={`flex items-center gap-2 p-4 ${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white rounded-lg border border-green-100'}`}>
+                  <span className={`font-mono font-bold flex-1 break-all ${textClasses.primary}`}>
                     {generatedAccount.email || generatedAccount.username}:{generatedAccount.password}
                   </span>
                   <button
@@ -344,9 +347,9 @@ export default function Dashboard() {
 
               {/* Dados separados com botões de copiar */}
               <div className="space-y-4">
-                <div className="p-4 bg-white rounded-lg border border-green-100">
+                <div className={`p-4 ${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white rounded-lg border border-green-100'}`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-gray-700">
+                    <span className={`font-semibold ${textClasses.primary}`}>
                       {generatedAccount.email ? 'Email/Usuário:' : 'Usuário:'}
                     </span>
                     <button
@@ -360,13 +363,13 @@ export default function Dashboard() {
                       📋 Copiar
                     </button>
                   </div>
-                  <span className="font-mono font-bold text-gray-900 block break-all">
+                  <span className={`font-mono font-bold block break-all ${textClasses.primary}`}>
                     {generatedAccount.email || generatedAccount.username}
                   </span>
                 </div>
-                <div className="p-4 bg-white rounded-lg border border-green-100">
+                <div className={`p-4 ${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white rounded-lg border border-green-100'}`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-gray-700">Senha:</span>
+                    <span className={`font-semibold ${textClasses.primary}`}>Senha:</span>
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(generatedAccount.password)
@@ -377,23 +380,23 @@ export default function Dashboard() {
                       📋 Copiar
                     </button>
                   </div>
-                  <span className="font-mono font-bold text-gray-900 block break-all">
+                  <span className={`font-mono font-bold block break-all ${textClasses.primary}`}>
                     {generatedAccount.password}
                   </span>
                 </div>
               </div>
 
               {/* Mensagem de aviso */}
-              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800 mb-2">
+              <div className={`mt-6 ${theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-50 border border-blue-200'} rounded-lg p-4`}>
+                <p className={`text-sm mb-2 ${theme === 'dark' ? 'text-blue-200' : 'text-blue-800'}`}>
                   <strong>ℹ️ Informação Importante:</strong>
                 </p>
-                <p className="text-sm text-blue-700">
+                <p className={`text-sm ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
                   Se a conta não funcionar, não há problema! Você pode gerar novamente. Às vezes o estoque pode estar vencendo ou alguém pode ter trocado a senha.
                 </p>
               </div>
-              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p className="text-sm text-yellow-800">
+              <div className={`mt-4 ${theme === 'dark' ? 'bg-yellow-500/20 border border-yellow-400/30' : 'bg-yellow-50 border border-yellow-200'} rounded-lg p-4`}>
+                <p className={`text-sm ${theme === 'dark' ? 'text-yellow-200' : 'text-yellow-800'}`}>
                   <strong>⚠️ Importante:</strong> Salve estas credenciais em um local seguro. Elas não serão exibidas novamente.
                 </p>
               </div>
@@ -403,22 +406,22 @@ export default function Dashboard() {
 
         {/* Affiliate Link Card */}
         {userPlan?.affiliateCode && (
-          <div className="mb-6 sm:mb-8 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-purple-200">
+          <div className={`mb-6 sm:mb-8 ${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 border border-purple-200'} rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8`}>
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <div className="flex items-center gap-3">
                 <span className="text-3xl sm:text-4xl">🎁</span>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Seu Link de Afiliado</h2>
+                <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>Seu Link de Afiliado</h2>
               </div>
             </div>
             <div className="space-y-4">
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-purple-200">
-                <p className="text-sm text-gray-600 mb-2 font-semibold">Link para compartilhar:</p>
+              <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-white/80 backdrop-blur-sm border border-purple-200'} rounded-xl p-4`}>
+                <p className={`text-sm mb-2 font-semibold ${textClasses.secondary}`}>Link para compartilhar:</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
                     value={getAffiliateLink(userPlan.affiliateCode)}
                     readOnly
-                    className="flex-1 px-3 py-2 bg-white border border-purple-200 rounded-lg text-sm font-mono text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className={`${getThemeClasses(theme).input} flex-1 px-3 py-2 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500`}
                   />
                   <button
                     onClick={() => copyAffiliateLink(userPlan.affiliateCode!)}
@@ -428,15 +431,15 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-xs sm:text-sm text-blue-800">
+              <div className={`${theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-50 border border-blue-200'} rounded-lg p-3`}>
+                <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-blue-200' : 'text-blue-800'}`}>
                   <strong>💡 Dica:</strong> Compartilhe este link com seus amigos! Quando eles se cadastrarem através do seu link, você ganha 2 gerações grátis e eles também ganham 2 gerações grátis!
                 </p>
               </div>
               <div className="flex justify-center">
                 <Link
                   href="/affiliate"
-                  className="text-sm text-purple-600 hover:text-purple-700 font-semibold hover:underline"
+                  className={`text-sm font-semibold hover:underline ${theme === 'dark' ? 'text-purple-300 hover:text-purple-200' : 'text-purple-600 hover:text-purple-700'}`}
                 >
                   Ver estatísticas completas de afiliados →
                 </Link>
@@ -461,8 +464,8 @@ export default function Dashboard() {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-bold text-gray-900">{service.name}</h3>
-                      <p className="text-sm text-gray-600">{service._count.stocks} disponíveis</p>
+                      <h3 className={`font-bold ${textClasses.primary}`}>{service.name}</h3>
+                      <p className={`text-sm ${textClasses.secondary}`}>{service._count.stocks} disponíveis</p>
                     </div>
                     {service._count.stocks > 0 ? (
                       <span className="text-2xl">✅</span>
@@ -474,7 +477,7 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <p className="text-gray-600 text-center py-8">Nenhum serviço disponível no momento.</p>
+            <p className={`${textClasses.secondary} text-center py-8`}>Nenhum serviço disponível no momento.</p>
           )}
         </div>
       </div>

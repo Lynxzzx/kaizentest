@@ -143,10 +143,10 @@ export default function Affiliate() {
             {stats?.affiliateCode ? (
               <div className="space-y-4">
                 {/* Código de Afiliado */}
-                <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-6 border border-primary-200">
-                  <p className="text-sm text-primary-700 mb-2 font-semibold">Seu código único:</p>
+                <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-primary-50 to-primary-100 border border-primary-200'} rounded-xl p-6`}>
+                  <p className={`text-sm mb-2 font-semibold ${theme === 'dark' ? 'text-purple-300' : 'text-primary-700'}`}>Seu código único:</p>
                   <div className="flex items-center justify-between mb-4">
-                    <code className="text-2xl font-bold text-primary-900 font-mono">
+                    <code className={`text-2xl font-bold font-mono ${theme === 'dark' ? 'text-purple-200' : 'text-primary-900'}`}>
                       {stats.affiliateCode}
                     </code>
                     <button
@@ -159,14 +159,14 @@ export default function Affiliate() {
                 </div>
 
                 {/* Link de Afiliado */}
-                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-6 border border-purple-200">
-                  <p className="text-sm text-purple-700 mb-2 font-semibold">Seu link de afiliado:</p>
+                <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200'} rounded-xl p-6`}>
+                  <p className={`text-sm mb-2 font-semibold ${theme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>Seu link de afiliado:</p>
                   <div className="flex items-center gap-2 mb-4">
                     <input
                       type="text"
                       value={getAffiliateLink(stats.affiliateCode)}
                       readOnly
-                      className="flex-1 px-3 py-2 bg-white border border-purple-200 rounded-lg text-sm font-mono text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      className={`${themeClasses.input} flex-1 px-3 py-2 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500`}
                     />
                     <button
                       onClick={() => copyLinkToClipboard(stats.affiliateCode!)}
@@ -175,20 +175,20 @@ export default function Affiliate() {
                       Copiar Link
                     </button>
                   </div>
-                  <p className="text-xs text-purple-600 mt-2">
+                  <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-purple-300' : 'text-purple-600'}`}>
                     Compartilhe este link e ganhe 2 gerações grátis quando alguém se cadastrar!
                   </p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
+                <div className={`${theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-50 border border-blue-200'} rounded-lg p-4`}>
+                  <p className={`text-sm ${theme === 'dark' ? 'text-blue-200' : 'text-blue-800'}`}>
                     <strong>Como funciona:</strong> Compartilhe seu código ou link com seus amigos. Quando eles se cadastrarem através do seu link, você ganha 2 gerações grátis e eles também ganham 2 gerações grátis automaticamente!
                   </p>
                 </div>
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-gray-600 mb-4">Você ainda não possui um código de afiliado</p>
+                <p className={`${themeClasses.text.secondary} mb-4`}>Você ainda não possui um código de afiliado</p>
                 <button
                   onClick={generateCode}
                   disabled={generating}
@@ -201,21 +201,21 @@ export default function Affiliate() {
           </div>
 
           {/* Resgatar Código */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
+          <div className={themeClasses.card}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Resgatar Código</h2>
+              <h2 className={`text-2xl font-bold ${themeClasses.text.primary}`}>Resgatar Código</h2>
               <span className="text-4xl">🎫</span>
             </div>
             <form onSubmit={handleRedeem} className="space-y-4">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
                   Código de Afiliado
                 </label>
                 <input
                   type="text"
                   value={redeemCode}
                   onChange={(e) => setRedeemCode(e.target.value.toUpperCase())}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none font-mono text-center text-xl tracking-widest"
+                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none font-mono text-center text-xl tracking-widest`}
                   placeholder="DIGITE O CÓDIGO"
                   maxLength={12}
                   required
@@ -228,7 +228,7 @@ export default function Affiliate() {
               >
                 {loading ? 'Resgatando...' : 'Resgatar Código'}
               </button>
-              <p className="text-sm text-gray-600 text-center">
+              <p className={`text-sm text-center ${themeClasses.text.secondary}`}>
                 Ao resgatar um código de afiliado, você ganha 2 gerações grátis!
               </p>
             </form>
@@ -238,37 +238,37 @@ export default function Affiliate() {
         {/* Estatísticas */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200 text-center">
+            <div className={`${themeClasses.card} rounded-2xl shadow-xl p-6 text-center`}>
               <div className="text-4xl mb-3">👥</div>
-              <p className="text-3xl font-bold text-gray-900 mb-1">{stats.totalReferrals}</p>
-              <p className="text-gray-600">Indicações</p>
+              <p className={`text-3xl font-bold mb-1 ${themeClasses.text.primary}`}>{stats.totalReferrals}</p>
+              <p className={themeClasses.text.secondary}>Indicações</p>
             </div>
-            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200 text-center">
+            <div className={`${themeClasses.card} rounded-2xl shadow-xl p-6 text-center`}>
               <div className="text-4xl mb-3">🎁</div>
-              <p className="text-3xl font-bold text-gray-900 mb-1">{stats.totalRewards}</p>
-              <p className="text-gray-600">Recompensas</p>
+              <p className={`text-3xl font-bold mb-1 ${themeClasses.text.primary}`}>{stats.totalRewards}</p>
+              <p className={themeClasses.text.secondary}>Recompensas</p>
             </div>
-            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200 text-center">
+            <div className={`${themeClasses.card} rounded-2xl shadow-xl p-6 text-center`}>
               <div className="text-4xl mb-3">⚡</div>
-              <p className="text-3xl font-bold text-gray-900 mb-1">{stats.bonusGenerations}</p>
-              <p className="text-gray-600">Gerações Grátis</p>
+              <p className={`text-3xl font-bold mb-1 ${themeClasses.text.primary}`}>{stats.bonusGenerations}</p>
+              <p className={themeClasses.text.secondary}>Gerações Grátis</p>
             </div>
           </div>
         )}
 
         {/* Indicações Recentes */}
         {stats && stats.recentReferrals.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200 mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Indicações Recentes</h2>
+          <div className={`${themeClasses.card} rounded-2xl shadow-xl p-8 mb-8`}>
+            <h2 className={`text-2xl font-bold mb-6 ${themeClasses.text.primary}`}>Indicações Recentes</h2>
             <div className="space-y-3">
               {stats.recentReferrals.map((referral) => (
                 <div
                   key={referral.id}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  className={`flex items-center justify-between p-4 ${theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} rounded-lg transition-colors`}
                 >
                   <div>
-                    <p className="font-semibold text-gray-900">{referral.username}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className={`font-semibold ${themeClasses.text.primary}`}>{referral.username}</p>
+                    <p className={`text-sm ${themeClasses.text.muted}`}>
                       {format(new Date(referral.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
                     </p>
                   </div>
@@ -281,17 +281,17 @@ export default function Affiliate() {
 
         {/* Recompensas Recentes */}
         {stats && stats.recentRewards.length > 0 && (
-          <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Recompensas Recentes</h2>
+          <div className={`${themeClasses.card} rounded-2xl shadow-xl p-8`}>
+            <h2 className={`text-2xl font-bold mb-6 ${themeClasses.text.primary}`}>Recompensas Recentes</h2>
             <div className="space-y-3">
               {stats.recentRewards.map((reward) => (
                 <div
                   key={reward.id}
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200"
+                  className={`flex items-center justify-between p-4 ${theme === 'dark' ? 'bg-green-500/20 border border-green-400/30' : 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200'} rounded-lg`}
                 >
                   <div>
-                    <p className="font-semibold text-gray-900">Indicação: {reward.user.username}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className={`font-semibold ${themeClasses.text.primary}`}>Indicação: {reward.user.username}</p>
+                    <p className={`text-sm ${themeClasses.text.muted}`}>
                       {format(new Date(reward.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
                     </p>
                   </div>

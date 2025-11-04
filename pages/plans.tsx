@@ -185,19 +185,19 @@ export default function Plans() {
                 <p className={`${themeClasses.text.muted} text-xs sm:text-sm`}>ou {plan.duration} dias</p>
               </div>
               <div className="space-y-2 sm:space-y-3 mb-4 sm:mb-6">
-                <div className="flex items-center text-gray-700">
+                <div className={`flex items-center ${themeClasses.text.secondary}`}>
                   <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span>{plan.duration} dias de acesso</span>
                 </div>
-                <div className="flex items-center text-gray-700">
+                <div className={`flex items-center ${themeClasses.text.secondary}`}>
                   <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                   <span>{plan.maxGenerations === 0 ? 'Ilimitadas' : `${plan.maxGenerations} gerações`}</span>
                 </div>
-                <div className="flex items-center text-gray-700">
+                <div className={`flex items-center ${themeClasses.text.secondary}`}>
                   <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
@@ -230,7 +230,7 @@ export default function Plans() {
 
         {plans.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-600 text-lg">Nenhum plano disponível no momento.</p>
+            <p className={`${themeClasses.text.secondary} text-lg`}>Nenhum plano disponível no momento.</p>
           </div>
         )}
       </div>
@@ -238,8 +238,8 @@ export default function Plans() {
       {/* Payment Modal */}
       {(paymentData || (paymentMethod === 'CRYPTO' && loading)) && selectedPlan && paymentMethod && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full mx-4 shadow-2xl my-4">
-            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-gray-900">
+          <div className={`${themeClasses.card} rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full mx-4 shadow-2xl my-4`}>
+            <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${themeClasses.text.primary}`}>
               Pagamento via {paymentMethod}
             </h2>
             
@@ -247,7 +247,7 @@ export default function Plans() {
               <div className="space-y-4">
                 {(paymentData.pixQrCodeImage || paymentData.pixQrCode || paymentData.pixCopyPaste) ? (
                   <>
-                    <div className="flex justify-center bg-gray-50 p-3 sm:p-4 rounded-lg">
+                    <div className={`flex justify-center ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'} p-3 sm:p-4 rounded-lg`}>
                       {paymentData.pixQrCodeImage && !qrCodeImageError ? (
                         // Exibir imagem base64 diretamente (QR code oficial do Asaas)
                         <img 
@@ -274,19 +274,19 @@ export default function Plans() {
                           />
                         </div>
                       ) : (
-                        <div className="w-64 h-64 flex items-center justify-center text-gray-500">
+                        <div className={`w-64 h-64 flex items-center justify-center ${themeClasses.text.muted}`}>
                           <p>Carregando QR code...</p>
                         </div>
                       )}
                     </div>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
                         Código PIX (Copiar e Colar)
                       </label>
                       <textarea
                         value={paymentData.pixCopyPaste || paymentData.pixQrCode || ''}
                         readOnly
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg font-mono text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                        className={`${themeClasses.input} w-full px-4 py-3 rounded-lg font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary-500`}
                         rows={4}
                         onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                       />
@@ -298,19 +298,19 @@ export default function Plans() {
                     </div>
                   </>
                 ) : (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-sm text-yellow-800">
+                  <div className={`${theme === 'dark' ? 'bg-yellow-500/20 border border-yellow-400/30' : 'bg-yellow-50 border border-yellow-200'} rounded-lg p-4`}>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-yellow-200' : 'text-yellow-800'}`}>
                       <strong>Aguarde:</strong> Estamos processando os dados do pagamento PIX. Por favor, recarregue a página em alguns instantes ou verifique o código do pagamento na sua conta.
                     </p>
                     {paymentData.pixCopyPaste && (
                       <div className="mt-4">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
                           Código PIX (Copiar e Colar)
                         </label>
                         <textarea
                           value={paymentData.pixCopyPaste}
                           readOnly
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg font-mono text-xs bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className={`${themeClasses.input} w-full px-4 py-3 rounded-lg font-mono text-xs focus:outline-none focus:ring-2 focus:ring-primary-500`}
                           rows={4}
                           onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                         />
@@ -324,11 +324,11 @@ export default function Plans() {
             {paymentMethod === 'CRYPTO' && paymentData && (
               <div className="space-y-4">
                 {paymentData.fallback ? (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-sm text-yellow-800 mb-4">
+                  <div className={`${theme === 'dark' ? 'bg-yellow-500/20 border border-yellow-400/30' : 'bg-yellow-50 border border-yellow-200'} rounded-lg p-4`}>
+                    <p className={`text-sm mb-4 ${theme === 'dark' ? 'text-yellow-200' : 'text-yellow-800'}`}>
                       <strong>Atenção:</strong> Sistema de pagamento automático temporariamente indisponível.
                     </p>
-                    <p className="text-sm text-yellow-800 mb-4">
+                    <p className={`text-sm mb-4 ${theme === 'dark' ? 'text-yellow-200' : 'text-yellow-800'}`}>
                       Entre em contato via Telegram para completar o pagamento:
                     </p>
                     <a
@@ -342,18 +342,18 @@ export default function Plans() {
                   </div>
                 ) : (
                   <>
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <p className="text-sm font-semibold text-blue-900 mb-2">Valor a pagar:</p>
-                      <p className="text-2xl font-bold text-blue-900 mb-1">
+                    <div className={`${theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-50 border border-blue-200'} rounded-lg p-4`}>
+                      <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-blue-200' : 'text-blue-900'}`}>Valor a pagar:</p>
+                      <p className={`text-2xl font-bold mb-1 ${theme === 'dark' ? 'text-blue-100' : 'text-blue-900'}`}>
                         {paymentData.bitcoinAmount?.toFixed(8)} {paymentData.currency || 'BTC'}
                       </p>
-                      <p className="text-sm text-blue-700">
+                      <p className={`text-sm ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
                         (R$ {paymentData.originalAmount?.toFixed(2)})
                       </p>
                     </div>
                     
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
                         Endereço Bitcoin
                       </label>
                       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
@@ -361,7 +361,7 @@ export default function Plans() {
                           type="text"
                           value={paymentData.bitcoinAddress || ''}
                           readOnly
-                          className="flex-1 px-4 py-3 border border-gray-300 rounded-lg font-mono text-xs sm:text-sm bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                          className={`${themeClasses.input} flex-1 px-4 py-3 rounded-lg font-mono text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-primary-500`}
                           onClick={(e) => (e.target as HTMLInputElement).select()}
                         />
                         <button
@@ -379,7 +379,7 @@ export default function Plans() {
                     </div>
 
                     {paymentData.qrCode && (
-                      <div className="flex justify-center bg-gray-50 p-4 rounded-lg">
+                      <div className={`flex justify-center ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'} p-4 rounded-lg`}>
                         <QRCode 
                           value={paymentData.qrCode} 
                           size={256} 
@@ -388,18 +388,18 @@ export default function Plans() {
                       </div>
                     )}
 
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <p className="text-sm text-green-800 mb-2">
+                    <div className={`${theme === 'dark' ? 'bg-green-500/20 border border-green-400/30' : 'bg-green-50 border border-green-200'} rounded-lg p-4`}>
+                      <p className={`text-sm mb-2 ${theme === 'dark' ? 'text-green-200' : 'text-green-800'}`}>
                         <strong>Rede:</strong> {paymentData.network || 'Bitcoin'}
                       </p>
-                      <p className="text-xs text-green-700">
+                      <p className={`text-xs ${theme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
                         Envie exatamente <strong>{paymentData.bitcoinAmount?.toFixed(8)} {paymentData.currency || 'BTC'}</strong> para o endereço acima.
                         O pagamento será processado automaticamente após confirmação na rede.
                       </p>
                     </div>
 
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <p className="text-sm text-yellow-800">
+                    <div className={`${theme === 'dark' ? 'bg-yellow-500/20 border border-yellow-400/30' : 'bg-yellow-50 border border-yellow-200'} rounded-lg p-4`}>
+                      <p className={`text-sm ${theme === 'dark' ? 'text-yellow-200' : 'text-yellow-800'}`}>
                         <strong>⚠️ Importante:</strong> Verifique o endereço antes de enviar. Transações de criptomoedas são irreversíveis.
                       </p>
                     </div>
@@ -414,7 +414,11 @@ export default function Plans() {
                 setSelectedPlan(null)
                 setPaymentMethod(null)
               }}
-              className="mt-4 sm:mt-6 w-full bg-gray-100 text-gray-800 px-4 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-semibold hover:bg-gray-200 transition-colors touch-manipulation"
+              className={`mt-4 sm:mt-6 w-full px-4 py-2.5 sm:py-3 rounded-lg text-sm sm:text-base font-semibold transition-colors touch-manipulation ${
+                theme === 'dark' 
+                  ? 'bg-white/10 text-white hover:bg-white/20' 
+                  : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+              }`}
             >
               Fechar
             </button>
