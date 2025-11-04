@@ -270,7 +270,7 @@ export default function Plans() {
                 💡 Alternativa Disponível
               </p>
               <p className={`text-sm ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                Você pode comprar via Telegram usando criptomoedas. É rápido, seguro e seu plano será ativado automaticamente!
+                Você pode comprar via Telegram usando PIX. É rápido, seguro e seu plano será ativado automaticamente!
               </p>
             </div>
 
