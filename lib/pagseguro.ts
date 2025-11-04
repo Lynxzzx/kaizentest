@@ -120,8 +120,7 @@ export async function createPagSeguroPixPayment(data: {
       },
       description: data.description,
       payment_method: {
-        type: 'PIX',
-        pix: {}
+        type: 'PIX'
       }
     }
 
