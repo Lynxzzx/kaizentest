@@ -276,56 +276,18 @@ export default function Plans() {
 
             <div className="space-y-3">
               <button
-                onClick={async () => {
+                onClick={() => {
                   setShowPixMaintenanceAlert(false)
-                  setPaymentMethod('CRYPTO')
+                  setSelectedPlan(null)
                   
-                  // Criar pagamento via criptomoedas
-                  setLoading(true)
-                  try {
-                    const response = await axios.post('/api/payments/create', {
-                      planId: selectedPlan.id,
-                      method: 'BITCOIN'
-                    })
-                    
-                    if (response.data.bitcoinAddress) {
-                      // Sucesso: mostrar modal de pagamento Bitcoin
-                      setPaymentData(response.data)
-                      setLoading(false)
-                      toast.success('Pagamento via criptomoedas criado com sucesso!')
-                    } else {
-                      // Sem bitcoinAddress: mostrar fallback para Telegram
-                      const telegramLink = `https://t.me/kaizengens` // Substitua pelo seu link do Telegram
-                      setPaymentData({
-                        id: response.data.id || 'temp',
-                        fallback: true,
-                        telegramLink: telegramLink,
-                        originalAmount: selectedPlan.price
-                      } as PaymentData)
-                      setLoading(false)
-                      toast.success('Redirecionando para o Telegram...')
-                      // Redirecionar automaticamente para o Telegram após 1 segundo
-                      setTimeout(() => {
-                        window.open(telegramLink, '_blank')
-                      }, 1000)
-                    }
-                  } catch (error: any) {
-                    console.error('Erro ao criar pagamento:', error)
-                    // Em caso de erro: mostrar fallback para Telegram
-                    const telegramLink = `https://t.me/kaizengens` // Substitua pelo seu link do Telegram
-                    setPaymentData({
-                      id: 'temp',
-                      fallback: true,
-                      telegramLink: telegramLink,
-                      originalAmount: selectedPlan.price
-                    } as PaymentData)
-                    setLoading(false)
-                    toast.success('Redirecionando para o Telegram...')
-                    // Redirecionar automaticamente para o Telegram após 1 segundo
-                    setTimeout(() => {
-                      window.open(telegramLink, '_blank')
-                    }, 1000)
-                  }
+                  // Redirecionar diretamente para o Telegram
+                  const telegramLink = `https://t.me/lynxdevz`
+                  toast.success('Redirecionando para o Telegram...')
+                  
+                  // Redirecionar automaticamente para o Telegram após 500ms
+                  setTimeout(() => {
+                    window.open(telegramLink, '_blank')
+                  }, 500)
                 }}
                 className={`w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg text-base font-bold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5`}
               >
