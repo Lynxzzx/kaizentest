@@ -221,7 +221,11 @@ export default function Layout({ children }: LayoutProps) {
               <select
                 value={locale}
                 onChange={(e) => changeLanguage(e.target.value)}
-                className="px-2 py-1.5 md:px-3 md:py-2 border border-gray-300 rounded-lg text-xs md:text-sm bg-white hover:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+                className={`px-2 py-1.5 md:px-3 md:py-2 rounded-lg text-xs md:text-sm hover:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
+                  theme === 'dark'
+                    ? 'bg-white/10 border border-white/20 text-white'
+                    : 'bg-white border border-gray-300 text-gray-900'
+                }`}
               >
                 <option value="pt-BR">🇧🇷 PT-BR</option>
                 <option value="en">🇺🇸 EN</option>

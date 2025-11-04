@@ -200,29 +200,29 @@ export default function Dashboard() {
             </div>
             {userPlan?.plan ? (
               <div className="space-y-4">
-                <div className="bg-gradient-to-br from-purple-50 via-blue-50 to-purple-100 rounded-xl p-6 border border-purple-200 shadow-lg">
+                <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-purple-50 via-blue-50 to-purple-100 border border-purple-200'} rounded-xl p-6 shadow-lg`}>
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600">{userPlan.plan.name}</h3>
                     <span className="text-2xl">💎</span>
                   </div>
-                  <p className="text-gray-700 mb-4">{userPlan.plan.description}</p>
+                  <p className={`${textClasses.secondary} mb-4`}>{userPlan.plan.description}</p>
                   {userPlan.planExpiresAt && (
-                    <div className="flex items-center justify-between pt-4 border-t border-purple-200">
-                      <span className="text-sm text-purple-600 font-medium">Expira em:</span>
-                      <span className="text-sm font-bold text-purple-900">
+                    <div className={`flex items-center justify-between pt-4 border-t ${theme === 'dark' ? 'border-white/20' : 'border-purple-200'}`}>
+                      <span className={`text-sm font-medium ${theme === 'dark' ? 'text-purple-300' : 'text-purple-600'}`}>Expira em:</span>
+                      <span className={`text-sm font-bold ${theme === 'dark' ? 'text-purple-200' : 'text-purple-900'}`}>
                         {format(new Date(userPlan.planExpiresAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
                       </span>
                     </div>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-200">
-                    <p className="text-gray-600">Duração</p>
-                    <p className="font-bold text-gray-900">{userPlan.plan.duration} dias</p>
+                  <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200'} rounded-lg p-3`}>
+                    <p className={textClasses.secondary}>Duração</p>
+                    <p className={`font-bold ${textClasses.primary}`}>{userPlan.plan.duration} dias</p>
                   </div>
-                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-200">
-                    <p className="text-gray-600">Gerações</p>
-                    <p className="font-bold text-gray-900">
+                  <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200'} rounded-lg p-3`}>
+                    <p className={textClasses.secondary}>Gerações</p>
+                    <p className={`font-bold ${textClasses.primary}`}>
                       {userPlan.plan.maxGenerations === 0 ? 'Ilimitadas' : userPlan.plan.maxGenerations}
                     </p>
                   </div>
@@ -239,15 +239,15 @@ export default function Dashboard() {
                 <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600 mb-2">
                   Plano Free
                 </h3>
-                <p className="text-gray-600 mb-4">Você está usando o plano gratuito</p>
-                <div className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg p-4 mb-6 border border-purple-200">
+                <p className={`${textClasses.secondary} mb-4`}>Você está usando o plano gratuito</p>
+                <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200'} rounded-lg p-4 mb-6`}>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className="text-gray-600">Gerações diárias</p>
-                      <p className="font-bold text-gray-900">2 grátis</p>
+                      <p className={textClasses.secondary}>Gerações diárias</p>
+                      <p className={`font-bold ${textClasses.primary}`}>2 grátis</p>
                     </div>
                     <div>
-                      <p className="text-gray-600">Status</p>
+                      <p className={textClasses.secondary}>Status</p>
                       <p className="font-bold text-green-600">Ativo</p>
                     </div>
                   </div>
@@ -458,8 +458,12 @@ export default function Dashboard() {
                   key={service.id}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     service._count.stocks > 0
-                      ? 'border-green-200 bg-green-50 hover:bg-green-100'
-                      : 'border-red-200 bg-red-50 opacity-60'
+                      ? theme === 'dark' 
+                        ? 'border-green-400/30 bg-green-500/10 hover:bg-green-500/20' 
+                        : 'border-green-200 bg-green-50 hover:bg-green-100'
+                      : theme === 'dark'
+                        ? 'border-red-400/30 bg-red-500/10 opacity-60'
+                        : 'border-red-200 bg-red-50 opacity-60'
                   }`}
                 >
                   <div className="flex items-center justify-between">
