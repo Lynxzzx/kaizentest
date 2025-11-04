@@ -151,6 +151,7 @@ export async function createPagSeguroPixPayment(data: {
       console.log('Erro:', chargeError.response?.data || chargeError.message)
       
       // Tentar criar QR code PIX diretamente sem cobrança prévia
+      // Este endpoint pode usar autenticação diferente (Basic Auth ou apenas App-Token)
       const pixData = {
         reference_id: data.reference_id,
         customer: customerData,
@@ -162,17 +163,37 @@ export async function createPagSeguroPixPayment(data: {
         expiration_date: new Date(Date.now() + 30 * 60 * 1000).toISOString()
       }
       
-      const pixResponse = await axios.post(
-        `${apiUrl}/pix/qr-codes`,
-        pixData,
-        {
-          headers: {
-            'Authorization': `Bearer ${key}`,
-            'App-Token': key,
-            'Content-Type': 'application/json'
-          }
+      // Tentar diferentes métodos de autenticação
+      let pixResponse
+      const authMethods = [
+        // Método 1: Apenas App-Token (sem Bearer)
+        { 'App-Token': key, 'Content-Type': 'application/json' },
+        // Método 2: Basic Auth com a chave
+        { 'Authorization': `Basic ${Buffer.from(key + ':').toString('base64')}`, 'Content-Type': 'application/json' },
+        // Método 3: App-Token + Authorization sem Bearer
+        { 'App-Token': key, 'Authorization': key, 'Content-Type': 'application/json' },
+        // Método 4: Bearer (original)
+        { 'Authorization': `Bearer ${key}`, 'App-Token': key, 'Content-Type': 'application/json' }
+      ]
+      
+      for (const authHeaders of authMethods) {
+        try {
+          pixResponse = await axios.post(
+            `${apiUrl}/pix/qr-codes`,
+            pixData,
+            { headers: authHeaders }
+          )
+          console.log('✅ QR code PIX criado diretamente com autenticação:', Object.keys(authHeaders).join(', '))
+          break
+        } catch (authError: any) {
+          console.log(`⚠️ Autenticação ${Object.keys(authHeaders).join(', ')} falhou:`, authError.response?.data?.message || authError.message)
+          continue
         }
-      )
+      }
+      
+      if (!pixResponse) {
+        throw new Error('Não foi possível criar QR code PIX. Nenhum método de autenticação funcionou.')
+      }
       
       return {
         id: pixResponse.data.id || pixResponse.data.reference_id || '',
