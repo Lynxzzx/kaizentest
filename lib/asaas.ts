@@ -9,8 +9,18 @@ if (!ASAAS_API_KEY_ENV) {
   throw new Error('ASAAS_API_KEY não está configurada. Verifique as variáveis de ambiente.')
 }
 
-// Após a verificação, garantir que não é undefined
-const ASAAS_API_KEY: string = ASAAS_API_KEY_ENV
+// Remover espaços extras e garantir que a chave está completa
+const ASAAS_API_KEY: string = ASAAS_API_KEY_ENV.trim()
+
+// Log detalhado para debug
+console.log('🔑 ASAAS_API_KEY carregada:', {
+  hasKey: !!ASAAS_API_KEY,
+  length: ASAAS_API_KEY.length,
+  prefix: ASAAS_API_KEY.substring(0, 15),
+  suffix: ASAAS_API_KEY.substring(ASAAS_API_KEY.length - 10),
+  startsWithProd: ASAAS_API_KEY.startsWith('$aact_prod_'),
+  startsWithSandbox: ASAAS_API_KEY.startsWith('$aact_hmlg_')
+})
 
 // Detectar ambiente baseado na chave de API
 // A chave de produção deve usar URL de produção, chave de sandbox deve usar URL de sandbox
@@ -79,6 +89,16 @@ export async function createAsaasCustomer(data: CreateCustomerData) {
     console.log('Creating Asaas customer with data:', JSON.stringify(data, null, 2))
     console.log('Using API URL:', ASAAS_API_URL)
     console.log('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
+    console.log('API Key length:', ASAAS_API_KEY.length)
+    console.log('API Key ends with:', ASAAS_API_KEY.substring(ASAAS_API_KEY.length - 10))
+    
+    // Verificar se a chave não está vazia ou truncada
+    if (!ASAAS_API_KEY || ASAAS_API_KEY.length < 50) {
+      console.error('❌ ERRO: Chave de API parece estar incompleta ou muito curta!')
+      console.error('   Tamanho da chave:', ASAAS_API_KEY.length)
+      console.error('   Chave deve ter pelo menos 50 caracteres')
+      throw new Error('Chave de API do Asaas parece estar incompleta. Verifique se está configurada corretamente no Vercel.')
+    }
     
     const response = await axios.post(
       `${ASAAS_API_URL}/customers`,
@@ -98,6 +118,23 @@ export async function createAsaasCustomer(data: CreateCustomerData) {
     console.error('Asaas API Error (Create Customer):', JSON.stringify(errorData, null, 2))
     console.error('API URL used:', ASAAS_API_URL)
     console.error('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
+    console.error('API Key length:', ASAAS_API_KEY.length)
+    
+    // Verificar se é erro de autenticação
+    if (error.response?.status === 401) {
+      const errorMessage = errorData?.errors?.[0]?.description || errorData?.message || 'Chave de API inválida'
+      console.error('❌ ERRO DE AUTENTICAÇÃO ao criar cliente: A chave de API do Asaas está inválida ou expirada!')
+      console.error('   Mensagem do Asaas:', errorMessage)
+      console.error('   Verifique:')
+      console.error('   1. Se a chave está completa no Vercel (não apenas o prefixo)')
+      console.error('   2. Se a chave está correta no painel do Asaas')
+      console.error('   3. Se a chave não expirou ou foi revogada')
+      console.error('   4. Se você está usando a chave correta (produção vs sandbox)')
+      
+      const authError = new Error(`Chave de API do Asaas inválida: ${errorMessage}. Verifique se a chave está completa e correta no Vercel.`)
+      authError.name = 'AsaasAuthenticationError'
+      throw authError
+    }
     
     // Se o cliente já existe, tentar buscar pelo email
     if (error.response?.status === 400 && data.email) {
@@ -191,6 +228,15 @@ export async function createAsaasPayment(data: CreatePaymentData) {
     console.log('Creating Asaas payment with data:', JSON.stringify(data, null, 2))
     console.log('Using API URL:', ASAAS_API_URL)
     console.log('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
+    console.log('API Key length:', ASAAS_API_KEY.length)
+    
+    // Verificar se a chave não está vazia ou truncada
+    if (!ASAAS_API_KEY || ASAAS_API_KEY.length < 50) {
+      console.error('❌ ERRO: Chave de API parece estar incompleta ou muito curta!')
+      console.error('   Tamanho da chave:', ASAAS_API_KEY.length)
+      console.error('   Chave deve ter pelo menos 50 caracteres')
+      throw new Error('Chave de API do Asaas parece estar incompleta. Verifique se está configurada corretamente no Vercel.')
+    }
     
     const response = await axios.post(
       `${ASAAS_API_URL}/payments`,
@@ -211,16 +257,21 @@ export async function createAsaasPayment(data: CreatePaymentData) {
     console.error('Asaas API Error (Create Payment):', JSON.stringify(errorData, null, 2))
     console.error('API URL used:', ASAAS_API_URL)
     console.error('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
+    console.error('API Key length:', ASAAS_API_KEY.length)
     
     // Verificar se é erro de autenticação
     if (error.response?.status === 401) {
       const errorMessage = errorData?.errors?.[0]?.description || errorData?.message || 'Chave de API inválida'
       console.error('❌ ERRO DE AUTENTICAÇÃO: A chave de API do Asaas está inválida ou expirada!')
-      console.error('   Verifique se a chave está correta no painel do Asaas e se está configurada corretamente nas variáveis de ambiente.')
       console.error('   Mensagem do Asaas:', errorMessage)
+      console.error('   Verifique:')
+      console.error('   1. Se a chave está completa no Vercel (não apenas o prefixo)')
+      console.error('   2. Se a chave está correta no painel do Asaas')
+      console.error('   3. Se a chave não expirou ou foi revogada')
+      console.error('   4. Se você está usando a chave correta (produção vs sandbox)')
       
       // Lançar erro mais descritivo
-      const authError = new Error(`Chave de API do Asaas inválida: ${errorMessage}. Verifique a configuração da variável ASAAS_API_KEY.`)
+      const authError = new Error(`Chave de API do Asaas inválida: ${errorMessage}. Verifique se a chave está completa e correta no Vercel.`)
       authError.name = 'AsaasAuthenticationError'
       throw authError
     }
