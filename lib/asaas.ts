@@ -223,6 +223,23 @@ export async function createAsaasCustomer(data: CreateCustomerData) {
       console.error('Não foi possível obter informações da chave:', keyError)
     }
     
+    // Verificar se é erro de rede/API fora do ar
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' || 
+        error.message?.includes('timeout') || error.message?.includes('ECONNREFUSED') ||
+        error.response?.status === 503 || error.response?.status === 502 || error.response?.status === 504) {
+      const networkError = new Error('A API do Asaas está temporariamente indisponível. O serviço pode estar fora do ar ou em manutenção. Tente novamente em alguns minutos.')
+      networkError.name = 'AsaasServiceUnavailableError'
+      console.error('❌ ERRO DE REDE/SERVIÇO: A API do Asaas não está respondendo!')
+      console.error('   Código:', error.code)
+      console.error('   Status:', error.response?.status)
+      console.error('   Mensagem:', error.message)
+      console.error('   Isso pode acontecer quando:')
+      console.error('   1. O serviço do Asaas está fora do ar')
+      console.error('   2. O sandbox está instável (use produção se possível)')
+      console.error('   3. Problemas de rede temporários')
+      throw networkError
+    }
+    
     // Verificar se é erro de autenticação
     if (error.response?.status === 401) {
       const errorMessage = errorData?.errors?.[0]?.description || errorData?.message || 'Chave de API inválida'
@@ -371,6 +388,23 @@ export async function createAsaasPayment(data: CreatePaymentData) {
       console.error('API Key length:', ASAAS_API_KEY.length)
     } catch (keyError) {
       console.error('Não foi possível obter informações da chave:', keyError)
+    }
+    
+    // Verificar se é erro de rede/API fora do ar
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' || 
+        error.message?.includes('timeout') || error.message?.includes('ECONNREFUSED') ||
+        error.response?.status === 503 || error.response?.status === 502 || error.response?.status === 504) {
+      const networkError = new Error('A API do Asaas está temporariamente indisponível. O serviço pode estar fora do ar ou em manutenção. Tente novamente em alguns minutos.')
+      networkError.name = 'AsaasServiceUnavailableError'
+      console.error('❌ ERRO DE REDE/SERVIÇO: A API do Asaas não está respondendo!')
+      console.error('   Código:', error.code)
+      console.error('   Status:', error.response?.status)
+      console.error('   Mensagem:', error.message)
+      console.error('   Isso pode acontecer quando:')
+      console.error('   1. O serviço do Asaas está fora do ar')
+      console.error('   2. O sandbox está instável (use produção se possível)')
+      console.error('   3. Problemas de rede temporários')
+      throw networkError
     }
     
     // Verificar se é erro de autenticação
