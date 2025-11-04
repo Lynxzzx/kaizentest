@@ -109,44 +109,104 @@ export async function createPagSeguroPixPayment(data: {
       customerData.email = data.customer.email
     }
 
-    // Preparar dados da cobrança com payment_method obrigatório
-    // O PagBank requer payment_method na criação inicial
-    const chargeData: any = {
+    // Tentar usar o endpoint /orders primeiro (estrutura recomendada pela documentação)
+    // O PagBank parece usar /orders com charges dentro
+    const orderData: any = {
       reference_id: data.reference_id,
       customer: customerData,
-      amount: {
-        value: valueInCents,
-        currency: 'BRL'
-      },
-      description: data.description,
-      payment_method: {
-        type: 'PIX'
-      }
+      items: [
+        {
+          reference_id: `${data.reference_id}_item`,
+          name: data.description,
+          quantity: 1,
+          unit_amount: valueInCents
+        }
+      ],
+      charges: [
+        {
+          reference_id: `${data.reference_id}_charge`,
+          description: data.description,
+          amount: {
+            value: valueInCents,
+            currency: 'BRL'
+          },
+          payment_method: {
+            type: 'PIX'
+          }
+        }
+      ]
     }
 
-    console.log('Criando cobrança PIX no PagSeguro:', JSON.stringify(chargeData, null, 2))
+    console.log('Criando pedido PIX no PagSeguro (via /orders):', JSON.stringify(orderData, null, 2))
 
-    // Criar cobrança PIX
-    const chargeResponse = await axios.post(
-      `${apiUrl}/charges`,
-      chargeData,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+    let chargeResponse: any
+    let chargeId: string
+
+    try {
+      // Tentar criar via /orders primeiro
+      const orderResponse = await axios.post(
+        `${apiUrl}/orders`,
+        orderData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+
+      console.log('✅ Pedido PIX criado no PagSeguro via /orders:', orderResponse.data.id)
+      
+      // Extrair o charge_id da resposta
+      chargeId = orderResponse.data.charges?.[0]?.id || orderResponse.data.id
+      chargeResponse = {
+        data: orderResponse.data.charges?.[0] || orderResponse.data
+      }
+    } catch (orderError: any) {
+      // Se /orders falhar, tentar /charges diretamente
+      console.log('⚠️ /orders falhou, tentando /charges diretamente...')
+      console.log('Erro:', orderError.response?.data || orderError.message)
+      
+      const chargeData: any = {
+        reference_id: data.reference_id,
+        customer: customerData,
+        amount: {
+          value: valueInCents,
+          currency: 'BRL'
+        },
+        description: data.description,
+        payment_method: {
+          type: 'PIX'
         }
       }
-    )
 
-    console.log('✅ Cobrança PIX criada no PagSeguro:', chargeResponse.data.id)
-    
-    const chargeId = chargeResponse.data.id
+      console.log('Criando cobrança PIX no PagSeguro (via /charges):', JSON.stringify(chargeData, null, 2))
+
+      chargeResponse = await axios.post(
+        `${apiUrl}/charges`,
+        chargeData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+
+      console.log('✅ Cobrança PIX criada no PagSeguro via /charges:', chargeResponse.data.id)
+      chargeId = chargeResponse.data.id
+    }
     
     // O QR code PIX pode vir na resposta inicial ou precisar ser buscado
-    let qrCodeData = chargeResponse.data
+    // Primeiro tentar extrair da estrutura de resposta (orders ou charges)
+    const responseData = chargeResponse.data
+    let qrCodeData = responseData?.charges?.[0]?.payment_method?.pix || 
+                     responseData?.payment_method?.pix ||
+                     responseData?.pix ||
+                     responseData
     
     // Se não tiver QR code na resposta, buscar separadamente
-    if (!qrCodeData.pix?.qr_code && !qrCodeData.qr_code && !qrCodeData.pix_copy_paste) {
+    if (!qrCodeData?.qr_code && !qrCodeData?.qr_code_text && !qrCodeData?.pix_copy_paste && !qrCodeData?.text) {
       console.log('Buscando QR code PIX separadamente...')
       try {
         const qrCodeResponse = await axios.get(
@@ -183,33 +243,44 @@ export async function createPagSeguroPixPayment(data: {
     }
 
     // Extrair QR code de diferentes possíveis estruturas
-    const qrCode = qrCodeData.pix?.qr_code || 
-                   qrCodeData.pix?.qr_code_text || 
-                   qrCodeData.pix?.pix_copy_paste ||
-                   qrCodeData.qr_code || 
-                   qrCodeData.qr_code_text || 
-                   qrCodeData.text || 
-                   qrCodeData.pix_copy_paste ||
-                   qrCodeData.pix?.text ||
-                   chargeResponse.data.pix?.qr_code ||
-                   chargeResponse.data.pix?.qr_code_text ||
-                   chargeResponse.data.pix?.pix_copy_paste
+    const responseDataFinal = chargeResponse.data
+    const qrCode = qrCodeData?.qr_code || 
+                   qrCodeData?.qr_code_text || 
+                   qrCodeData?.pix_copy_paste ||
+                   qrCodeData?.text ||
+                   responseDataFinal?.charges?.[0]?.payment_method?.pix?.qr_code ||
+                   responseDataFinal?.charges?.[0]?.payment_method?.pix?.qr_code_text ||
+                   responseDataFinal?.charges?.[0]?.payment_method?.pix?.pix_copy_paste ||
+                   responseDataFinal?.payment_method?.pix?.qr_code ||
+                   responseDataFinal?.payment_method?.pix?.qr_code_text ||
+                   responseDataFinal?.payment_method?.pix?.pix_copy_paste ||
+                   responseDataFinal?.pix?.qr_code ||
+                   responseDataFinal?.pix?.qr_code_text ||
+                   responseDataFinal?.pix?.pix_copy_paste ||
+                   ''
 
-    const qrCodeImage = qrCodeData.pix?.qr_code_image || 
-                        qrCodeData.pix?.qr_code_base64 ||
-                        qrCodeData.qr_code_image || 
-                        qrCodeData.qr_code_base64 ||
-                        chargeResponse.data.pix?.qr_code_image ||
-                        chargeResponse.data.pix?.qr_code_base64
+    const qrCodeImage = qrCodeData?.qr_code_image || 
+                        qrCodeData?.qr_code_base64 ||
+                        responseDataFinal?.charges?.[0]?.payment_method?.pix?.qr_code_image ||
+                        responseDataFinal?.charges?.[0]?.payment_method?.pix?.qr_code_base64 ||
+                        responseDataFinal?.payment_method?.pix?.qr_code_image ||
+                        responseDataFinal?.payment_method?.pix?.qr_code_base64 ||
+                        responseDataFinal?.pix?.qr_code_image ||
+                        responseDataFinal?.pix?.qr_code_base64 ||
+                        null
 
-    const expiresAt = qrCodeData.pix?.expires_at || 
-                      qrCodeData.pix?.expiration_date ||
-                      qrCodeData.expires_at || 
-                      qrCodeData.expiration_date || 
+    const expiresAt = qrCodeData?.expires_at || 
+                      qrCodeData?.expiration_date ||
+                      responseDataFinal?.charges?.[0]?.payment_method?.pix?.expires_at ||
+                      responseDataFinal?.charges?.[0]?.payment_method?.pix?.expiration_date ||
+                      responseDataFinal?.payment_method?.pix?.expires_at ||
+                      responseDataFinal?.payment_method?.pix?.expiration_date ||
+                      responseDataFinal?.pix?.expires_at ||
+                      responseDataFinal?.pix?.expiration_date ||
                       new Date(Date.now() + 30 * 60 * 1000).toISOString()
 
     return {
-      id: chargeResponse.data.id,
+      id: chargeId || chargeResponse.data.id || chargeResponse.data?.charges?.[0]?.id || '',
       qrCode: qrCode || '',
       qrCodeImage: qrCodeImage || null,
       expiresAt: expiresAt
