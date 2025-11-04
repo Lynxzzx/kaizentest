@@ -34,6 +34,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (method === 'PIX') {
+      // Verificar se a chave está configurada ANTES de tentar usar
+      const asaasApiKeyCheck = process.env.ASAAS_API_KEY
+      if (!asaasApiKeyCheck) {
+        console.error('❌ ASAAS_API_KEY não encontrada no process.env')
+        console.error('   Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('ASAAS') || k.includes('API')).slice(0, 20))
+        console.error('   NODE_ENV:', process.env.NODE_ENV)
+        console.error('   VERCEL_ENV:', process.env.VERCEL_ENV)
+        return res.status(500).json({
+          error: 'ASAAS_API_KEY não configurada',
+          message: 'A chave de API do Asaas não está configurada no servidor Vercel.',
+          instructions: [
+            '1. Acesse: https://vercel.com/dashboard',
+            '2. Selecione seu projeto',
+            '3. Vá em Settings > Environment Variables',
+            '4. Adicione ASAAS_API_KEY (nome EXATO)',
+            '5. Cole sua chave completa do Asaas',
+            '6. Marque TODOS: Production, Preview, Development',
+            '7. Clique em Save',
+            '8. VÁ EM DEPLOYMENTS > ⋯ > Redeploy',
+            '9. AGUARDE o redeploy completar'
+          ],
+          debug: {
+            hasKey: false,
+            nodeEnv: process.env.NODE_ENV,
+            vercelEnv: process.env.VERCEL_ENV,
+            allAsaasVars: Object.keys(process.env).filter(k => k.toUpperCase().includes('ASAAS')),
+            checkEndpoint: '/api/debug/asaas-key'
+          }
+        })
+      }
+      
       try {
         const user = await prisma.user.findUnique({
           where: { id: session.user.id }
