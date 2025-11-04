@@ -109,20 +109,24 @@ export async function createPagSeguroPixPayment(data: {
       customerData.email = data.customer.email
     }
 
-    // Preparar dados da cobrança (sem payment_method inicialmente)
-    const chargeData = {
+    // Preparar dados da cobrança com payment_method obrigatório
+    // O PagBank requer payment_method na criação inicial
+    const chargeData: any = {
       reference_id: data.reference_id,
       customer: customerData,
       amount: {
         value: valueInCents,
         currency: 'BRL'
       },
-      description: data.description
+      description: data.description,
+      payment_method: {
+        type: 'PIX'
+      }
     }
 
-    console.log('Criando cobrança no PagSeguro:', JSON.stringify(chargeData, null, 2))
+    console.log('Criando cobrança PIX no PagSeguro:', JSON.stringify(chargeData, null, 2))
 
-    // Criar cobrança primeiro
+    // Criar cobrança PIX
     const chargeResponse = await axios.post(
       `${apiUrl}/charges`,
       chargeData,
@@ -134,51 +138,18 @@ export async function createPagSeguroPixPayment(data: {
       }
     )
 
-    console.log('✅ Cobrança criada no PagSeguro:', chargeResponse.data.id)
+    console.log('✅ Cobrança PIX criada no PagSeguro:', chargeResponse.data.id)
     
     const chargeId = chargeResponse.data.id
     
-    // Adicionar método de pagamento PIX à cobrança
-    console.log('Adicionando método de pagamento PIX à cobrança...')
-    const pixData = {
-      payment_method: {
-        type: 'PIX'
-      }
-    }
-
-    let qrCodeResponse
-    try {
-      // Tentar adicionar PIX via PUT/PATCH
-      qrCodeResponse = await axios.patch(
-        `${apiUrl}/charges/${chargeId}`,
-        pixData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      )
-      console.log('✅ Método PIX adicionado via PATCH')
-    } catch (patchError: any) {
-      console.log('⚠️ PATCH falhou, tentando POST para gerar QR code PIX...')
+    // O QR code PIX pode vir na resposta inicial ou precisar ser buscado
+    let qrCodeData = chargeResponse.data
+    
+    // Se não tiver QR code na resposta, buscar separadamente
+    if (!qrCodeData.pix?.qr_code && !qrCodeData.qr_code && !qrCodeData.pix_copy_paste) {
+      console.log('Buscando QR code PIX separadamente...')
       try {
-        // Se PATCH falhar, tentar POST para gerar QR code diretamente
-        qrCodeResponse = await axios.post(
-          `${apiUrl}/charges/${chargeId}/pix`,
-          {},
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        )
-        console.log('✅ QR code PIX gerado via POST')
-      } catch (postError: any) {
-        // Se POST também falhar, tentar GET
-        console.log('⚠️ POST falhou, tentando GET para buscar QR code PIX...')
-        qrCodeResponse = await axios.get(
+        const qrCodeResponse = await axios.get(
           `${apiUrl}/charges/${chargeId}/pix`,
           {
             headers: {
@@ -186,15 +157,62 @@ export async function createPagSeguroPixPayment(data: {
             }
           }
         )
+        qrCodeData = qrCodeResponse.data
         console.log('✅ QR code PIX obtido via GET')
+      } catch (getError: any) {
+        // Se GET falhar, tentar POST
+        console.log('⚠️ GET falhou, tentando POST para gerar QR code PIX...')
+        try {
+          const qrCodeResponse = await axios.post(
+            `${apiUrl}/charges/${chargeId}/pix`,
+            {},
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            }
+          )
+          qrCodeData = qrCodeResponse.data
+          console.log('✅ QR code PIX gerado via POST')
+        } catch (postError: any) {
+          console.error('⚠️ Não foi possível obter QR code PIX:', postError.response?.data || postError.message)
+          // Continuar mesmo assim, pode estar na resposta inicial
+        }
       }
     }
 
+    // Extrair QR code de diferentes possíveis estruturas
+    const qrCode = qrCodeData.pix?.qr_code || 
+                   qrCodeData.pix?.qr_code_text || 
+                   qrCodeData.pix?.pix_copy_paste ||
+                   qrCodeData.qr_code || 
+                   qrCodeData.qr_code_text || 
+                   qrCodeData.text || 
+                   qrCodeData.pix_copy_paste ||
+                   qrCodeData.pix?.text ||
+                   chargeResponse.data.pix?.qr_code ||
+                   chargeResponse.data.pix?.qr_code_text ||
+                   chargeResponse.data.pix?.pix_copy_paste
+
+    const qrCodeImage = qrCodeData.pix?.qr_code_image || 
+                        qrCodeData.pix?.qr_code_base64 ||
+                        qrCodeData.qr_code_image || 
+                        qrCodeData.qr_code_base64 ||
+                        chargeResponse.data.pix?.qr_code_image ||
+                        chargeResponse.data.pix?.qr_code_base64
+
+    const expiresAt = qrCodeData.pix?.expires_at || 
+                      qrCodeData.pix?.expiration_date ||
+                      qrCodeData.expires_at || 
+                      qrCodeData.expiration_date || 
+                      new Date(Date.now() + 30 * 60 * 1000).toISOString()
+
     return {
       id: chargeResponse.data.id,
-      qrCode: qrCodeResponse.data.qr_code || qrCodeResponse.data.qr_code_text || qrCodeResponse.data.text || qrCodeResponse.data.pix_copy_paste,
-      qrCodeImage: qrCodeResponse.data.qr_code_image || qrCodeResponse.data.qr_code_base64,
-      expiresAt: qrCodeResponse.data.expires_at || qrCodeResponse.data.expiration_date || new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      qrCode: qrCode || '',
+      qrCodeImage: qrCodeImage || null,
+      expiresAt: expiresAt
     }
   } catch (error: any) {
     const errorData = error.response?.data || error.message
