@@ -307,6 +307,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.json(responseData)
       } catch (error: any) {
         console.error('Error creating Asaas payment:', error)
+        
+        // Verificar se é erro de autenticação
+        if (error.response?.status === 401 || error.name === 'AsaasAuthenticationError') {
+          const errorMessage = error.response?.data?.errors?.[0]?.description || 
+                             error.message || 
+                             'Chave de API do Asaas inválida ou expirada'
+          return res.status(401).json({ 
+            error: 'Erro de autenticação com o Asaas',
+            message: errorMessage,
+            details: 'A chave de API do Asaas está inválida ou expirada. Verifique a configuração da variável ASAAS_API_KEY no servidor.'
+          })
+        }
+        
         const errorMessage = error.response?.data?.errors?.[0]?.description || 
                            error.response?.data?.message || 
                            error.message || 

@@ -1,6 +1,16 @@
 import axios from 'axios'
 
-const ASAAS_API_KEY = process.env.ASAAS_API_KEY || '$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmNjNTFlMjU5LTU2NTgtNGZkZi04NzM5LTRkNDE3YjYxYWM4Yjo6JGFhY2hfNGY0MDg2ZjktYmFhYS00MDJiLWFiZWUtMjYzZTlkNGUzYTNm'
+const ASAAS_API_KEY_ENV = process.env.ASAAS_API_KEY
+
+if (!ASAAS_API_KEY_ENV) {
+  console.error('❌ ERRO CRÍTICO: ASAAS_API_KEY não está configurada!')
+  console.error('   Configure a variável de ambiente ASAAS_API_KEY no seu arquivo .env ou nas variáveis de ambiente do servidor.')
+  console.error('   Exemplo: ASAAS_API_KEY=$aact_prod_...')
+  throw new Error('ASAAS_API_KEY não está configurada. Verifique as variáveis de ambiente.')
+}
+
+// Após a verificação, garantir que não é undefined
+const ASAAS_API_KEY: string = ASAAS_API_KEY_ENV
 
 // Detectar ambiente baseado na chave de API
 // A chave de produção deve usar URL de produção, chave de sandbox deve usar URL de sandbox
@@ -164,6 +174,14 @@ export async function updateAsaasCustomer(customerId: string, data: Partial<Crea
   } catch (error: any) {
     const errorData = error.response?.data || error.message
     console.error('Asaas API Error (Update Customer):', JSON.stringify(errorData, null, 2))
+    
+    // Verificar se é erro de autenticação
+    if (error.response?.status === 401) {
+      const errorMessage = errorData?.errors?.[0]?.description || errorData?.message || 'Chave de API inválida'
+      console.error('❌ ERRO DE AUTENTICAÇÃO ao atualizar cliente: A chave de API do Asaas está inválida ou expirada!')
+      console.error('   Mensagem do Asaas:', errorMessage)
+    }
+    
     throw error
   }
 }
@@ -193,6 +211,20 @@ export async function createAsaasPayment(data: CreatePaymentData) {
     console.error('Asaas API Error (Create Payment):', JSON.stringify(errorData, null, 2))
     console.error('API URL used:', ASAAS_API_URL)
     console.error('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
+    
+    // Verificar se é erro de autenticação
+    if (error.response?.status === 401) {
+      const errorMessage = errorData?.errors?.[0]?.description || errorData?.message || 'Chave de API inválida'
+      console.error('❌ ERRO DE AUTENTICAÇÃO: A chave de API do Asaas está inválida ou expirada!')
+      console.error('   Verifique se a chave está correta no painel do Asaas e se está configurada corretamente nas variáveis de ambiente.')
+      console.error('   Mensagem do Asaas:', errorMessage)
+      
+      // Lançar erro mais descritivo
+      const authError = new Error(`Chave de API do Asaas inválida: ${errorMessage}. Verifique a configuração da variável ASAAS_API_KEY.`)
+      authError.name = 'AsaasAuthenticationError'
+      throw authError
+    }
+    
     throw error
   }
 }
