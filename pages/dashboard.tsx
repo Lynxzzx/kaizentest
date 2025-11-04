@@ -240,23 +240,78 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200 animate-slide-up mb-6 sm:mb-8">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Conta Gerada com Sucesso! ✅</h2>
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-green-100">
-                  <span className="font-semibold text-gray-700">Usuário:</span>
-                  <span className="font-mono font-bold text-gray-900">{generatedAccount.username}</span>
+              {/* Formato account:pass */}
+              <div className="mb-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Conta (formato: account:pass):</label>
+                <div className="flex items-center gap-2 p-4 bg-white rounded-lg border border-green-100">
+                  <span className="font-mono font-bold text-gray-900 flex-1 break-all">
+                    {generatedAccount.email || generatedAccount.username}:{generatedAccount.password}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const fullAccount = `${generatedAccount.email || generatedAccount.username}:${generatedAccount.password}`
+                      navigator.clipboard.writeText(fullAccount)
+                      toast.success('Conta completa copiada!')
+                    }}
+                    className="flex-shrink-0 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
+                    title="Copiar conta completa"
+                  >
+                    📋
+                  </button>
                 </div>
-                <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-green-100">
-                  <span className="font-semibold text-gray-700">Senha:</span>
-                  <span className="font-mono font-bold text-gray-900">{generatedAccount.password}</span>
-                </div>
-                {generatedAccount.email && (
-                  <div className="flex items-center justify-between p-4 bg-white rounded-lg border border-green-100">
-                    <span className="font-semibold text-gray-700">Email:</span>
-                    <span className="font-mono font-bold text-gray-900">{generatedAccount.email}</span>
-                  </div>
-                )}
               </div>
-              <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+
+              {/* Dados separados com botões de copiar */}
+              <div className="space-y-4">
+                <div className="p-4 bg-white rounded-lg border border-green-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-gray-700">
+                      {generatedAccount.email ? 'Email/Usuário:' : 'Usuário:'}
+                    </span>
+                    <button
+                      onClick={() => {
+                        const account = generatedAccount.email || generatedAccount.username
+                        navigator.clipboard.writeText(account)
+                        toast.success('Email/Usuário copiado!')
+                      }}
+                      className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
+                    >
+                      📋 Copiar
+                    </button>
+                  </div>
+                  <span className="font-mono font-bold text-gray-900 block break-all">
+                    {generatedAccount.email || generatedAccount.username}
+                  </span>
+                </div>
+                <div className="p-4 bg-white rounded-lg border border-green-100">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-semibold text-gray-700">Senha:</span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedAccount.password)
+                        toast.success('Senha copiada!')
+                      }}
+                      className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
+                    >
+                      📋 Copiar
+                    </button>
+                  </div>
+                  <span className="font-mono font-bold text-gray-900 block break-all">
+                    {generatedAccount.password}
+                  </span>
+                </div>
+              </div>
+
+              {/* Mensagem de aviso */}
+              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800 mb-2">
+                  <strong>ℹ️ Informação Importante:</strong>
+                </p>
+                <p className="text-sm text-blue-700">
+                  Se a conta não funcionar, não há problema! Você pode gerar novamente. Às vezes o estoque pode estar vencendo ou alguém pode ter trocado a senha.
+                </p>
+              </div>
+              <div className="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p className="text-sm text-yellow-800">
                   <strong>⚠️ Importante:</strong> Salve estas credenciais em um local seguro. Elas não serão exibidas novamente.
                 </p>
