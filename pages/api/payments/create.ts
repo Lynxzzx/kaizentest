@@ -313,10 +313,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const errorMessage = error.response?.data?.errors?.[0]?.description || 
                              error.message || 
                              'Chave de API do Asaas inválida ou expirada'
+          
+          // Verificar se a chave está configurada
+          const hasAsaasKey = !!process.env.ASAAS_API_KEY
+          const keyPrefix = hasAsaasKey ? process.env.ASAAS_API_KEY?.substring(0, 15) : 'NÃO CONFIGURADA'
+          
           return res.status(401).json({ 
             error: 'Erro de autenticação com o Asaas',
             message: errorMessage,
-            details: 'A chave de API do Asaas está inválida ou expirada. Verifique a configuração da variável ASAAS_API_KEY no servidor.'
+            details: 'A chave de API do Asaas está inválida ou expirada.',
+            debug: {
+              hasApiKey: hasAsaasKey,
+              keyPrefix: keyPrefix,
+              instructions: [
+                '1. Verifique se ASAAS_API_KEY está configurada no Vercel (Settings > Environment Variables)',
+                '2. Verifique se a chave está correta no painel do Asaas',
+                '3. Após alterar, faça um REDEPLOY no Vercel para aplicar as mudanças',
+                '4. O .env local NÃO é usado no Vercel - você precisa configurar nas variáveis de ambiente do Vercel'
+              ]
+            }
           })
         }
         
