@@ -87,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
             
             // Atualizar CPF/CNPJ se necessário
-            if (cpfCnpj && !existingCustomer?.cpfCnpj) {
+            if (cpfCnpj && !existingCustomer?.cpfCnpj && asaasCustomerId) {
               console.log('📝 Atualizando cliente no Asaas com CPF/CNPJ...')
               await updateAsaasCustomer(asaasCustomerId, { cpfCnpj: cleanCpfCnpj(cpfCnpj as string) })
             }
