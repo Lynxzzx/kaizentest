@@ -109,8 +109,8 @@ export async function createPagSeguroPixPayment(data: {
       customerData.email = data.customer.email
     }
 
-    // O PagBank usa qr_codes em vez de payment_method para PIX
-    // Estrutura: criar cobrança com qr_codes diretamente
+    // O PagBank requer payment_method E permite qr_codes para PIX
+    // Estrutura: incluir ambos payment_method e qr_codes
     const chargeData: any = {
       reference_id: data.reference_id,
       customer: customerData,
@@ -119,6 +119,9 @@ export async function createPagSeguroPixPayment(data: {
         currency: 'BRL'
       },
       description: data.description,
+      payment_method: {
+        type: 'PIX'
+      },
       qr_codes: [
         {
           amount: {
