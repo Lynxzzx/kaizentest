@@ -35,7 +35,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (method === 'PIX') {
       // Verificar se a chave está configurada ANTES de tentar usar
-      const asaasApiKeyCheck = process.env.ASAAS_API_KEY
+      // Tentar múltiplas formas de acessar a variável
+      const asaasApiKeyCheck = process.env.ASAAS_API_KEY || process.env['ASAAS_API_KEY'] || (process.env as any).ASAAS_API_KEY
       
       // Debug detalhado
       const hasAsaasKeyInEnv = 'ASAAS_API_KEY' in process.env
@@ -43,25 +44,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const asaasKeyType = typeof asaasApiKeyCheck
       const asaasKeyLength = asaasApiKeyCheck?.length || 0
       
-      console.log('🔍 DEBUG ASAAS_API_KEY:', {
+      // Verificar todas as formas possíveis
+      const allEnvKeys = Object.keys(process.env)
+      const asaasKeys = allEnvKeys.filter(k => k.toUpperCase() === 'ASAAS_API_KEY' || k.includes('ASAAS'))
+      
+      console.log('🔍 DEBUG ASAAS_API_KEY DETALHADO:', {
         exists: hasAsaasKeyInEnv,
         hasValue: !!asaasApiKeyCheck,
         type: asaasKeyType,
         length: asaasKeyLength,
         isUndefined: asaasApiKeyCheck === undefined,
         isEmpty: asaasApiKeyCheck === '',
-        valuePreview: asaasApiKeyCheck ? asaasApiKeyCheck.substring(0, 20) : 'N/A'
+        isNull: asaasApiKeyCheck === null,
+        valuePreview: asaasApiKeyCheck ? asaasApiKeyCheck.substring(0, 20) : 'N/A',
+        directAccess: process.env.ASAAS_API_KEY,
+        bracketAccess: process.env['ASAAS_API_KEY'],
+        allAsaasKeys: asaasKeys,
+        envKeysCount: allEnvKeys.length
       })
       
-      if (!asaasApiKeyCheck || asaasApiKeyCheck.trim().length === 0) {
+      if (!asaasApiKeyCheck || (typeof asaasApiKeyCheck === 'string' && asaasApiKeyCheck.trim().length === 0)) {
         console.error('❌ ASAAS_API_KEY não encontrada ou VAZIA no process.env')
         console.error('   Variável existe?', hasAsaasKeyInEnv)
-        console.error('   Valor:', asaasKeyValue)
+        console.error('   Valor direto:', asaasKeyValue)
+        console.error('   Valor com bracket:', process.env['ASAAS_API_KEY'])
         console.error('   Tipo:', asaasKeyType)
         console.error('   Tamanho:', asaasKeyLength)
         console.error('   Variáveis disponíveis:', Object.keys(process.env).filter(k => k.includes('ASAAS') || k.includes('API')).slice(0, 20))
         console.error('   NODE_ENV:', process.env.NODE_ENV)
         console.error('   VERCEL_ENV:', process.env.VERCEL_ENV)
+        console.error('   VERCEL:', process.env.VERCEL)
         return res.status(500).json({
           error: hasAsaasKeyInEnv ? 'ASAAS_API_KEY está VAZIA' : 'ASAAS_API_KEY não configurada',
           message: hasAsaasKeyInEnv 
