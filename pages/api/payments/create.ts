@@ -89,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             // Atualizar CPF/CNPJ se necessário
             if (cpfCnpj && !existingCustomer?.cpfCnpj) {
               console.log('📝 Atualizando cliente no Asaas com CPF/CNPJ...')
-              await updateAsaasCustomer(asaasCustomerId, { cpfCnpj: cleanCpfCnpj(cpfCnpj) })
+              await updateAsaasCustomer(asaasCustomerId, { cpfCnpj: cleanCpfCnpj(cpfCnpj as string) })
             }
           } catch (error: any) {
             console.warn('⚠️ Não foi possível verificar cliente no Asaas:', error.message)
