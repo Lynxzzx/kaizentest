@@ -44,6 +44,8 @@ export default function Plans() {
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null)
   const [loading, setLoading] = useState(false)
   const [qrCodeImageError, setQrCodeImageError] = useState(false)
+  const [showPixMaintenanceAlert, setShowPixMaintenanceAlert] = useState(false)
+  const [showTelegramOption, setShowTelegramOption] = useState(false)
   const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
@@ -122,6 +124,13 @@ export default function Plans() {
           setSelectedPlan(plan)
         }
       }
+      return
+    }
+
+    // Para PIX: mostrar alerta de manutenção primeiro
+    if (method === 'PIX') {
+      setSelectedPlan(plan)
+      setShowPixMaintenanceAlert(true)
       return
     }
 
@@ -234,6 +243,102 @@ export default function Plans() {
           </div>
         )}
       </div>
+
+      {/* PIX Maintenance Alert Modal */}
+      {showPixMaintenanceAlert && selectedPlan && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className={`${themeClasses.card} rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full mx-4 shadow-2xl my-4`}>
+            <div className="text-center mb-6">
+              <div className={`mx-auto flex items-center justify-center h-16 w-16 rounded-full mb-4 ${
+                theme === 'dark' ? 'bg-yellow-500/20' : 'bg-yellow-100'
+              }`}>
+                <svg className={`h-8 w-8 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h2 className={`text-xl sm:text-2xl font-bold mb-4 ${themeClasses.text.primary}`}>
+                Sistema em Atualização
+              </h2>
+              <p className={`text-sm sm:text-base mb-6 ${themeClasses.text.secondary}`}>
+                O sistema de pagamento PIX está temporariamente em manutenção para melhorias. 
+                Estamos trabalhando para oferecer uma experiência ainda melhor!
+              </p>
+            </div>
+
+            <div className={`${theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-50 border border-blue-200'} rounded-lg p-4 mb-6`}>
+              <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-blue-200' : 'text-blue-900'}`}>
+                💡 Alternativa Disponível
+              </p>
+              <p className={`text-sm ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
+                Você pode comprar via Telegram usando criptomoedas. É rápido, seguro e seu plano será ativado automaticamente!
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={async () => {
+                  setShowPixMaintenanceAlert(false)
+                  setPaymentMethod('CRYPTO')
+                  
+                  // Criar pagamento via criptomoedas
+                  setLoading(true)
+                  try {
+                    const response = await axios.post('/api/payments/create', {
+                      planId: selectedPlan.id,
+                      method: 'BITCOIN'
+                    })
+                    
+                    if (response.data.bitcoinAddress) {
+                      // Sucesso: mostrar modal de pagamento Bitcoin
+                      setPaymentData(response.data)
+                      setLoading(false)
+                      toast.success('Pagamento via criptomoedas criado com sucesso!')
+                    } else {
+                      // Sem bitcoinAddress: mostrar fallback para Telegram
+                      const telegramLink = `https://t.me/kaizengens` // Substitua pelo seu link do Telegram
+                      setPaymentData({
+                        id: response.data.id || 'temp',
+                        fallback: true,
+                        telegramLink: telegramLink,
+                        originalAmount: selectedPlan.price
+                      } as PaymentData)
+                      setLoading(false)
+                    }
+                  } catch (error: any) {
+                    console.error('Erro ao criar pagamento:', error)
+                    // Em caso de erro: mostrar fallback para Telegram
+                    const telegramLink = `https://t.me/kaizengens` // Substitua pelo seu link do Telegram
+                    setPaymentData({
+                      id: 'temp',
+                      fallback: true,
+                      telegramLink: telegramLink,
+                      originalAmount: selectedPlan.price
+                    } as PaymentData)
+                    setLoading(false)
+                    toast.info('Redirecione para o Telegram para completar o pagamento')
+                  }
+                }}
+                className={`w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg text-base font-bold hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5`}
+              >
+                Comprar via Telegram
+              </button>
+              <button
+                onClick={() => {
+                  setShowPixMaintenanceAlert(false)
+                  setSelectedPlan(null)
+                }}
+                className={`w-full py-3 rounded-lg text-base font-semibold transition-colors ${
+                  theme === 'dark' 
+                    ? 'bg-white/10 text-white hover:bg-white/20' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Payment Modal */}
       {(paymentData || (paymentMethod === 'CRYPTO' && loading)) && selectedPlan && paymentMethod && (
