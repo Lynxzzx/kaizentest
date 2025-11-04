@@ -169,30 +169,29 @@ export async function createPagSeguroPixPayment(data: {
                    qrCodeData?.qr_code || 
                    qrCodeData?.qr_code_text || 
                    qrCodeData?.pix_copy_paste ||
-                   responseDataFinal?.qr_codes?.[0]?.text ||
-                   responseDataFinal?.qr_codes?.[0]?.qr_code ||
-                   responseDataFinal?.qr_codes?.[0]?.qr_code_text ||
-                   responseDataFinal?.qr_codes?.[0]?.pix_copy_paste ||
-                   responseDataFinal?.qr_code?.text ||
-                   responseDataFinal?.qr_code ||
-                   responseDataFinal?.qr_code_text ||
-                   responseDataFinal?.pix_copy_paste ||
+                   orderData_response.qr_codes?.[0]?.text ||
+                   orderData_response.qr_codes?.[0]?.qr_code ||
+                   orderData_response.qr_codes?.[0]?.qr_code_text ||
+                   orderData_response.qr_codes?.[0]?.pix_copy_paste ||
+                   orderData_response.charges?.[0]?.qr_codes?.[0]?.text ||
+                   orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code ||
+                   orderData_response.charges?.[0]?.qr_codes?.[0]?.pix_copy_paste ||
                    ''
 
     const qrCodeImage = qrCodeData?.qr_code_image || 
                         qrCodeData?.qr_code_base64 ||
-                        responseDataFinal?.qr_codes?.[0]?.qr_code_image ||
-                        responseDataFinal?.qr_codes?.[0]?.qr_code_base64 ||
-                        responseDataFinal?.qr_code_image ||
-                        responseDataFinal?.qr_code_base64 ||
+                        orderData_response.qr_codes?.[0]?.qr_code_image ||
+                        orderData_response.qr_codes?.[0]?.qr_code_base64 ||
+                        orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code_image ||
+                        orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code_base64 ||
                         null
 
     const expiresAt = qrCodeData?.expiration_date ||
                       qrCodeData?.expires_at || 
-                      responseDataFinal?.qr_codes?.[0]?.expiration_date ||
-                      responseDataFinal?.qr_codes?.[0]?.expires_at ||
-                      responseDataFinal?.expiration_date ||
-                      responseDataFinal?.expires_at ||
+                      orderData_response.qr_codes?.[0]?.expiration_date ||
+                      orderData_response.qr_codes?.[0]?.expires_at ||
+                      orderData_response.charges?.[0]?.qr_codes?.[0]?.expiration_date ||
+                      orderData_response.charges?.[0]?.qr_codes?.[0]?.expires_at ||
                       new Date(Date.now() + 30 * 60 * 1000).toISOString()
 
     return {
