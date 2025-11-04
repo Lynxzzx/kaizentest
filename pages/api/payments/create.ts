@@ -113,15 +113,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Buscar QR code PIX
         const pixQrCodeData = await getAsaasPixQrCode(asaasPayment.id)
 
+        // Mapear dados do Asaas (payload = QR code, encodedImage = imagem)
+        const pixQrCode = pixQrCodeData.payload || ''
+        
         // Preparar QR code image
         let pixQrCodeImage: string | null = null
-        if (pixQrCodeData.qrCodeImage) {
+        if (pixQrCodeData.encodedImage) {
           // Se já vem como data URI, usar diretamente
-          if (pixQrCodeData.qrCodeImage.startsWith('data:')) {
-            pixQrCodeImage = pixQrCodeData.qrCodeImage
+          if (pixQrCodeData.encodedImage.startsWith('data:')) {
+            pixQrCodeImage = pixQrCodeData.encodedImage
           } else {
             // Se vem como base64 puro, adicionar prefixo
-            pixQrCodeImage = `data:image/png;base64,${pixQrCodeData.qrCodeImage}`
+            pixQrCodeImage = `data:image/png;base64,${pixQrCodeData.encodedImage}`
           }
         }
 
@@ -134,15 +137,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             method: 'PIX',
             status: 'PENDING',
             asaasId: asaasPayment.id,
-            pixQrCode: pixQrCodeData.qrCode,
-            pixExpiresAt: pixQrCodeData.expiresAt ? new Date(pixQrCodeData.expiresAt) : new Date(Date.now() + 30 * 60 * 1000)
+            pixQrCode: pixQrCode,
+            pixExpiresAt: asaasPayment.dueDate ? new Date(asaasPayment.dueDate + 'T23:59:59') : new Date(Date.now() + 30 * 60 * 1000)
           }
         })
 
         return res.status(200).json({
           paymentId: payment.id,
           qrCodeImage: pixQrCodeImage,
-          pixCopyPaste: pixQrCodeData.qrCode,
+          pixCopyPaste: pixQrCode,
           expiresAt: payment.pixExpiresAt
         })
       } catch (error: any) {
