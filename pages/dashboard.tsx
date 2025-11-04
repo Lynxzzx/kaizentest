@@ -30,6 +30,7 @@ interface Plan {
 interface UserPlan {
   plan: Plan | null
   planExpiresAt: Date | null
+  affiliateCode: string | null
 }
 
 export default function Dashboard() {
@@ -70,11 +71,23 @@ export default function Dashboard() {
       const response = await axios.get('/api/users/me')
       setUserPlan({
         plan: response.data.plan,
-        planExpiresAt: response.data.planExpiresAt ? new Date(response.data.planExpiresAt) : null
+        planExpiresAt: response.data.planExpiresAt ? new Date(response.data.planExpiresAt) : null,
+        affiliateCode: response.data.affiliateCode || null
       })
     } catch (error) {
       console.error('Error loading user plan')
     }
+  }
+
+  const copyAffiliateLink = (code: string) => {
+    const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${code}`
+    navigator.clipboard.writeText(link)
+    toast.success('Link de afiliado copiado!')
+  }
+
+  const getAffiliateLink = (code: string) => {
+    if (typeof window === 'undefined') return ''
+    return `${window.location.origin}/register?ref=${code}`
   }
 
   const handleGenerateAccount = async () => {

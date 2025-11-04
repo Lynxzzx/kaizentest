@@ -31,6 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     email: user.email,
     role: user.role,
     plan: user.plan,
-    planExpiresAt: user.planExpiresAt
+    planExpiresAt: user.planExpiresAt,
+    affiliateCode: user.affiliateCode
   })
 }
