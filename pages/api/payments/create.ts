@@ -4,7 +4,6 @@ import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { createPagSeguroPixPayment } from '@/lib/pagseguro'
 import { createPaymentAddress, convertBrlToCrypto } from '@/lib/binance'
-import { format } from 'date-fns'
 import { generateCPF, cleanCpfCnpj } from '@/lib/utils'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -88,8 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           customer: {
             name: user.username,
             email: user.email || '',
-            tax_id: cleanCpfCnpj(cpfCnpj),
-            phone: user.phone || undefined
+            tax_id: cleanCpfCnpj(cpfCnpj)
           },
           amount: plan.price,
           description: `Plano ${plan.name} - Kaizen Gens`

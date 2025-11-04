@@ -87,7 +87,6 @@ export async function createPagSeguroPixPayment(data: {
     name: string
     email: string
     tax_id: string
-    phone?: string
   }
   amount: number // Valor em reais
   description: string
@@ -105,15 +104,7 @@ export async function createPagSeguroPixPayment(data: {
       customer: {
         name: data.customer.name,
         email: data.customer.email,
-        tax_id: data.customer.tax_id.replace(/\D/g, ''), // Remover formatação do CPF/CNPJ
-        ...(data.customer.phone && {
-          phones: [{
-            country: '55',
-            area: data.customer.phone.substring(0, 2),
-            number: data.customer.phone.substring(2).replace(/\D/g, ''),
-            type: 'MOBILE'
-          }]
-        })
+        tax_id: data.customer.tax_id.replace(/\D/g, '') // Remover formatação do CPF/CNPJ
       },
       amount: {
         value: valueInCents,
