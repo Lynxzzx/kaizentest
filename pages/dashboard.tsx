@@ -277,12 +277,17 @@ export default function Dashboard() {
                   value={selectedService}
                   onChange={(e) => setSelectedService(e.target.value)}
                   className={`${getThemeClasses(theme).input} w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
+                  style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
                 >
-                  <option value="">Selecione um serviço</option>
+                  <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Selecione um serviço</option>
                   {services
                     .filter((service) => service._count.stocks > 0)
                     .map((service) => (
-                      <option key={service.id} value={service.id}>
+                      <option 
+                        key={service.id} 
+                        value={service.id}
+                        style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}
+                      >
                         {service.name} ({service._count.stocks} {t('available')})
                       </option>
                     ))}

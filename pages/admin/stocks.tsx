@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
+import { useTheme } from '@/contexts/ThemeContext'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
@@ -27,6 +28,7 @@ interface Service {
 export default function AdminStocks() {
   const { t } = useTranslation()
   const { data: session, status } = useSession()
+  const { theme } = useTheme()
   const router = useRouter()
   const [stocks, setStocks] = useState<Stock[]>([])
   const [services, setServices] = useState<Service[]>([])
@@ -280,11 +282,16 @@ export default function AdminStocks() {
             <select
               value={filterService}
               onChange={(e) => setFilterService(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className={`w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                theme === 'dark'
+                  ? 'bg-white/10 border border-white/20 text-white'
+                  : 'bg-white border border-gray-300 text-gray-900'
+              }`}
+              style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
             >
-              <option value="">Todos os serviços</option>
+              <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Todos os serviços</option>
               {services.map((service) => (
-                <option key={service.id} value={service.id}>
+                <option key={service.id} value={service.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
                   {service.name}
                 </option>
               ))}
@@ -295,11 +302,16 @@ export default function AdminStocks() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className={`w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                theme === 'dark'
+                  ? 'bg-white/10 border border-white/20 text-white'
+                  : 'bg-white border border-gray-300 text-gray-900'
+              }`}
+              style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
             >
-              <option value="all">Todos</option>
-              <option value="available">Disponíveis</option>
-              <option value="used">Usados</option>
+              <option value="all" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Todos</option>
+              <option value="available" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Disponíveis</option>
+              <option value="used" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Usados</option>
             </select>
           </div>
         </div>
@@ -323,12 +335,17 @@ export default function AdminStocks() {
                 <select
                   value={bulkData.serviceId}
                   onChange={(e) => setBulkData({ ...bulkData, serviceId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                    theme === 'dark'
+                      ? 'bg-white/10 border border-white/20 text-white'
+                      : 'bg-white border border-gray-300 text-gray-900'
+                  }`}
+                  style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
                   required
                 >
-                  <option value="">Selecione um serviço</option>
+                  <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Selecione um serviço</option>
                   {services.map((service) => (
-                    <option key={service.id} value={service.id}>
+                    <option key={service.id} value={service.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
                       {service.name}
                     </option>
                   ))}
@@ -373,12 +390,17 @@ export default function AdminStocks() {
                 <select
                   value={formData.serviceId}
                   onChange={(e) => setFormData({ ...formData, serviceId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                    theme === 'dark'
+                      ? 'bg-white/10 border border-white/20 text-white'
+                      : 'bg-white border border-gray-300 text-gray-900'
+                  }`}
+                  style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
                   required
                 >
-                  <option value="">Selecione um serviço</option>
+                  <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Selecione um serviço</option>
                   {services.map((service) => (
-                    <option key={service.id} value={service.id}>
+                    <option key={service.id} value={service.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
                       {service.name}
                     </option>
                   ))}

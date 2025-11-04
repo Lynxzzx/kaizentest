@@ -226,9 +226,10 @@ export default function Layout({ children }: LayoutProps) {
                     ? 'bg-white/10 border border-white/20 text-white'
                     : 'bg-white border border-gray-300 text-gray-900'
                 }`}
+                style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
               >
-                <option value="pt-BR">🇧🇷 PT-BR</option>
-                <option value="en">🇺🇸 EN</option>
+                <option value="pt-BR" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>🇧🇷 PT-BR</option>
+                <option value="en" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>🇺🇸 EN</option>
               </select>
               {session ? (
                 <div className="flex items-center space-x-2 md:space-x-3">

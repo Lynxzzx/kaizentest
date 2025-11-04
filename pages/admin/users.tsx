@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
+import { useTheme } from '@/contexts/ThemeContext'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -38,6 +39,7 @@ interface Plan {
 export default function AdminUsers() {
   const { t } = useTranslation()
   const { data: session, status } = useSession()
+  const { theme } = useTheme()
   const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
@@ -171,11 +173,16 @@ export default function AdminUsers() {
               <select
                 value={editData.planId}
                 onChange={(e) => setEditData({ ...editData, planId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className={`w-full px-3 py-2 rounded-md ${
+                  theme === 'dark'
+                    ? 'bg-white/10 border border-white/20 text-white'
+                    : 'bg-white border border-gray-300 text-gray-900'
+                }`}
+                style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
               >
-                <option value="">Sem plano</option>
+                <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Sem plano</option>
                 {plans.map((plan) => (
-                  <option key={plan.id} value={plan.id}>
+                  <option key={plan.id} value={plan.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
                     {plan.name}
                   </option>
                 ))}
@@ -197,12 +204,17 @@ export default function AdminUsers() {
               <select
                 value={editData.role}
                 onChange={(e) => setEditData({ ...editData, role: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                className={`w-full px-3 py-2 rounded-md ${
+                  theme === 'dark'
+                    ? 'bg-white/10 border border-white/20 text-white'
+                    : 'bg-white border border-gray-300 text-gray-900'
+                }`}
+                style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
               >
-                <option value="USER">👤 Usuário</option>
-                <option value="MODERATOR">🛡️ Moderador</option>
-                <option value="ADMIN">🔧 Administrador</option>
-                <option value="OWNER">👑 Owner</option>
+                <option value="USER" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>👤 Usuário</option>
+                <option value="MODERATOR" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>🛡️ Moderador</option>
+                <option value="ADMIN" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>🔧 Administrador</option>
+                <option value="OWNER" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>👑 Owner</option>
               </select>
             </div>
             <div className="flex items-center">

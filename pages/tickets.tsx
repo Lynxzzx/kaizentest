@@ -204,11 +204,12 @@ export default function Tickets() {
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
                   className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none`}
+                  style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
                 >
-                  <option value="LOW">Baixa</option>
-                  <option value="MEDIUM">Média</option>
-                  <option value="HIGH">Alta</option>
-                  <option value="URGENT">Urgente</option>
+                  <option value="LOW" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Baixa</option>
+                  <option value="MEDIUM" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Média</option>
+                  <option value="HIGH" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Alta</option>
+                  <option value="URGENT" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Urgente</option>
                 </select>
               </div>
               <div>

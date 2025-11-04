@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
+import { useTheme } from '@/contexts/ThemeContext'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
@@ -21,6 +22,7 @@ interface Service {
 export default function AdminServices() {
   const { t } = useTranslation()
   const { data: session, status } = useSession()
+  const { theme } = useTheme()
   const router = useRouter()
   const [services, setServices] = useState<Service[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -204,11 +206,16 @@ export default function AdminServices() {
             <select
               value={filterActive}
               onChange={(e) => setFilterActive(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className={`w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                theme === 'dark'
+                  ? 'bg-white/10 border border-white/20 text-white'
+                  : 'bg-white border border-gray-300 text-gray-900'
+              }`}
+              style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
             >
-              <option value="all">Todos</option>
-              <option value="active">Ativos</option>
-              <option value="inactive">Inativos</option>
+              <option value="all" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Todos</option>
+              <option value="active" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Ativos</option>
+              <option value="inactive" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Inativos</option>
             </select>
           </div>
         </div>

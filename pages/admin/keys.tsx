@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
+import { useTheme } from '@/contexts/ThemeContext'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
@@ -23,6 +24,7 @@ interface Plan {
 export default function AdminKeys() {
   const { t } = useTranslation()
   const { data: session, status } = useSession()
+  const { theme } = useTheme()
   const router = useRouter()
   const [keys, setKeys] = useState<Key[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
@@ -110,12 +112,17 @@ export default function AdminKeys() {
                 <select
                   value={formData.planId}
                   onChange={(e) => setFormData({ ...formData, planId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={`w-full px-3 py-2 rounded-md ${
+                    theme === 'dark'
+                      ? 'bg-white/10 border border-white/20 text-white'
+                      : 'bg-white border border-gray-300 text-gray-900'
+                  }`}
+                  style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
                   required
                 >
-                  <option value="">Selecione um plano</option>
+                  <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Selecione um plano</option>
                   {plans.map((plan) => (
-                    <option key={plan.id} value={plan.id}>
+                    <option key={plan.id} value={plan.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
                       {plan.name}
                     </option>
                   ))}
