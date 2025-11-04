@@ -115,169 +115,56 @@ export async function createPagSeguroPixPayment(data: {
       customerData.email = data.customer.email
     }
 
-    // O endpoint /charges não aceita PIX diretamente
-    // Estratégia: criar cobrança primeiro, depois gerar QR code PIX separadamente
-    const chargeData: any = {
+    // O endpoint /orders é o correto para PIX com qr_codes (conforme documentação oficial)
+    // Estrutura: orders com items e qr_codes (sem payment_method)
+    const orderData: any = {
       reference_id: data.reference_id,
       customer: customerData,
-      amount: {
-        value: valueInCents,
-        currency: 'BRL'
-      },
-      description: data.description
-      // Não incluir payment_method nem qr_codes aqui
-    }
-
-    console.log('Criando cobrança no PagSeguro (sem método de pagamento):', JSON.stringify(chargeData, null, 2))
-
-    // Criar cobrança primeiro (sem método de pagamento)
-    let chargeResponse
-    try {
-      chargeResponse = await axios.post(
-        `${apiUrl}/charges`,
-        chargeData,
+      items: [
         {
-          headers: {
-            'Authorization': `Bearer ${key}`,
-            'App-Token': key,
-            'Content-Type': 'application/json'
-          }
+          reference_id: `${data.reference_id}_item`,
+          name: data.description,
+          quantity: 1,
+          unit_amount: valueInCents
         }
-      )
-      console.log('✅ Cobrança criada no PagSeguro:', chargeResponse.data.id)
-    } catch (chargeError: any) {
-      // Se falhar por falta de payment_method, tentar criar diretamente via endpoint de QR code
-      console.log('⚠️ Criar cobrança falhou, tentando criar QR code PIX diretamente...')
-      console.log('Erro:', chargeError.response?.data || chargeError.message)
-      
-      // Tentar criar QR code PIX diretamente sem cobrança prévia
-      // Este endpoint pode usar autenticação diferente (Basic Auth ou apenas App-Token)
-      const pixData = {
-        reference_id: data.reference_id,
-        customer: customerData,
-        amount: {
-          value: valueInCents,
-          currency: 'BRL'
-        },
-        description: data.description,
-        expiration_date: new Date(Date.now() + 30 * 60 * 1000).toISOString()
-      }
-      
-      // Tentar diferentes métodos de autenticação
-      let pixResponse
-      const authMethods = [
-        // Método 1: Apenas App-Token (sem Bearer)
-        { 'App-Token': key, 'Content-Type': 'application/json' },
-        // Método 2: Basic Auth com a chave
-        { 'Authorization': `Basic ${Buffer.from(key + ':').toString('base64')}`, 'Content-Type': 'application/json' },
-        // Método 3: App-Token + Authorization sem Bearer
-        { 'App-Token': key, 'Authorization': key, 'Content-Type': 'application/json' },
-        // Método 4: Bearer (original)
-        { 'Authorization': `Bearer ${key}`, 'App-Token': key, 'Content-Type': 'application/json' }
-      ]
-      
-      for (const authHeaders of authMethods) {
-        try {
-          pixResponse = await axios.post(
-            `${apiUrl}/pix/qr-codes`,
-            pixData,
-            { headers: authHeaders }
-          )
-          console.log('✅ QR code PIX criado diretamente com autenticação:', Object.keys(authHeaders).join(', '))
-          break
-        } catch (authError: any) {
-          console.log(`⚠️ Autenticação ${Object.keys(authHeaders).join(', ')} falhou:`, authError.response?.data?.message || authError.message)
-          continue
-        }
-      }
-      
-      if (!pixResponse) {
-        throw new Error('Não foi possível criar QR code PIX. Nenhum método de autenticação funcionou.')
-      }
-      
-      return {
-        id: pixResponse.data.id || pixResponse.data.reference_id || '',
-        qrCode: pixResponse.data.text || pixResponse.data.qr_code || pixResponse.data.pix_copy_paste || '',
-        qrCodeImage: pixResponse.data.qr_code_image || pixResponse.data.qr_code_base64 || null,
-        expiresAt: pixResponse.data.expiration_date || pixResponse.data.expires_at || new Date(Date.now() + 30 * 60 * 1000).toISOString()
-      }
-    }
-    
-    const chargeId = chargeResponse.data.id
-    
-    // Gerar QR code PIX para a cobrança criada
-    console.log('Gerando QR code PIX para cobrança:', chargeId)
-    
-    let qrCodeData: any = null
-    
-    // Tentar vários endpoints possíveis para gerar QR code PIX
-    const pixEndpoints = [
-      `${apiUrl}/charges/${chargeId}/pix/qr-codes`,
-      `${apiUrl}/charges/${chargeId}/pix`,
-      `${apiUrl}/pix/qr-codes`,
-      `${apiUrl}/charges/${chargeId}/qr-codes`
-    ]
-    
-    for (const endpoint of pixEndpoints) {
-      try {
-        console.log(`Tentando endpoint: ${endpoint}`)
-        const qrCodeResponse = await axios.post(
-          endpoint,
-          {
-            amount: {
-              value: valueInCents,
-              currency: 'BRL'
-            },
-            expiration_date: new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      ],
+      qr_codes: [
+        {
+          amount: {
+            value: valueInCents,
+            currency: 'BRL'
           },
-          {
-            headers: {
-              'Authorization': `Bearer ${key}`,
-              'App-Token': key,
-              'Content-Type': 'application/json'
-            }
-          }
-        )
-        qrCodeData = qrCodeResponse.data
-        console.log(`✅ QR code PIX gerado via ${endpoint}`)
-        break
-      } catch (endpointError: any) {
-        console.log(`⚠️ ${endpoint} falhou:`, endpointError.response?.data?.error_messages?.[0]?.description || endpointError.message)
-        // Tentar próximo endpoint
-        continue
-      }
-    }
-    
-    // Se POST falhou em todos, tentar GET
-    if (!qrCodeData) {
-      for (const endpoint of [`${apiUrl}/charges/${chargeId}/pix`, `${apiUrl}/charges/${chargeId}/pix/qr-codes`]) {
-        try {
-          console.log(`Tentando GET: ${endpoint}`)
-          const qrCodeResponse = await axios.get(
-            endpoint,
-            {
-              headers: {
-                'Authorization': `Bearer ${key}`,
-                'App-Token': key
-              }
-            }
-          )
-          qrCodeData = qrCodeResponse.data
-          console.log(`✅ QR code PIX obtido via GET ${endpoint}`)
-          break
-        } catch (getError: any) {
-          console.log(`⚠️ GET ${endpoint} falhou`)
-          continue
+          expiration_date: new Date(Date.now() + 30 * 60 * 1000).toISOString()
         }
-      }
-    }
-    
-    if (!qrCodeData) {
-      throw new Error('Não foi possível gerar QR code PIX. Verifique se a cobrança foi criada e se o endpoint de PIX está disponível.')
+      ]
     }
 
-    // Extrair QR code de diferentes possíveis estruturas (qr_codes)
-    const responseDataFinal = chargeResponse.data
+    console.log('Criando pedido PIX no PagSeguro (via /orders):', JSON.stringify(orderData, null, 2))
+
+    // Criar pedido via /orders (método correto para PIX)
+    const orderResponse = await axios.post(
+      `${apiUrl}/orders`,
+      orderData,
+      {
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'App-Token': key,
+          'Content-Type': 'application/json'
+        }
+      }
+    )
+
+    console.log('✅ Pedido PIX criado no PagSeguro:', orderResponse.data.id)
+    
+    // Extrair dados do QR code da resposta
+    const orderData_response = orderResponse.data
+    const chargeId = orderData_response.charges?.[0]?.id || orderData_response.id
+    
+    // O QR code PIX deve vir na resposta do /orders dentro de qr_codes
+    const qrCodeData = orderData_response.qr_codes?.[0] || 
+                       orderData_response.charges?.[0]?.qr_codes?.[0] ||
+                       orderData_response.charges?.[0]?.payment_method?.pix ||
+                       orderData_response
     const qrCode = qrCodeData?.text ||
                    qrCodeData?.qr_code || 
                    qrCodeData?.qr_code_text || 
@@ -309,7 +196,7 @@ export async function createPagSeguroPixPayment(data: {
                       new Date(Date.now() + 30 * 60 * 1000).toISOString()
 
     return {
-      id: chargeId || chargeResponse.data.id || '',
+      id: chargeId || orderResponse.data.id || '',
       qrCode: qrCode || '',
       qrCodeImage: qrCodeImage || null,
       expiresAt: expiresAt
