@@ -7,8 +7,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const session = await getServerSession(req, res, authOptions)
 
   if (req.method === 'GET') {
+    // Se for OWNER, retornar todos os serviços (ativos e inativos)
+    // Se não for OWNER, retornar apenas os ativos
+    const isOwner = session && session.user.role === 'OWNER'
+    
     const services = await prisma.service.findMany({
-      where: { isActive: true },
+      where: isOwner ? {} : { isActive: true },
       include: {
         _count: {
           select: {

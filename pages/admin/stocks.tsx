@@ -10,9 +10,11 @@ interface Stock {
   serviceId: string
   username: string
   password: string
-  email: string
+  email: string | null
   isUsed: boolean
+  createdAt: string
   service: {
+    id: string
     name: string
   }
 }
@@ -30,6 +32,7 @@ export default function AdminStocks() {
   const [services, setServices] = useState<Service[]>([])
   const [showForm, setShowForm] = useState(false)
   const [showBulkForm, setShowBulkForm] = useState(false)
+  const [editingStock, setEditingStock] = useState<Stock | null>(null)
   const [formData, setFormData] = useState({
     serviceId: '',
     username: '',
@@ -41,6 +44,9 @@ export default function AdminStocks() {
     accounts: ''
   })
   const [loadingBulk, setLoadingBulk] = useState(false)
+  const [filterService, setFilterService] = useState<string>('')
+  const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState<string>('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -78,14 +84,43 @@ export default function AdminStocks() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await axios.post('/api/stocks', formData)
-      toast.success('Estoque adicionado com sucesso!')
-      setShowForm(false)
+      if (editingStock) {
+        // Editar estoque existente
+        await axios.put(`/api/stocks/${editingStock.id}`, {
+          ...formData,
+          force: editingStock.isUsed // Permitir edição mesmo se usado
+        })
+        toast.success('Estoque atualizado com sucesso!')
+        setEditingStock(null)
+      } else {
+        // Criar novo estoque
+        await axios.post('/api/stocks', formData)
+        toast.success('Estoque adicionado com sucesso!')
+        setShowForm(false)
+      }
       setFormData({ serviceId: '', username: '', password: '', email: '' })
       loadStocks()
-    } catch (error) {
-      toast.error('Erro ao adicionar estoque')
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao salvar estoque')
     }
+  }
+
+  const handleEdit = (stock: Stock) => {
+    setEditingStock(stock)
+    setFormData({
+      serviceId: stock.serviceId,
+      username: stock.username,
+      password: stock.password,
+      email: stock.email || ''
+    })
+    setShowForm(true)
+    setShowBulkForm(false)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingStock(null)
+    setShowForm(false)
+    setFormData({ serviceId: '', username: '', password: '', email: '' })
   }
 
   const handleDelete = async (id: string) => {
@@ -95,8 +130,8 @@ export default function AdminStocks() {
       await axios.delete(`/api/stocks/${id}`)
       toast.success('Estoque excluído!')
       loadStocks()
-    } catch (error) {
-      toast.error('Erro ao excluir estoque')
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao excluir estoque')
     }
   }
 
@@ -105,7 +140,6 @@ export default function AdminStocks() {
     setLoadingBulk(true)
 
     try {
-      // Processar contas: uma por linha, formato email:pass
       const accounts = bulkData.accounts
         .split('\n')
         .map(line => line.trim())
@@ -141,6 +175,32 @@ export default function AdminStocks() {
     }
   }
 
+  // Filtrar estoques
+  const filteredStocks = stocks.filter(stock => {
+    const matchesService = !filterService || stock.serviceId === filterService
+    const matchesStatus = filterStatus === 'all' || 
+      (filterStatus === 'available' && !stock.isUsed) ||
+      (filterStatus === 'used' && stock.isUsed)
+    const matchesSearch = !searchQuery || 
+      stock.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      stock.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      stock.service.name.toLowerCase().includes(searchQuery.toLowerCase())
+
+    return matchesService && matchesStatus && matchesSearch
+  })
+
+  // Estatísticas
+  const stats = {
+    total: stocks.length,
+    available: stocks.filter(s => !s.isUsed).length,
+    used: stocks.filter(s => s.isUsed).length,
+    byService: services.map(service => ({
+      service: service.name,
+      total: stocks.filter(s => s.serviceId === service.id).length,
+      available: stocks.filter(s => s.serviceId === service.id && !s.isUsed).length
+    }))
+  }
+
   if (status === 'loading') {
     return <div className="text-center py-12">Carregando...</div>
   }
@@ -151,35 +211,105 @@ export default function AdminStocks() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">{t('stocks')}</h1>
-        <div className="flex space-x-3">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+        <h1 className="text-3xl font-bold">Gerenciamento de Estoque</h1>
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => {
               setShowForm(false)
               setShowBulkForm(!showBulkForm)
+              setEditingStock(null)
             }}
-            className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-md"
           >
-            {showBulkForm ? 'Cancelar' : 'Adicionar em Massa'}
+            {showBulkForm ? 'Cancelar' : '➕ Adicionar em Massa'}
           </button>
           <button
             onClick={() => {
               setShowBulkForm(false)
               setShowForm(!showForm)
+              setEditingStock(null)
+              if (!showForm) {
+                setFormData({ serviceId: '', username: '', password: '', email: '' })
+              }
             }}
-            className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors shadow-md"
           >
-            {showForm ? t('cancel') : t('add')} {t('stocks')}
+            {showForm ? 'Cancelar' : '➕ Adicionar Estoque'}
           </button>
         </div>
       </div>
 
+      {/* Estatísticas */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-lg shadow p-4 border border-gray-200">
+          <div className="text-sm text-gray-600">Total de Estoque</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+        </div>
+        <div className="bg-green-50 rounded-lg shadow p-4 border border-green-200">
+          <div className="text-sm text-green-600">Disponíveis</div>
+          <div className="text-2xl font-bold text-green-700">{stats.available}</div>
+        </div>
+        <div className="bg-red-50 rounded-lg shadow p-4 border border-red-200">
+          <div className="text-sm text-red-600">Usados</div>
+          <div className="text-2xl font-bold text-red-700">{stats.used}</div>
+        </div>
+        <div className="bg-blue-50 rounded-lg shadow p-4 border border-blue-200">
+          <div className="text-sm text-blue-600">Taxa de Uso</div>
+          <div className="text-2xl font-bold text-blue-700">
+            {stats.total > 0 ? Math.round((stats.used / stats.total) * 100) : 0}%
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros e Busca */}
+      <div className="bg-white rounded-lg shadow p-4 mb-6 border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar por usuário, email ou serviço..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Serviço</label>
+            <select
+              value={filterService}
+              onChange={(e) => setFilterService(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="">Todos os serviços</option>
+              {services.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Filtrar por Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="all">Todos</option>
+              <option value="available">Disponíveis</option>
+              <option value="used">Usados</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {showBulkForm && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
+        <div className="bg-white shadow-lg rounded-lg p-6 mb-6 border border-gray-200">
           <h2 className="text-xl font-bold mb-4">Adicionar Múltiplas Contas</h2>
           <p className="text-sm text-gray-600 mb-4">
-            Cole as contas no formato <strong>email:pass</strong>, uma por linha.
+            Cole as contas no formato <strong>account:pass</strong>, uma por linha.
             Exemplo:<br />
             <code className="bg-gray-100 p-1 rounded">user1@example.com:senha123</code><br />
             <code className="bg-gray-100 p-1 rounded">user2@example.com:senha456</code>
@@ -193,7 +323,7 @@ export default function AdminStocks() {
                 <select
                   value={bulkData.serviceId}
                   onChange={(e) => setBulkData({ ...bulkData, serviceId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 >
                   <option value="">Selecione um serviço</option>
@@ -206,12 +336,12 @@ export default function AdminStocks() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contas (email:pass, uma por linha)
+                  Contas (account:pass, uma por linha)
                 </label>
                 <textarea
                   value={bulkData.accounts}
                   onChange={(e) => setBulkData({ ...bulkData, accounts: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   rows={10}
                   placeholder="user1@example.com:senha123&#10;user2@example.com:senha456&#10;user3@example.com:senha789"
                   required
@@ -220,7 +350,7 @@ export default function AdminStocks() {
               <button
                 type="submit"
                 disabled={loadingBulk}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
               >
                 {loadingBulk ? 'Processando...' : 'Adicionar Contas'}
               </button>
@@ -230,8 +360,10 @@ export default function AdminStocks() {
       )}
 
       {showForm && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">{t('add')} {t('stocks')}</h2>
+        <div className="bg-white shadow-lg rounded-lg p-6 mb-6 border border-gray-200">
+          <h2 className="text-xl font-bold mb-4">
+            {editingStock ? 'Editar Estoque' : 'Adicionar Estoque'}
+          </h2>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
@@ -241,7 +373,7 @@ export default function AdminStocks() {
                 <select
                   value={formData.serviceId}
                   onChange={(e) => setFormData({ ...formData, serviceId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 >
                   <option value="">Selecione um serviço</option>
@@ -260,7 +392,7 @@ export default function AdminStocks() {
                   type="text"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -272,68 +404,118 @@ export default function AdminStocks() {
                   type="text"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('email')}
+                  {t('email')} (Opcional)
                 </label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
-              <button
-                type="submit"
-                className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
-              >
-                {t('save')}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  {editingStock ? 'Salvar Alterações' : 'Adicionar'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </form>
         </div>
       )}
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('services')}</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('username')}</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('password')}</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('status')}</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {stocks.map((stock) => (
-              <tr key={stock.id}>
-                <td className="px-6 py-4 whitespace-nowrap">{stock.service.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{stock.username}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{stock.password}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    stock.isUsed ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                  }`}>
-                    {stock.isUsed ? t('unavailable') : t('available')}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <button
-                    onClick={() => handleDelete(stock.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    {t('delete')}
-                  </button>
-                </td>
+      {/* Tabela de Estoque */}
+      <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-200">
+        <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Estoque ({filteredStocks.length} de {stocks.length})
+            </h3>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serviço</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuário</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Senha</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredStocks.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                    Nenhum estoque encontrado
+                  </td>
+                </tr>
+              ) : (
+                filteredStocks.map((stock) => (
+                  <tr key={stock.id} className={stock.isUsed ? 'bg-gray-50' : 'hover:bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="font-medium text-gray-900">{stock.service.name}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-gray-900 font-mono">{stock.username}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-gray-900 font-mono">{stock.email || '-'}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-gray-900 font-mono">••••••</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        stock.isUsed ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                      }`}>
+                        {stock.isUsed ? 'Usado' : 'Disponível'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(stock.createdAt).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                      <button
+                        onClick={() => handleEdit(stock)}
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                        title="Editar"
+                      >
+                        ✏️ Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(stock.id)}
+                        className="text-red-600 hover:text-red-800 transition-colors"
+                        title="Excluir"
+                        disabled={stock.isUsed}
+                      >
+                        🗑️ Excluir
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
