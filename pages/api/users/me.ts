@@ -32,6 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     role: user.role,
     plan: user.plan,
     planExpiresAt: user.planExpiresAt,
-    affiliateCode: user.affiliateCode
+    affiliateCode: user.affiliateCode,
+    theme: user.theme || 'dark'
   })
 }

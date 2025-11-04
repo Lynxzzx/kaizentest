@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n-helper'
+import { useTheme } from '@/contexts/ThemeContext'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -36,12 +37,54 @@ interface UserPlan {
 export default function Dashboard() {
   const { t } = useTranslation()
   const { data: session, status } = useSession()
+  const { theme } = useTheme()
   const router = useRouter()
   const [services, setServices] = useState<Service[]>([])
   const [userPlan, setUserPlan] = useState<UserPlan | null>(null)
   const [selectedService, setSelectedService] = useState<string>('')
   const [generatedAccount, setGeneratedAccount] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+
+  // Classes de tema para o dashboard
+  const getThemeClasses = () => {
+    switch (theme) {
+      case 'dark':
+        return 'min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8'
+      case 'light':
+        return 'min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 text-gray-900 py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8'
+      case 'default':
+        return 'min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 text-gray-900 py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8'
+      default:
+        return 'min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8'
+    }
+  }
+
+  const getCardClasses = () => {
+    switch (theme) {
+      case 'dark':
+        return 'bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-white/20'
+      case 'light':
+        return 'bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200'
+      case 'default':
+        return 'bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200'
+      default:
+        return 'bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-white/20'
+    }
+  }
+
+  const getTextClasses = () => {
+    switch (theme) {
+      case 'dark':
+        return { primary: 'text-white', secondary: 'text-gray-300', muted: 'text-gray-400' }
+      case 'light':
+      case 'default':
+        return { primary: 'text-gray-900', secondary: 'text-gray-600', muted: 'text-gray-500' }
+      default:
+        return { primary: 'text-white', secondary: 'text-gray-300', muted: 'text-gray-400' }
+    }
+  }
+
+  const textClasses = getTextClasses()
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -127,12 +170,14 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8">
+    <div className={getThemeClasses()}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 sm:mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2">{t('dashboard')}</h1>
-            <p className="text-sm sm:text-base text-gray-600">Bem-vindo, {session.user.username}!</p>
+            <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-2 ${textClasses.primary}`}>
+              {t('dashboard')}
+            </h1>
+            <p className={`text-sm sm:text-base ${textClasses.secondary}`}>Bem-vindo, {session.user.username}!</p>
           </div>
           <Link
             href={`/profile/${session.user.username}`}
@@ -145,9 +190,9 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
           {/* Plan Card */}
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200">
+          <div className={getCardClasses()}>
             <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900">{t('myPlan')}</h2>
+              <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>{t('myPlan')}</h2>
               <span className="text-3xl sm:text-4xl">📋</span>
             </div>
             {userPlan?.plan ? (
@@ -273,8 +318,8 @@ export default function Dashboard() {
 
         {/* Generated Account */}
         {generatedAccount && (
-          <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200 animate-slide-up mb-6 sm:mb-8">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Conta Gerada com Sucesso! ✅</h2>
+          <div className={`${getCardClasses()} animate-slide-up mb-6 sm:mb-8`}>
+            <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${textClasses.primary}`}>Conta Gerada com Sucesso! ✅</h2>
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
               {/* Formato account:pass */}
               <div className="mb-6">
@@ -401,8 +446,8 @@ export default function Dashboard() {
         )}
 
         {/* Available Services */}
-        <div className="mt-6 sm:mt-8 bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">Serviços Disponíveis</h2>
+        <div className={`mt-6 sm:mt-8 ${getCardClasses()}`}>
+          <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${textClasses.primary}`}>Serviços Disponíveis</h2>
           {services.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {services.map((service) => (

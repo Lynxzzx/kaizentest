@@ -5,6 +5,7 @@ import Layout from '@/components/Layout'
 import { Toaster } from 'react-hot-toast'
 import { useEffect } from 'react'
 import { initOwner } from '@/lib/init-owner'
+import { ThemeProvider } from '@/contexts/ThemeContext'
 
 function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   useEffect(() => {
@@ -36,10 +37,12 @@ function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
 
   return (
     <SessionProvider session={session}>
-      <Layout>
-        <Component {...pageProps} />
-        <Toaster position="top-right" />
-      </Layout>
+      <ThemeProvider>
+        <Layout>
+          <Component {...pageProps} />
+          <Toaster position="top-right" />
+        </Layout>
+      </ThemeProvider>
     </SessionProvider>
   )
 }
