@@ -148,8 +148,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
 
         return res.status(200).json({
+          id: payment.id,
           paymentId: payment.id,
+          pixQrCodeImage: pixQrCodeImage,
           qrCodeImage: pixQrCodeImage,
+          pixQrCode: pixQrCode,
           pixCopyPaste: pixQrCode,
           expiresAt: payment.pixExpiresAt
         })
