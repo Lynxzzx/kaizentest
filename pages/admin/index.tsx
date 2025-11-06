@@ -250,6 +250,13 @@ export default function AdminDashboard() {
               <span className="text-3xl mb-2">🎲</span>
               <span className="font-semibold">Sorteios</span>
             </Link>
+            <Link
+              href="/admin/config"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-lg hover:from-teal-600 hover:to-teal-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <span className="text-3xl mb-2">⚙️</span>
+              <span className="font-semibold">Configurações</span>
+            </Link>
           </div>
         </div>
 

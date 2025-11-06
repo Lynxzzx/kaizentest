@@ -48,6 +48,7 @@ model User {
   rafflesCreated Raffle[] @relation("RaffleCreator")
   rafflesWon Raffle[] @relation("RaffleWinner")
   raffleParticipants RaffleParticipant[] @relation("RaffleParticipant")
+  systemConfigs SystemConfig[] @relation("SystemConfigUpdater")
 }
 
 enum UserRole {
@@ -262,4 +263,16 @@ model RaffleParticipant {
   createdAt DateTime @default(now())
 
   @@unique([raffleId, userId]) // Um usuário só pode participar uma vez por sorteio
+}
+
+model SystemConfig {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  key         String   @unique // Chave da configuração (ex: "ASAAS_API_KEY")
+  value       String   // Valor da configuração (criptografado ou não)
+  description String?  // Descrição do que é essa configuração
+  isEncrypted Boolean  @default(false) // Se o valor está criptografado
+  updatedById String?  @db.ObjectId // Admin que atualizou
+  updatedBy   User?    @relation("SystemConfigUpdater", fields: [updatedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

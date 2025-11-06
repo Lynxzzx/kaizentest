@@ -1,7 +1,8 @@
 import axios from 'axios'
+import { prisma } from '@/lib/prisma'
 
-// Função para obter e validar a chave de API
-function getAsaasApiKey(): string {
+// Função para obter e validar a chave de API (tenta variável de ambiente primeiro, depois banco de dados)
+async function getAsaasApiKey(): Promise<string> {
   // Log detalhado de debug ANTES de acessar process.env
   if (!(getAsaasApiKey as any).debugLogged) {
     console.log('🔍 DEBUG: Verificando variáveis de ambiente...')
@@ -18,8 +19,33 @@ function getAsaasApiKey(): string {
   const isStringEmpty = typeof ASAAS_API_KEY_ENV === 'string' && ASAAS_API_KEY_ENV.trim().length === 0
   const isUndefinedOrNull = ASAAS_API_KEY_ENV === undefined || ASAAS_API_KEY_ENV === null
 
-  // Log detalhado se não encontrar ou estiver vazia
+  // Se não encontrar na variável de ambiente, tentar buscar no banco de dados
   if (isUndefinedOrNull || isStringEmpty) {
+    console.log('⚠️ ASAAS_API_KEY não encontrada em variáveis de ambiente, tentando buscar no banco de dados...')
+    try {
+      const config = await prisma.systemConfig.findUnique({
+        where: { key: 'ASAAS_API_KEY' }
+      })
+      
+      if (config && config.value && config.value.trim().length > 0) {
+        const dbKey = config.value.trim()
+        console.log('✅ ASAAS_API_KEY encontrada no banco de dados!')
+        console.log('   Tamanho:', dbKey.length, 'caracteres')
+        console.log('   Prefixo:', dbKey.substring(0, 20))
+        
+        // Validar tamanho mínimo
+        if (dbKey.length < 50) {
+          throw new Error('Chave de API do banco de dados parece estar incompleta.')
+        }
+        
+        return dbKey
+      } else {
+        console.log('⚠️ ASAAS_API_KEY não encontrada no banco de dados')
+      }
+    } catch (dbError: any) {
+      console.error('⚠️ Erro ao buscar ASAAS_API_KEY no banco de dados:', dbError.message)
+      // Continuar para mostrar erro da variável de ambiente
+    }
     if (isStringEmpty) {
       console.error('❌ ERRO CRÍTICO: ASAAS_API_KEY existe mas está VAZIA (string vazia)!')
       console.error('   Isso significa que a variável foi criada no Vercel mas o valor não foi salvo corretamente.')
@@ -115,9 +141,9 @@ function getAsaasApiKey(): string {
 }
 
 // Função para obter a URL da API baseada na chave
-function getAsaasApiUrl(): string {
+async function getAsaasApiUrl(): Promise<string> {
   try {
-    const ASAAS_API_KEY = getAsaasApiKey()
+    const ASAAS_API_KEY = await getAsaasApiKey()
     
     // Detectar ambiente baseado na chave de API
     const isProdKey = ASAAS_API_KEY.startsWith('$aact_prod_')
@@ -187,8 +213,8 @@ interface CreatePaymentData {
 
 export async function createAsaasCustomer(data: CreateCustomerData) {
   try {
-    const ASAAS_API_KEY = getAsaasApiKey()
-    const ASAAS_API_URL = getAsaasApiUrl()
+    const ASAAS_API_KEY = await getAsaasApiKey()
+    const ASAAS_API_URL = await getAsaasApiUrl()
     
     console.log('Creating Asaas customer with data:', JSON.stringify(data, null, 2))
     console.log('Using API URL:', ASAAS_API_URL)
@@ -214,8 +240,8 @@ export async function createAsaasCustomer(data: CreateCustomerData) {
     console.error('Asaas API Error (Create Customer):', JSON.stringify(errorData, null, 2))
     
     try {
-      const ASAAS_API_KEY = getAsaasApiKey()
-      const ASAAS_API_URL = getAsaasApiUrl()
+      const ASAAS_API_KEY = await getAsaasApiKey()
+      const ASAAS_API_URL = await getAsaasApiUrl()
       console.error('API URL used:', ASAAS_API_URL)
       console.error('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
       console.error('API Key length:', ASAAS_API_KEY.length)
@@ -275,8 +301,8 @@ export async function createAsaasCustomer(data: CreateCustomerData) {
 
 export async function getAsaasCustomerByEmail(email: string) {
   try {
-    const ASAAS_API_KEY = getAsaasApiKey()
-    const ASAAS_API_URL = getAsaasApiUrl()
+    const ASAAS_API_KEY = await getAsaasApiKey()
+    const ASAAS_API_URL = await getAsaasApiUrl()
     
     const response = await axios.get(
       `${ASAAS_API_URL}/customers?email=${encodeURIComponent(email)}`,
@@ -299,8 +325,8 @@ export async function getAsaasCustomerByEmail(email: string) {
 
 export async function getAsaasCustomer(customerId: string) {
   try {
-    const ASAAS_API_KEY = getAsaasApiKey()
-    const ASAAS_API_URL = getAsaasApiUrl()
+    const ASAAS_API_KEY = await getAsaasApiKey()
+    const ASAAS_API_URL = await getAsaasApiUrl()
     
     const response = await axios.get(
       `${ASAAS_API_URL}/customers/${customerId}`,
@@ -319,8 +345,8 @@ export async function getAsaasCustomer(customerId: string) {
 
 export async function updateAsaasCustomer(customerId: string, data: Partial<CreateCustomerData>) {
   try {
-    const ASAAS_API_KEY = getAsaasApiKey()
-    const ASAAS_API_URL = getAsaasApiUrl()
+    const ASAAS_API_KEY = await getAsaasApiKey()
+    const ASAAS_API_URL = await getAsaasApiUrl()
     
     console.log('Updating Asaas customer:', customerId, 'with data:', JSON.stringify(data, null, 2))
     
@@ -354,8 +380,8 @@ export async function updateAsaasCustomer(customerId: string, data: Partial<Crea
 
 export async function createAsaasPayment(data: CreatePaymentData) {
   try {
-    const ASAAS_API_KEY = getAsaasApiKey()
-    const ASAAS_API_URL = getAsaasApiUrl()
+    const ASAAS_API_KEY = await getAsaasApiKey()
+    const ASAAS_API_URL = await getAsaasApiUrl()
     
     console.log('Creating Asaas payment with data:', JSON.stringify(data, null, 2))
     console.log('Using API URL:', ASAAS_API_URL)
@@ -381,8 +407,8 @@ export async function createAsaasPayment(data: CreatePaymentData) {
     console.error('Asaas API Error (Create Payment):', JSON.stringify(errorData, null, 2))
     
     try {
-      const ASAAS_API_KEY = getAsaasApiKey()
-      const ASAAS_API_URL = getAsaasApiUrl()
+      const ASAAS_API_KEY = await getAsaasApiKey()
+      const ASAAS_API_URL = await getAsaasApiUrl()
       console.error('API URL used:', ASAAS_API_URL)
       console.error('API Key prefix:', ASAAS_API_KEY.substring(0, 15))
       console.error('API Key length:', ASAAS_API_KEY.length)
@@ -430,8 +456,8 @@ export async function createAsaasPayment(data: CreatePaymentData) {
 
 export async function getAsaasPayment(paymentId: string) {
   try {
-    const ASAAS_API_KEY = getAsaasApiKey()
-    const ASAAS_API_URL = getAsaasApiUrl()
+    const ASAAS_API_KEY = await getAsaasApiKey()
+    const ASAAS_API_URL = await getAsaasApiUrl()
     
     const response = await axios.get(
       `${ASAAS_API_URL}/payments/${paymentId}`,
@@ -450,8 +476,8 @@ export async function getAsaasPayment(paymentId: string) {
 
 export async function getAsaasPixQrCode(paymentId: string) {
   try {
-    const ASAAS_API_KEY = getAsaasApiKey()
-    const ASAAS_API_URL = getAsaasApiUrl()
+    const ASAAS_API_KEY = await getAsaasApiKey()
+    const ASAAS_API_URL = await getAsaasApiUrl()
     
     console.log('Getting PIX QR Code for payment:', paymentId)
     console.log('Using API URL:', ASAAS_API_URL)
@@ -485,7 +511,7 @@ export async function getAsaasPixQrCode(paymentId: string) {
     console.error('Asaas API Error (Get PIX QR Code):', JSON.stringify(errorData, null, 2))
     
     try {
-      const ASAAS_API_URL = getAsaasApiUrl()
+      const ASAAS_API_URL = await getAsaasApiUrl()
       console.error('API URL used:', ASAAS_API_URL)
     } catch (keyError) {
       console.error('Não foi possível obter informações da URL:', keyError)
