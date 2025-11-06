@@ -247,99 +247,115 @@ export default function AdminUsers() {
         </div>
       )}
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuário</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cargo</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plano</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gerações</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id} className={user.isBanned ? 'bg-red-50' : ''}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="font-medium text-gray-900">{user.username}</div>
-                  <div className="text-sm text-gray-500">
-                    {format(new Date(user.createdAt), "dd/MM/yyyy", { locale: ptBR })}
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.email || '-'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                    user.role === 'OWNER' ? 'bg-yellow-100 text-yellow-800' :
-                    user.role === 'ADMIN' ? 'bg-red-100 text-red-800' :
-                    user.role === 'MODERATOR' ? 'bg-blue-100 text-blue-800' :
-                    'bg-gray-100 text-gray-800'
-                  }`}>
-                    {user.role === 'OWNER' ? '👑 Owner' :
-                     user.role === 'ADMIN' ? '🔧 Admin' :
-                     user.role === 'MODERATOR' ? '🛡️ Moderador' :
-                     '👤 Usuário'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">
-                    {user.plan?.name || 'Sem plano'}
-                  </div>
-                  {user.planExpiresAt && (
-                    <div className="text-xs text-gray-500">
-                      Expira: {format(new Date(user.planExpiresAt), "dd/MM/yyyy", { locale: ptBR })}
-                    </div>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {user.isBanned ? (
-                    <span className="px-2 py-1 rounded-full text-xs bg-red-100 text-red-800">
-                      Banido
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                      Ativo
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div>Total: {user._count.generatedAccounts}</div>
-                  <div>Grátis hoje: {user.dailyFreeGenerations}/2</div>
-                  <div>Bonus: {user.bonusGenerations}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEdit(user)}
-                      className="text-primary-600 hover:text-primary-800"
-                    >
-                      Editar
-                    </button>
-                    {user.isBanned ? (
-                      <button
-                        onClick={() => handleBan(user, false)}
-                        className="text-green-600 hover:text-green-800"
-                      >
-                        Desbanir
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleBan(user, true)}
-                        className="text-red-600 hover:text-red-800"
-                      >
-                        Banir
-                      </button>
-                    )}
-                  </div>
-                </td>
+      <div className="mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          Total de usuários: <span className="font-bold text-primary-600 dark:text-primary-400">{users.length}</span>
+        </p>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+        <div className="overflow-x-auto max-h-[calc(100vh-300px)] overflow-y-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Usuário</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Email</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Cargo</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Plano</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Gerações</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                    Nenhum usuário encontrado
+                  </td>
+                </tr>
+              ) : (
+                users.map((user) => (
+              <tr key={user.id} className={user.isBanned ? 'bg-red-50' : ''}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="font-medium text-gray-900 dark:text-gray-100">{user.username}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      {format(new Date(user.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {user.email || '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                      user.role === 'OWNER' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
+                      user.role === 'ADMIN' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
+                      user.role === 'MODERATOR' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
+                      'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                    }`}>
+                      {user.role === 'OWNER' ? '👑 Owner' :
+                       user.role === 'ADMIN' ? '🔧 Admin' :
+                       user.role === 'MODERATOR' ? '🛡️ Moderador' :
+                       '👤 Usuário'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {user.plan?.name || 'Sem plano'}
+                    </div>
+                    {user.planExpiresAt && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        Expira: {format(new Date(user.planExpiresAt), "dd/MM/yyyy", { locale: ptBR })}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    {user.isBanned ? (
+                      <span className="px-2 py-1 rounded-full text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
+                        Banido
+                      </span>
+                    ) : (
+                      <span className="px-2 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+                        Ativo
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <div>Total: {user._count.generatedAccounts}</div>
+                    <div>Grátis hoje: {user.dailyFreeGenerations}/2</div>
+                    <div>Bonus: {user.bonusGenerations}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEdit(user)}
+                        className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
+                      >
+                        Editar
+                      </button>
+                      {user.isBanned ? (
+                        <button
+                          onClick={() => handleBan(user, false)}
+                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
+                        >
+                          Desbanir
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleBan(user, true)}
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                        >
+                          Banir
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
