@@ -220,14 +220,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!payment) {
           console.log('💾 Criando registro de pagamento no banco...')
           try {
+            // Criar pagamento Bitcoin SEM asaasId (não incluir o campo)
+            // Isso evita conflito com constraint única do asaasId
+            const paymentData: any = {
+              userId: session.user.id,
+              planId: plan.id,
+              amount: plan.price,
+              method: 'BITCOIN',
+              status: 'PENDING'
+            }
+            // Não incluir asaasId para pagamentos Bitcoin
             payment = await prisma.payment.create({
-              data: {
-                userId: session.user.id,
-                planId: plan.id,
-                amount: plan.price,
-                method: 'BITCOIN',
-                status: 'PENDING'
-              }
+              data: paymentData
             })
             console.log('✅ Pagamento criado:', payment.id)
           } catch (createError: any) {
@@ -377,7 +381,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   planId: plan.id,
                   amount: plan.price,
                   method: 'BITCOIN',
-                  status: 'PENDING'
+                  status: 'PENDING',
+                  asaasId: null // Bitcoin não usa Asaas, deve ser null explicitamente
                 }
               })
               console.log('✅ Pagamento criado no catch final:', payment.id)
