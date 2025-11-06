@@ -63,10 +63,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
+    // Buscar pagamentos apenas com usuários válidos (evitar referências quebradas)
     const recentPayments = await prisma.payment.findMany({
+      where: {
+        user: {
+          isNot: null // Apenas pagamentos com usuários válidos
+        }
+      },
       orderBy: { createdAt: 'desc' },
       take: 5,
-      include: {
+      select: {
+        id: true,
+        amount: true,
+        status: true,
+        method: true,
+        createdAt: true,
         user: {
           select: {
             username: true
@@ -96,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         totalAccounts
       },
       recentUsers,
-      recentPayments
+      recentPayments: formattedPayments
     })
   } catch (error) {
     console.error('Error fetching stats:', error)
