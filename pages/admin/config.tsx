@@ -28,6 +28,10 @@ export default function AdminConfig() {
   const [editValue, setEditValue] = useState('')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newConfigKey, setNewConfigKey] = useState('')
+  const [newConfigValue, setNewConfigValue] = useState('')
+  const [newConfigDescription, setNewConfigDescription] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -50,7 +54,29 @@ export default function AdminConfig() {
       const res = await fetch('/api/admin/config')
       if (!res.ok) throw new Error('Failed to load configs')
       const data = await res.json()
-      setConfigs(data.configs)
+      
+      // Garantir que configurações padrão apareçam na lista
+      const defaultConfigs = [
+        { key: 'ASAAS_API_KEY', description: 'Chave de API do Asaas (para pagamentos PIX)' },
+        { key: 'ASAAS_API_URL', description: 'URL da API do Asaas' }
+      ]
+      
+      const existingKeys = data.configs.map((c: SystemConfig) => c.key)
+      const missingConfigs = defaultConfigs
+        .filter(dc => !existingKeys.includes(dc.key))
+        .map(dc => ({
+          id: '',
+          key: dc.key,
+          description: dc.description,
+          isConfigured: false,
+          valueLength: 0,
+          isEncrypted: false,
+          updatedBy: null,
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString()
+        }))
+      
+      setConfigs([...data.configs, ...missingConfigs].sort((a, b) => a.key.localeCompare(b.key)))
     } catch (error: any) {
       console.error('Error loading configs:', error)
       setMessage({ type: 'error', text: 'Erro ao carregar configurações' })
@@ -106,6 +132,50 @@ export default function AdminConfig() {
     setMessage(null)
   }
 
+  const handleAddConfig = async () => {
+    if (!newConfigKey.trim() || !newConfigValue.trim()) {
+      setMessage({ type: 'error', text: 'Chave e valor são obrigatórios' })
+      return
+    }
+
+    setSaving(true)
+    try {
+      const res = await fetch('/api/admin/config/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          key: newConfigKey.trim(),
+          value: newConfigValue.trim(),
+          description: newConfigDescription.trim() || null
+        })
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to create config')
+      }
+
+      setMessage({ type: 'success', text: 'Configuração criada com sucesso!' })
+      setShowAddForm(false)
+      setNewConfigKey('')
+      setNewConfigValue('')
+      setNewConfigDescription('')
+      await loadConfigs()
+    } catch (error: any) {
+      console.error('Error creating config:', error)
+      setMessage({ type: 'error', text: error.message || 'Erro ao criar configuração' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const quickAddConfig = (key: string, description: string) => {
+    setNewConfigKey(key)
+    setNewConfigDescription(description)
+    setShowAddForm(true)
+    setMessage(null)
+  }
+
   if (status === 'loading' || loading) {
     return (
       <Layout>
@@ -119,11 +189,106 @@ export default function AdminConfig() {
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Configurações do Sistema</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Gerencie as configurações do sistema, incluindo chaves de API
-          </p>
+        <div className="mb-6 flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Configurações do Sistema</h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              Gerencie as configurações do sistema, incluindo chaves de API
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            {showAddForm ? 'Cancelar' : '+ Adicionar Configuração'}
+          </button>
+        </div>
+
+        {showAddForm && (
+          <div className="mb-6 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+            <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+              Adicionar Nova Configuração
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Chave (ex: ASAAS_API_KEY)
+                </label>
+                <input
+                  type="text"
+                  value={newConfigKey}
+                  onChange={(e) => setNewConfigKey(e.target.value.toUpperCase())}
+                  placeholder="ASAAS_API_KEY"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Valor
+                </label>
+                <input
+                  type="password"
+                  value={newConfigValue}
+                  onChange={(e) => setNewConfigValue(e.target.value)}
+                  placeholder="Digite o valor..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Descrição (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={newConfigDescription}
+                  onChange={(e) => setNewConfigDescription(e.target.value)}
+                  placeholder="Descrição da configuração..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAddConfig}
+                  disabled={saving}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                >
+                  {saving ? 'Salvando...' : 'Salvar'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAddForm(false)
+                    setNewConfigKey('')
+                    setNewConfigValue('')
+                    setNewConfigDescription('')
+                  }}
+                  disabled={saving}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+          <h3 className="font-semibold text-yellow-900 dark:text-yellow-200 mb-2">
+            Configurações Rápidas:
+          </h3>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => quickAddConfig('ASAAS_API_KEY', 'Chave de API do Asaas (para pagamentos PIX)')}
+              className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 text-sm"
+            >
+              + ASAAS_API_KEY
+            </button>
+            <button
+              onClick={() => quickAddConfig('ASAAS_API_URL', 'URL da API do Asaas')}
+              className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 text-sm"
+            >
+              + ASAAS_API_URL
+            </button>
+          </div>
         </div>
 
         {message && (
@@ -211,7 +376,7 @@ export default function AdminConfig() {
                               type="password"
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
-                              placeholder="Digite o novo valor..."
+                              placeholder={config.isConfigured ? "Digite o novo valor..." : "Digite o valor..."}
                               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                             />
                             <div className="flex gap-2">
@@ -220,7 +385,7 @@ export default function AdminConfig() {
                                 disabled={saving}
                                 className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
                               >
-                                {saving ? 'Salvando...' : 'Salvar'}
+                                {saving ? 'Salvando...' : config.isConfigured ? 'Atualizar' : 'Criar'}
                               </button>
                               <button
                                 onClick={cancelEdit}
@@ -236,7 +401,7 @@ export default function AdminConfig() {
                             onClick={() => startEdit(config)}
                             className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
                           >
-                            Editar
+                            {config.isConfigured ? 'Editar' : 'Configurar'}
                           </button>
                         )}
                       </td>
