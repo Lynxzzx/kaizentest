@@ -63,21 +63,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
-    // Buscar pagamentos apenas com usuários válidos (evitar referências quebradas)
-    const recentPayments = await prisma.payment.findMany({
-      where: {
-        user: {
-          isNot: null // Apenas pagamentos com usuários válidos
-        }
-      },
+    // Buscar pagamentos recentes
+    // Nota: Alguns pagamentos podem ter userId que não existe mais (referências quebradas)
+    // Vamos buscar todos e filtrar no código
+    const allRecentPayments = await prisma.payment.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 5,
+      take: 10, // Buscar mais para garantir que temos 5 válidos
       select: {
         id: true,
         amount: true,
         status: true,
         method: true,
         createdAt: true,
+        userId: true,
         user: {
           select: {
             username: true
@@ -90,6 +88,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
     })
+
+    // Filtrar apenas pagamentos com usuários válidos (evitar referências quebradas)
+    const recentPayments = allRecentPayments
+      .filter(payment => payment.user !== null)
+      .slice(0, 5) // Pegar apenas os 5 primeiros válidos
+      .map(payment => ({
+        id: payment.id,
+        amount: payment.amount,
+        status: payment.status,
+        method: payment.method,
+        createdAt: payment.createdAt,
+        user: payment.user!,
+        plan: payment.plan
+      }))
 
     return res.json({
       overview: {
