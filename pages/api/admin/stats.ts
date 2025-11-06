@@ -65,10 +65,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Buscar pagamentos recentes
     // Nota: Alguns pagamentos podem ter userId que não existe mais (referências quebradas)
-    // Vamos buscar todos e filtrar no código
+    // Vamos buscar sem o user primeiro, depois buscar os usuários válidos separadamente
     const allRecentPayments = await prisma.payment.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 10, // Buscar mais para garantir que temos 5 válidos
+      take: 20, // Buscar mais para garantir que temos 5 válidos
       select: {
         id: true,
         amount: true,
@@ -76,11 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         method: true,
         createdAt: true,
         userId: true,
-        user: {
-          select: {
-            username: true
-          }
-        },
+        planId: true,
         plan: {
           select: {
             name: true
@@ -89,9 +85,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
-    // Filtrar apenas pagamentos com usuários válidos (evitar referências quebradas)
+    // Buscar apenas os userIds únicos e válidos
+    const validUserIds = await prisma.user.findMany({
+      where: {
+        id: {
+          in: allRecentPayments.map(p => p.userId)
+        }
+      },
+      select: {
+        id: true,
+        username: true
+      }
+    })
+
+    const userMap = new Map(validUserIds.map(u => [u.id, u]))
+
+    // Filtrar apenas pagamentos com usuários válidos e formatar
     const recentPayments = allRecentPayments
-      .filter(payment => payment.user !== null)
+      .filter(payment => userMap.has(payment.userId))
       .slice(0, 5) // Pegar apenas os 5 primeiros válidos
       .map(payment => ({
         id: payment.id,
@@ -99,7 +110,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status: payment.status,
         method: payment.method,
         createdAt: payment.createdAt,
-        user: payment.user!,
+        user: {
+          username: userMap.get(payment.userId)!.username
+        },
         plan: payment.plan
       }))
 
