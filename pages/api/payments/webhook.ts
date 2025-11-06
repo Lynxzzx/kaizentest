@@ -25,9 +25,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Payment ID is required' })
       }
 
-      // Buscar pagamento no banco
-      const dbPayment = await prisma.payment.findUnique({
-        where: { asaasId },
+      // Buscar pagamento no banco (usa findFirst porque asaasId não é mais único, mas ainda é único para PIX)
+      const dbPayment = await prisma.payment.findFirst({
+        where: { 
+          asaasId,
+          method: 'PIX' // Garantir que é um pagamento PIX (único que tem asaasId)
+        },
         include: {
           user: true,
           plan: true
