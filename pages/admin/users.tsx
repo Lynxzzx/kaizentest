@@ -276,8 +276,8 @@ export default function AdminUsers() {
                 </tr>
               ) : (
                 users.map((user) => (
-              <tr key={user.id} className={user.isBanned ? 'bg-red-50' : ''}>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <tr key={user.id} className={user.isBanned ? 'bg-red-50 dark:bg-red-900/20' : ''}>
+                    <td className="px-6 py-4 whitespace-nowrap">
                     <div className="font-medium text-gray-900 dark:text-gray-100">{user.username}</div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
                       {format(new Date(user.createdAt), "dd/MM/yyyy", { locale: ptBR })}
