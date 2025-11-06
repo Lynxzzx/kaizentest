@@ -119,7 +119,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         totalAccounts
       },
       recentUsers,
-      recentPayments: formattedPayments
+      recentPayments
     })
   } catch (error) {
     console.error('Error fetching stats:', error)
