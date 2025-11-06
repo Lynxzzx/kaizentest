@@ -333,6 +333,17 @@ export default function Layout({ children }: LayoutProps) {
                         Afiliados
                       </Link>
                       <Link
+                        href="/raffles"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`px-4 py-3 rounded-lg font-medium transition-all ${
+                          router.pathname === '/raffles'
+                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
+                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                      >
+                        🎲 Sorteios
+                      </Link>
+                      <Link
                         href="/tickets"
                         onClick={() => setMobileMenuOpen(false)}
                         className={`px-4 py-3 rounded-lg font-medium transition-all ${
