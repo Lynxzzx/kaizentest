@@ -139,7 +139,7 @@ model Payment {
   amount        Float
   method        PaymentMethod
   status        PaymentStatus @default(PENDING)
-  asaasId       String?      @unique // ID from Asaas API
+  asaasId       String?      // ID from Asaas API (APENAS para PIX, Bitcoin não tem asaasId - sem constraint única para permitir múltiplos null)
   pixQrCode     String?
   pixExpiresAt  DateTime?
   bitcoinAddress String?

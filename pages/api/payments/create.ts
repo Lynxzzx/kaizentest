@@ -220,23 +220,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!payment) {
           console.log('💾 Criando registro de pagamento no banco...')
           try {
-            // Gerar ID único para Bitcoin (não usa Asaas, mas precisa de ID único para constraint)
-            // Usar prefixo BTC_ + timestamp + userId para garantir unicidade
-            const bitcoinAsaasId = `BTC_${Date.now()}_${session.user.id.substring(0, 8)}`
-            
-            // Criar pagamento Bitcoin com ID único próprio (não do Asaas)
+            // Criar pagamento Bitcoin SEM asaasId (Bitcoin não usa Asaas, é via Binance)
             const paymentData: any = {
               userId: session.user.id,
               planId: plan.id,
               amount: plan.price,
               method: 'BITCOIN',
-              status: 'PENDING',
-              asaasId: bitcoinAsaasId // ID único para Bitcoin (não é do Asaas, mas evita conflito)
+              status: 'PENDING'
+              // NÃO incluir asaasId - Bitcoin não usa Asaas!
             }
             payment = await prisma.payment.create({
               data: paymentData
             })
-            console.log('✅ Pagamento criado:', payment.id, 'com asaasId Bitcoin:', bitcoinAsaasId)
+            console.log('✅ Pagamento Bitcoin criado:', payment.id, '(sem asaasId - Bitcoin não usa Asaas)')
           } catch (createError: any) {
             // Se falhar por constraint única, buscar novamente
             if (createError.code === 'P2002') {
@@ -378,20 +374,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (!payment) {
             console.log('💾 Tentando criar pagamento no catch final...')
             try {
-              // Gerar ID único para Bitcoin
-              const bitcoinAsaasId = `BTC_${Date.now()}_${session.user.id.substring(0, 8)}_${Math.random().toString(36).substring(2, 9)}`
-              
+              // Criar pagamento Bitcoin SEM asaasId (Bitcoin não usa Asaas, é via Binance)
               payment = await prisma.payment.create({
                 data: {
                   userId: session.user.id,
                   planId: plan.id,
                   amount: plan.price,
                   method: 'BITCOIN',
-                  status: 'PENDING',
-                  asaasId: bitcoinAsaasId // ID único para Bitcoin (não é do Asaas, mas evita conflito)
+                  status: 'PENDING'
+                  // NÃO incluir asaasId - Bitcoin não usa Asaas!
                 }
               })
-              console.log('✅ Pagamento criado no catch final:', payment.id, 'com asaasId Bitcoin:', bitcoinAsaasId)
+              console.log('✅ Pagamento Bitcoin criado no catch final:', payment.id, '(sem asaasId - Bitcoin não usa Asaas)')
             } catch (createError: any) {
               // Se falhar por constraint única, buscar novamente
               if (createError.code === 'P2002') {
