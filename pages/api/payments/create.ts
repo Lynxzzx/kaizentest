@@ -220,20 +220,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!payment) {
           console.log('💾 Criando registro de pagamento no banco...')
           try {
-            // Criar pagamento Bitcoin SEM asaasId (não incluir o campo)
-            // Isso evita conflito com constraint única do asaasId
+            // Gerar ID único para Bitcoin (não usa Asaas, mas precisa de ID único para constraint)
+            // Usar prefixo BTC_ + timestamp + userId para garantir unicidade
+            const bitcoinAsaasId = `BTC_${Date.now()}_${session.user.id.substring(0, 8)}`
+            
+            // Criar pagamento Bitcoin com ID único próprio (não do Asaas)
             const paymentData: any = {
               userId: session.user.id,
               planId: plan.id,
               amount: plan.price,
               method: 'BITCOIN',
-              status: 'PENDING'
+              status: 'PENDING',
+              asaasId: bitcoinAsaasId // ID único para Bitcoin (não é do Asaas, mas evita conflito)
             }
-            // Não incluir asaasId para pagamentos Bitcoin
             payment = await prisma.payment.create({
               data: paymentData
             })
-            console.log('✅ Pagamento criado:', payment.id)
+            console.log('✅ Pagamento criado:', payment.id, 'com asaasId Bitcoin:', bitcoinAsaasId)
           } catch (createError: any) {
             // Se falhar por constraint única, buscar novamente
             if (createError.code === 'P2002') {
@@ -375,6 +378,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (!payment) {
             console.log('💾 Tentando criar pagamento no catch final...')
             try {
+              // Gerar ID único para Bitcoin
+              const bitcoinAsaasId = `BTC_${Date.now()}_${session.user.id.substring(0, 8)}_${Math.random().toString(36).substring(2, 9)}`
+              
               payment = await prisma.payment.create({
                 data: {
                   userId: session.user.id,
@@ -382,10 +388,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   amount: plan.price,
                   method: 'BITCOIN',
                   status: 'PENDING',
-                  asaasId: null // Bitcoin não usa Asaas, deve ser null explicitamente
+                  asaasId: bitcoinAsaasId // ID único para Bitcoin (não é do Asaas, mas evita conflito)
                 }
               })
-              console.log('✅ Pagamento criado no catch final:', payment.id)
+              console.log('✅ Pagamento criado no catch final:', payment.id, 'com asaasId Bitcoin:', bitcoinAsaasId)
             } catch (createError: any) {
               // Se falhar por constraint única, buscar novamente
               if (createError.code === 'P2002') {
