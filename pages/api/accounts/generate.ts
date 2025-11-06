@@ -65,13 +65,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Verificar se tem plano ativo
   const hasActivePlan = user.planId && (!user.planExpiresAt || new Date() <= user.planExpiresAt)
   
-  // Se não tem plano ativo, só pode usar gerações grátis
-  if (!hasActivePlan && !useFreeGeneration) {
+  // Verificar se tem gerações bonus disponíveis
+  const hasBonusGenerations = user.bonusGenerations > 0
+  
+  // Se não tem plano ativo, só pode usar gerações grátis diárias ou bonus
+  if (!hasActivePlan && !useFreeGeneration && !hasBonusGenerations) {
     return res.status(400).json({ error: 'Você não possui um plano ativo e já usou suas 2 gerações grátis de hoje. Adquira um plano ou aguarde até amanhã.' })
   }
 
-  // Se está usando geração grátis, não precisa verificar limites do plano
-  if (!useFreeGeneration && user.planId) {
+  // Se está usando geração grátis diária, não precisa verificar limites do plano
+  if (useFreeGeneration) {
+    // Já será tratado abaixo, apenas incrementar contador
+  } else if (hasActivePlan && user.planId) {
     // Check max generations (considerando gerações bonus)
     const generatedCount = await prisma.generatedAccount.count({
       where: { userId: session.user.id }
@@ -101,6 +106,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
     }
+  } else if (hasBonusGenerations) {
+    // Usuário sem plano ativo, mas tem gerações bonus - usar uma
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        bonusGenerations: {
+          decrement: 1
+        }
+      }
+    })
   }
 
   // Find available stock

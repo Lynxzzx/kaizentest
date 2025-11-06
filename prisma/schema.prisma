@@ -45,6 +45,9 @@ model User {
   chatMessages  ChatMessage[]
   broadcasts    BroadcastMessage[]
   ticketReplies TicketReply[]
+  rafflesCreated Raffle[] @relation("RaffleCreator")
+  rafflesWon Raffle[] @relation("RaffleWinner")
+  raffleParticipants RaffleParticipant[] @relation("RaffleParticipant")
 }
 
 enum UserRole {
@@ -93,6 +96,7 @@ model Plan {
   users       User[]
   keys        Key[]
   payments    Payment[]
+  raffles     Raffle[] // Planos que podem ser prêmios de sorteios
 }
 
 model Key {
@@ -221,4 +225,41 @@ model BroadcastMessage {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   expiresAt   DateTime? // Opcional: mensagem expira
+}
+
+model Raffle {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String?
+  prize         String // Descrição do prêmio
+  prizeType     RafflePrizeType // Tipo de prêmio
+  prizePlanId   String?  @db.ObjectId // ID do plano se o prêmio for um plano
+  prizePlan     Plan?    @relation(fields: [prizePlanId], references: [id])
+  endDate       DateTime // Data de finalização do sorteio
+  isActive      Boolean  @default(true) // Se o sorteio está ativo
+  isFinished    Boolean  @default(false) // Se o sorteio já foi finalizado
+  winnerId      String?  @db.ObjectId // ID do ganhador
+  winner        User?    @relation("RaffleWinner", fields: [winnerId], references: [id])
+  createdById   String   @db.ObjectId // Admin que criou
+  createdBy     User     @relation("RaffleCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  participants  RaffleParticipant[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum RafflePrizeType {
+  PLAN // Prêmio é um plano
+  GENERATIONS // Prêmio são gerações grátis
+  CUSTOM // Prêmio customizado (descrição no campo prize)
+}
+
+model RaffleParticipant {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  raffleId  String   @db.ObjectId
+  raffle    Raffle   @relation(fields: [raffleId], references: [id], onDelete: Cascade)
+  userId    String   @db.ObjectId
+  user      User     @relation("RaffleParticipant", fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([raffleId, userId]) // Um usuário só pode participar uma vez por sorteio
 }

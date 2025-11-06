@@ -243,6 +243,13 @@ export default function AdminDashboard() {
               <span className="text-3xl mb-2">📢</span>
               <span className="font-semibold">Broadcast</span>
             </Link>
+            <Link
+              href="/admin/raffles"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <span className="text-3xl mb-2">🎲</span>
+              <span className="font-semibold">Sorteios</span>
+            </Link>
           </div>
         </div>
 
