@@ -34,6 +34,7 @@ export default function AdminStocks() {
   const [services, setServices] = useState<Service[]>([])
   const [showForm, setShowForm] = useState(false)
   const [showBulkForm, setShowBulkForm] = useState(false)
+  const [showBulkDeleteForm, setShowBulkDeleteForm] = useState(false)
   const [editingStock, setEditingStock] = useState<Stock | null>(null)
   const [formData, setFormData] = useState({
     serviceId: '',
@@ -45,6 +46,7 @@ export default function AdminStocks() {
     serviceId: '',
     accounts: ''
   })
+  const [bulkDeleteServiceId, setBulkDeleteServiceId] = useState<string>('')
   const [loadingBulk, setLoadingBulk] = useState(false)
   const [filterService, setFilterService] = useState<string>('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
@@ -236,6 +238,49 @@ export default function AdminStocks() {
     }
   }
 
+  const handleBulkDeleteSubmit = async () => {
+    if (!bulkDeleteServiceId) {
+      toast.error('Selecione um serviço')
+      return
+    }
+
+    const serviceStocks = stocks.filter(s => s.serviceId === bulkDeleteServiceId && !s.isUsed)
+    
+    if (serviceStocks.length === 0) {
+      toast.error('Não há estoques disponíveis para remover neste serviço')
+      return
+    }
+
+    if (!confirm(`Tem certeza que deseja remover TODOS os ${serviceStocks.length} estoques disponíveis deste serviço?`)) {
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await axios.post('/api/stocks/bulk-delete', {
+        ids: serviceStocks.map(s => s.id)
+      })
+
+      if (response.data.warning) {
+        toast.error(response.data.warning)
+      }
+
+      if (response.data.deleted > 0) {
+        toast.success(`${response.data.deleted} estoque(s) removido(s) com sucesso!`)
+      } else {
+        toast.error('Nenhum estoque foi removido.')
+      }
+      
+      setShowBulkDeleteForm(false)
+      setBulkDeleteServiceId('')
+      loadStocks()
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao remover estoques')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   // Filtrar estoques
   const filteredStocks = stocks.filter(stock => {
     const matchesService = !filterService || stock.serviceId === filterService
@@ -278,6 +323,7 @@ export default function AdminStocks() {
           <button
             onClick={() => {
               setShowForm(false)
+              setShowBulkDeleteForm(false)
               setShowBulkForm(!showBulkForm)
               setEditingStock(null)
             }}
@@ -287,7 +333,22 @@ export default function AdminStocks() {
           </button>
           <button
             onClick={() => {
+              setShowForm(false)
               setShowBulkForm(false)
+              setShowBulkDeleteForm(!showBulkDeleteForm)
+              setEditingStock(null)
+              if (!showBulkDeleteForm) {
+                setBulkDeleteServiceId('')
+              }
+            }}
+            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors shadow-md"
+          >
+            {showBulkDeleteForm ? 'Cancelar' : '🗑️ Remover em Massa'}
+          </button>
+          <button
+            onClick={() => {
+              setShowBulkForm(false)
+              setShowBulkDeleteForm(false)
               setShowForm(!showForm)
               setEditingStock(null)
               if (!showForm) {
@@ -333,7 +394,11 @@ export default function AdminStocks() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por usuário, email ou serviço..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                theme === 'dark'
+                  ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                  : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+              }`}
             />
           </div>
           <div>
@@ -417,7 +482,11 @@ export default function AdminStocks() {
                 <textarea
                   value={bulkData.accounts}
                   onChange={(e) => setBulkData({ ...bulkData, accounts: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg font-mono text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400'
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  }`}
                   rows={10}
                   placeholder="user1@example.com:senha123&#10;user2@example.com:senha456&#10;user3@example.com:senha789"
                   required
@@ -432,6 +501,118 @@ export default function AdminStocks() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {showBulkDeleteForm && (
+        <div className="bg-white shadow-lg rounded-lg p-6 mb-6 border border-gray-200">
+          <h2 className="text-xl font-bold mb-4">Remover Estoque em Massa</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Selecione um serviço para ver todos os estoques disponíveis e removê-los de uma vez.
+          </p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {t('services')}
+              </label>
+              <select
+                value={bulkDeleteServiceId}
+                onChange={(e) => setBulkDeleteServiceId(e.target.value)}
+                className={`w-full px-3 py-2 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                  theme === 'dark'
+                    ? 'bg-white/10 border border-white/20 text-white'
+                    : 'bg-white border border-gray-300 text-gray-900'
+                }`}
+                style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
+                required
+              >
+                <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Selecione um serviço</option>
+                {services.map((service) => (
+                  <option key={service.id} value={service.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
+                    {service.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {bulkDeleteServiceId && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold mb-3">
+                  Estoque do Serviço Selecionado
+                </h3>
+                {(() => {
+                  const serviceStocks = stocks.filter(s => s.serviceId === bulkDeleteServiceId)
+                  const availableStocks = serviceStocks.filter(s => !s.isUsed)
+                  const usedStocks = serviceStocks.filter(s => s.isUsed)
+                  
+                  return (
+                    <div className="space-y-4">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-medium text-blue-900">
+                            Total de estoques: {serviceStocks.length}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="text-green-700 font-medium">Disponíveis: {availableStocks.length}</span>
+                          </div>
+                          <div>
+                            <span className="text-red-700 font-medium">Usados: {usedStocks.length}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {availableStocks.length > 0 ? (
+                        <div className="max-h-96 overflow-y-auto border border-gray-200 rounded-lg">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50 sticky top-0">
+                              <tr>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuário</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {availableStocks.map((stock) => (
+                                <tr key={stock.id} className="hover:bg-gray-50">
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900">
+                                    {stock.username}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm font-mono text-gray-900">
+                                    {stock.email || '-'}
+                                  </td>
+                                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                    {new Date(stock.createdAt).toLocaleDateString('pt-BR')}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+                          <p className="text-yellow-800">Não há estoques disponíveis para remover neste serviço.</p>
+                        </div>
+                      )}
+
+                      {availableStocks.length > 0 && (
+                        <div className="flex gap-3">
+                          <button
+                            onClick={handleBulkDeleteSubmit}
+                            disabled={isDeleting}
+                            className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors shadow-md"
+                          >
+                            {isDeleting ? 'Removendo...' : `🗑️ Remover ${availableStocks.length} Estoque(s) Disponível(eis)`}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -473,7 +654,11 @@ export default function AdminStocks() {
                   type="text"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
                   required
                 />
               </div>
@@ -485,7 +670,11 @@ export default function AdminStocks() {
                   type="text"
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
                   required
                 />
               </div>
@@ -497,7 +686,11 @@ export default function AdminStocks() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
+                    theme === 'dark'
+                      ? 'bg-gray-800 border-gray-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-900'
+                  }`}
                 />
               </div>
               <div className="flex gap-3">
