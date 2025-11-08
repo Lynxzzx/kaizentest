@@ -7,6 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import Logo from './Logo'
 import Chatbox from './Chatbox'
 import BroadcastBanner from './BroadcastBanner'
+import MaintenanceBanner from './MaintenanceBanner'
 
 interface LayoutProps {
   children: ReactNode
@@ -77,6 +78,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className={getThemeClasses()}>
+      <MaintenanceBanner />
       <BroadcastBanner />
       <nav className={getNavbarClasses()}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

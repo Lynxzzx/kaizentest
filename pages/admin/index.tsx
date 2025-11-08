@@ -257,6 +257,13 @@ export default function AdminDashboard() {
               <span className="text-3xl mb-2">⚙️</span>
               <span className="font-semibold">Configurações</span>
             </Link>
+            <Link
+              href="/admin/maintenance"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <span className="text-3xl mb-2">🔧</span>
+              <span className="font-semibold">Manutenção</span>
+            </Link>
           </div>
         </div>
 
