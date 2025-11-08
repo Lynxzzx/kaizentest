@@ -1,0 +1,34 @@
+===========================================
+INSTRUÇÕES PARA ADICIONAR ASAAS_API_KEY
+===========================================
+
+A variável vazia foi REMOVIDA com sucesso!
+
+Agora você precisa adicionar a chave correta para os 3 ambientes:
+
+1. PRODUCTION:
+   Execute: vercel env add ASAAS_API_KEY production
+   Quando solicitado, cole esta chave:
+   $aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmViYjQ5ZDliLWZmN2EtNGI5Yi1iYTk5LWE3ZjkwZmQyM2ZmZDo6JGFhY2hfNDg1ZDI4ZmQtOGEyMC00ZTZiLTg0YzQtNjE1MWM2MGFhZjBk
+
+2. PREVIEW:
+   Execute: vercel env add ASAAS_API_KEY preview
+   Cole a mesma chave quando solicitado
+
+3. DEVELOPMENT:
+   Execute: vercel env add ASAAS_API_KEY development
+   Cole a mesma chave quando solicitado
+
+4. APÓS ADICIONAR TODAS:
+   - Vá no dashboard do Vercel: https://vercel.com/dashboard
+   - Selecione seu projeto
+   - Vá em Deployments
+   - Clique nos 3 pontos (⋯) do último deployment
+   - Clique em "Redeploy"
+   - Aguarde 1-2 minutos
+
+===========================================
+CHAVE COMPLETA (copie e cole):
+===========================================
+$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmViYjQ5ZDliLWZmN2EtNGI5Yi1iYTk5LWE3ZjkwZmQyM2ZmZDo6JGFhY2hfNDg1ZDI4ZmQtOGEyMC00ZTZiLTg0YzQtNjE1MWM2MGFhZjBk
+

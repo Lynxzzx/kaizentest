@@ -49,6 +49,8 @@ export default function AdminStocks() {
   const [filterService, setFilterService] = useState<string>('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
+  const [selectedStocks, setSelectedStocks] = useState<Set<string>>(new Set())
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -64,6 +66,11 @@ export default function AdminStocks() {
       loadServices()
     }
   }, [session])
+
+  // Limpar seleção quando filtros mudarem
+  useEffect(() => {
+    setSelectedStocks(new Set())
+  }, [filterService, filterStatus, searchQuery])
 
   const loadStocks = async () => {
     try {
@@ -134,6 +141,58 @@ export default function AdminStocks() {
       loadStocks()
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao excluir estoque')
+    }
+  }
+
+  const handleSelectStock = (id: string) => {
+    const newSelected = new Set(selectedStocks)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedStocks(newSelected)
+  }
+
+  const handleSelectAll = () => {
+    const availableStocks = filteredStocks.filter(s => !s.isUsed)
+    if (selectedStocks.size === availableStocks.length) {
+      setSelectedStocks(new Set())
+    } else {
+      setSelectedStocks(new Set(availableStocks.map(s => s.id)))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedStocks.size === 0) {
+      toast.error('Selecione pelo menos um estoque para excluir')
+      return
+    }
+
+    const selectedCount = selectedStocks.size
+    if (!confirm(`Tem certeza que deseja excluir ${selectedCount} estoque(s)?`)) return
+
+    setIsDeleting(true)
+    try {
+      const response = await axios.post('/api/stocks/bulk-delete', {
+        ids: Array.from(selectedStocks)
+      })
+
+      if (response.data.warning) {
+        toast.error(response.data.warning)
+      }
+
+      if (response.data.deleted > 0) {
+        toast.success(`${response.data.deleted} estoque(s) excluído(s) com sucesso!`)
+      } else {
+        toast.error('Nenhum estoque foi excluído. Verifique se os estoques selecionados não estão usados.')
+      }
+      setSelectedStocks(new Set())
+      loadStocks()
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao excluir estoques')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -468,12 +527,35 @@ export default function AdminStocks() {
             <h3 className="text-lg font-semibold text-gray-900">
               Estoque ({filteredStocks.length} de {stocks.length})
             </h3>
+            {selectedStocks.size > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-600">
+                  {selectedStocks.size} selecionado(s)
+                </span>
+                <button
+                  onClick={handleBulkDelete}
+                  disabled={isDeleting}
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors shadow-md"
+                >
+                  {isDeleting ? 'Excluindo...' : `🗑️ Excluir ${selectedStocks.size} Selecionado(s)`}
+                </button>
+              </div>
+            )}
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <input
+                    type="checkbox"
+                    checked={filteredStocks.filter(s => !s.isUsed).length > 0 && 
+                             selectedStocks.size === filteredStocks.filter(s => !s.isUsed).length}
+                    onChange={handleSelectAll}
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Serviço</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuário</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
@@ -486,13 +568,22 @@ export default function AdminStocks() {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredStocks.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-4 text-center text-gray-500">
                     Nenhum estoque encontrado
                   </td>
                 </tr>
               ) : (
                 filteredStocks.map((stock) => (
-                  <tr key={stock.id} className={stock.isUsed ? 'bg-gray-50' : 'hover:bg-gray-50'}>
+                  <tr key={stock.id} className={stock.isUsed ? 'bg-gray-50' : selectedStocks.has(stock.id) ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        checked={selectedStocks.has(stock.id)}
+                        onChange={() => handleSelectStock(stock.id)}
+                        disabled={stock.isUsed}
+                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-medium text-gray-900">{stock.service.name}</span>
                     </td>
