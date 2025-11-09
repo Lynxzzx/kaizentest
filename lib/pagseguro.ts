@@ -224,9 +224,12 @@ export async function createPagSeguroPixPayment(data: {
   amount: number // Valor em reais
   description: string
 }) {
+  let key: string = ''
+  let apiUrl: string = ''
+  
   try {
-    const key = await getPagSeguroKey()
-    const apiUrl = await getPagSeguroApiUrl()
+    key = await getPagSeguroKey()
+    apiUrl = await getPagSeguroApiUrl()
 
     // Converter valor de reais para centavos
     const valueInCents = Math.round(data.amount * 100)
@@ -381,8 +384,8 @@ export async function createPagSeguroPixPayment(data: {
       console.error('❌ ERRO DE AUTENTICAÇÃO: O token do PagSeguro está inválido ou expirado!')
       console.error('   Código do erro:', errorCode)
       console.error('   Mensagem do PagSeguro:', errorMessage)
-      console.error('   URL usada:', apiUrl)
-      console.error('   Token (primeiros 20 caracteres):', key.substring(0, 20) + '...')
+      console.error('   URL usada:', apiUrl || 'não disponível')
+      console.error('   Token (primeiros 20 caracteres):', key ? key.substring(0, 20) + '...' : 'não disponível')
       console.error('   ⚠️ IMPORTANTE: Verifique se:')
       console.error('      1. O token é válido para o ambiente SANDBOX (não use token de produção)')
       console.error('      2. O token foi gerado no painel do PagSeguro sandbox')
