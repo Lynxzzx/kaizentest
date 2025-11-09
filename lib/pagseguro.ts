@@ -99,22 +99,38 @@ async function getPagSeguroApiUrl(): Promise<string> {
   }
   
   // Se não houver URL customizada, usar lógica baseada em sandbox
-  let isSandbox = process.env.PAGSEGURO_SANDBOX === 'true' || process.env.NODE_ENV === 'development'
+  let isSandbox: boolean | null = null
   
-  // Se não estiver definido nas variáveis de ambiente, tentar buscar no banco de dados
-  if (process.env.PAGSEGURO_SANDBOX === undefined) {
+  // Primeiro verificar variável de ambiente
+  const envSandbox = process.env.PAGSEGURO_SANDBOX
+  if (envSandbox !== undefined && envSandbox.trim().length > 0) {
+    isSandbox = envSandbox.trim().toLowerCase() === 'true'
+    console.log(`📦 PAGSEGURO_SANDBOX da variável de ambiente: ${isSandbox}`)
+  }
+  
+  // Se não encontrou na variável de ambiente, tentar buscar no banco de dados
+  if (isSandbox === null) {
     try {
       const config = await prisma.systemConfig.findUnique({
         where: { key: 'PAGSEGURO_SANDBOX' }
       })
       
-      if (config && config.value) {
+      if (config && config.value && config.value.trim().length > 0) {
         isSandbox = config.value.trim().toLowerCase() === 'true'
+        console.log(`📦 PAGSEGURO_SANDBOX do banco de dados: ${isSandbox}`)
+        console.log(`   Valor encontrado: "${config.value}"`)
+      } else {
+        console.log('⚠️ PAGSEGURO_SANDBOX não encontrado no banco de dados ou está vazio')
       }
     } catch (dbError: any) {
       console.error('⚠️ Erro ao buscar PAGSEGURO_SANDBOX no banco de dados:', dbError.message)
-      // Usar padrão baseado em NODE_ENV
     }
+  }
+  
+  // Se ainda não foi definido, usar padrão baseado em NODE_ENV (apenas em desenvolvimento)
+  if (isSandbox === null) {
+    isSandbox = process.env.NODE_ENV === 'development'
+    console.log(`📦 PAGSEGURO_SANDBOX padrão (NODE_ENV=${process.env.NODE_ENV}): ${isSandbox}`)
   }
   
   const baseUrl = isSandbox 
@@ -122,6 +138,7 @@ async function getPagSeguroApiUrl(): Promise<string> {
     : 'https://api.pagseguro.com'
   
   console.log(`📦 Usando PagSeguro ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'}: ${baseUrl}`)
+  console.log(`   isSandbox: ${isSandbox}, NODE_ENV: ${process.env.NODE_ENV}`)
   return baseUrl
 }
 
