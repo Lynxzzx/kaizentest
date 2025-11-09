@@ -101,29 +101,29 @@ async function getPagSeguroApiUrl(): Promise<string> {
   // Se não houver URL customizada, usar lógica baseada em sandbox
   let isSandbox: boolean | null = null
   
-  // Primeiro verificar variável de ambiente
-  const envSandbox = process.env.PAGSEGURO_SANDBOX
-  if (envSandbox !== undefined && envSandbox.trim().length > 0) {
-    isSandbox = envSandbox.trim().toLowerCase() === 'true'
-    console.log(`📦 PAGSEGURO_SANDBOX da variável de ambiente: ${isSandbox}`)
+  // PRIORIDADE: Banco de dados primeiro (configuração do admin tem prioridade)
+  try {
+    const config = await prisma.systemConfig.findUnique({
+      where: { key: 'PAGSEGURO_SANDBOX' }
+    })
+    
+    if (config && config.value && config.value.trim().length > 0) {
+      isSandbox = config.value.trim().toLowerCase() === 'true'
+      console.log(`📦 PAGSEGURO_SANDBOX do banco de dados (PRIORIDADE): ${isSandbox}`)
+      console.log(`   Valor encontrado: "${config.value}"`)
+    } else {
+      console.log('⚠️ PAGSEGURO_SANDBOX não encontrado no banco de dados ou está vazio')
+    }
+  } catch (dbError: any) {
+    console.error('⚠️ Erro ao buscar PAGSEGURO_SANDBOX no banco de dados:', dbError.message)
   }
   
-  // Se não encontrou na variável de ambiente, tentar buscar no banco de dados
+  // Se não encontrou no banco de dados, verificar variável de ambiente
   if (isSandbox === null) {
-    try {
-      const config = await prisma.systemConfig.findUnique({
-        where: { key: 'PAGSEGURO_SANDBOX' }
-      })
-      
-      if (config && config.value && config.value.trim().length > 0) {
-        isSandbox = config.value.trim().toLowerCase() === 'true'
-        console.log(`📦 PAGSEGURO_SANDBOX do banco de dados: ${isSandbox}`)
-        console.log(`   Valor encontrado: "${config.value}"`)
-      } else {
-        console.log('⚠️ PAGSEGURO_SANDBOX não encontrado no banco de dados ou está vazio')
-      }
-    } catch (dbError: any) {
-      console.error('⚠️ Erro ao buscar PAGSEGURO_SANDBOX no banco de dados:', dbError.message)
+    const envSandbox = process.env.PAGSEGURO_SANDBOX
+    if (envSandbox !== undefined && envSandbox.trim().length > 0) {
+      isSandbox = envSandbox.trim().toLowerCase() === 'true'
+      console.log(`📦 PAGSEGURO_SANDBOX da variável de ambiente: ${isSandbox}`)
     }
   }
   
