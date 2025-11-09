@@ -11,14 +11,21 @@ PAGSEGURO_APP_KEY=sua_chave_aplicacao
 # OU
 PAGSEGURO_TOKEN=seu_token
 
-# Opcional: Para usar ambiente sandbox
+# Opcional: URL customizada da API (tem prioridade sobre PAGSEGURO_SANDBOX)
+PAGSEGURO_API_URL=https://api.pagseguro.com
+# OU para sandbox:
+PAGSEGURO_API_URL=https://sandbox.api.pagseguro.com
+
+# Opcional: Para usar ambiente sandbox (ignorado se PAGSEGURO_API_URL estiver configurada)
 PAGSEGURO_SANDBOX=true
 ```
 
-### URLs da API
+### URLs da API (Oficiais)
 
 - **Produção:** `https://api.pagseguro.com`
 - **Sandbox:** `https://sandbox.api.pagseguro.com`
+
+**Nota:** Você pode configurar uma URL customizada através da variável `PAGSEGURO_API_URL` ou pelo dashboard admin. Se configurada, ela terá prioridade sobre a configuração de `PAGSEGURO_SANDBOX`.
 
 ---
 

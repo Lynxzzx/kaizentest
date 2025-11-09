@@ -53,6 +53,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // Validar PAGSEGURO_API_URL (deve ser uma URL válida)
+    if (key === 'PAGSEGURO_API_URL') {
+      const trimmedValue = value.trim()
+      try {
+        const url = new URL(trimmedValue)
+        // Validar se é HTTP ou HTTPS
+        if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+          return res.status(400).json({ error: 'PAGSEGURO_API_URL deve usar protocolo http:// ou https://' })
+        }
+        // Validar se é um domínio do PagSeguro (opcional, mas recomendado)
+        if (!url.hostname.includes('pagseguro.com') && !url.hostname.includes('pagseguro.uol.com.br')) {
+          console.warn('⚠️ URL do PagSeguro não parece ser um domínio oficial:', url.hostname)
+        }
+      } catch (error) {
+        return res.status(400).json({ error: 'PAGSEGURO_API_URL deve ser uma URL válida (ex: https://api.pagseguro.com)' })
+      }
+    }
+
     // Validar PAGSEGURO_SANDBOX (deve ser "true" ou "false")
     if (key === 'PAGSEGURO_SANDBOX') {
       const trimmedValue = value.trim().toLowerCase()

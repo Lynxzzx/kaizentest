@@ -66,6 +66,39 @@ async function getPagSeguroKey(): Promise<string> {
 
 // Função para obter a URL da API baseada no ambiente
 async function getPagSeguroApiUrl(): Promise<string> {
+  // Primeiro verificar se há URL customizada (variável de ambiente ou banco de dados)
+  let customUrl = process.env.PAGSEGURO_API_URL
+  
+  // Se não encontrar na variável de ambiente, tentar buscar no banco de dados
+  if (!customUrl || (typeof customUrl === 'string' && customUrl.trim().length === 0)) {
+    try {
+      const config = await prisma.systemConfig.findUnique({
+        where: { key: 'PAGSEGURO_API_URL' }
+      })
+      
+      if (config && config.value && config.value.trim().length > 0) {
+        customUrl = config.value.trim()
+        console.log('✅ PAGSEGURO_API_URL encontrada no banco de dados:', customUrl)
+      }
+    } catch (dbError: any) {
+      console.error('⚠️ Erro ao buscar PAGSEGURO_API_URL no banco de dados:', dbError.message)
+    }
+  }
+  
+  // Se houver URL customizada, usar ela
+  if (customUrl && customUrl.trim().length > 0) {
+    const trimmedUrl = customUrl.trim()
+    // Validar se é uma URL válida
+    try {
+      new URL(trimmedUrl)
+      console.log(`📦 Usando PagSeguro URL customizada: ${trimmedUrl}`)
+      return trimmedUrl
+    } catch (error) {
+      console.warn('⚠️ URL customizada inválida, usando padrão baseado em sandbox')
+    }
+  }
+  
+  // Se não houver URL customizada, usar lógica baseada em sandbox
   let isSandbox = process.env.PAGSEGURO_SANDBOX === 'true' || process.env.NODE_ENV === 'development'
   
   // Se não estiver definido nas variáveis de ambiente, tentar buscar no banco de dados
