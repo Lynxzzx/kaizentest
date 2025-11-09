@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { createAsaasCustomer, getAsaasCustomerByEmail, updateAsaasCustomer, createAsaasPayment, getAsaasPixQrCode } from '@/lib/asaas'
+import { createPagSeguroPixPayment } from '@/lib/pagseguro'
 import { createPaymentAddress, convertBrlToCrypto } from '@/lib/binance'
 import { generateCPF, cleanCpfCnpj } from '@/lib/utils'
 
@@ -58,109 +59,174 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
 
-        // Criar ou atualizar cliente no Asaas
-        let asaasCustomerId = user.asaasCustomerId
-        if (!asaasCustomerId) {
-          console.log('📝 Criando cliente no Asaas...')
-          const asaasCustomer = await createAsaasCustomer({
-            name: user.username,
-            email: user.email || undefined,
-            cpfCnpj: cleanCpfCnpj(cpfCnpj)
-          })
-          asaasCustomerId = asaasCustomer.id
+        // Verificar se PagSeguro está configurado (variável de ambiente ou banco de dados)
+        const PAGSEGURO_APP_KEY = process.env.PAGSEGURO_APP_KEY
+        const PAGSEGURO_TOKEN = process.env.PAGSEGURO_TOKEN
+        let usePagSeguro = !!(PAGSEGURO_APP_KEY || PAGSEGURO_TOKEN)
+        
+        // Se não encontrar nas variáveis de ambiente, verificar no banco de dados
+        if (!usePagSeguro) {
+          try {
+            const pagSeguroAppKey = await prisma.systemConfig.findUnique({
+              where: { key: 'PAGSEGURO_APP_KEY' }
+            })
+            const pagSeguroToken = await prisma.systemConfig.findUnique({
+              where: { key: 'PAGSEGURO_TOKEN' }
+            })
+            usePagSeguro = !!(pagSeguroAppKey?.value || pagSeguroToken?.value)
+          } catch (error: any) {
+            console.warn('⚠️ Erro ao verificar PagSeguro no banco de dados:', error.message)
+          }
+        }
+
+        if (usePagSeguro) {
+          // Usar PagSeguro para PIX
+          console.log('📦 Criando pagamento PIX via PagSeguro...')
           
-          // Salvar ID do cliente no banco
-          await prisma.user.update({
-            where: { id: user.id },
-            data: { asaasCustomerId } as any
+          const referenceId = `payment_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+          
+          const pagSeguroPayment = await createPagSeguroPixPayment({
+            reference_id: referenceId,
+            customer: {
+              name: user.username,
+              email: user.email || '',
+              tax_id: cleanCpfCnpj(cpfCnpj)
+            },
+            amount: plan.price,
+            description: `Plano ${plan.name} - Kaizen Gens`
+          })
+
+          // Criar pagamento no banco de dados
+          const payment = await prisma.payment.create({
+            data: {
+              userId: user.id,
+              planId: plan.id,
+              amount: plan.price,
+              method: 'PIX',
+              status: 'PENDING',
+              asaasId: pagSeguroPayment.id, // Usando asaasId para armazenar o ID do PagSeguro (compatibilidade)
+              pixQrCode: pagSeguroPayment.qrCode,
+              pixExpiresAt: pagSeguroPayment.expiresAt ? new Date(pagSeguroPayment.expiresAt) : new Date(Date.now() + 30 * 60 * 1000)
+            }
+          })
+
+          return res.status(200).json({
+            id: payment.id,
+            paymentId: payment.id,
+            pixQrCodeImage: pagSeguroPayment.qrCodeImage,
+            qrCodeImage: pagSeguroPayment.qrCodeImage,
+            pixQrCode: pagSeguroPayment.qrCode,
+            pixCopyPaste: pagSeguroPayment.qrCode,
+            expiresAt: payment.pixExpiresAt
           })
         } else {
-          // Verificar se o cliente existe e atualizar se necessário
-          try {
-            const existingCustomer = await getAsaasCustomerByEmail(user.email || '')
-            if (existingCustomer && existingCustomer.id !== asaasCustomerId) {
-              asaasCustomerId = existingCustomer.id
-              await prisma.user.update({
-                where: { id: user.id },
-                data: { asaasCustomerId } as any
-              })
-            }
+          // Fallback para Asaas se PagSeguro não estiver configurado
+          console.log('📦 PagSeguro não configurado, usando Asaas como fallback...')
+          
+          // Criar ou atualizar cliente no Asaas
+          let asaasCustomerId = user.asaasCustomerId
+          if (!asaasCustomerId) {
+            console.log('📝 Criando cliente no Asaas...')
+            const asaasCustomer = await createAsaasCustomer({
+              name: user.username,
+              email: user.email || undefined,
+              cpfCnpj: cleanCpfCnpj(cpfCnpj)
+            })
+            asaasCustomerId = asaasCustomer.id
             
-            // Atualizar CPF/CNPJ se necessário
-            if (cpfCnpj && !existingCustomer?.cpfCnpj && asaasCustomerId) {
-              console.log('📝 Atualizando cliente no Asaas com CPF/CNPJ...')
-              await updateAsaasCustomer(asaasCustomerId, { cpfCnpj: cleanCpfCnpj(cpfCnpj as string) })
-            }
-          } catch (error: any) {
-            console.warn('⚠️ Não foi possível verificar cliente no Asaas:', error.message)
-          }
-        }
-
-        // Garantir que temos um asaasCustomerId válido
-        if (!asaasCustomerId) {
-          throw new Error('Não foi possível criar ou obter o ID do cliente no Asaas')
-        }
-
-        // Calcular data de vencimento (hoje + 1 dia)
-        const dueDate = new Date()
-        dueDate.setDate(dueDate.getDate() + 1)
-        const dueDateStr = dueDate.toISOString().split('T')[0]
-
-        // Criar pagamento PIX no Asaas
-        const asaasPayment = await createAsaasPayment({
-          customer: asaasCustomerId,
-          billingType: 'PIX',
-          value: plan.price,
-          dueDate: dueDateStr,
-          description: `Plano ${plan.name} - Kaizen Gens`
-        })
-
-        // Buscar QR code PIX
-        const pixQrCodeData = await getAsaasPixQrCode(asaasPayment.id)
-
-        // Mapear dados do Asaas (payload = QR code, encodedImage = imagem)
-        const pixQrCode = pixQrCodeData.payload || ''
-        
-        // Preparar QR code image
-        let pixQrCodeImage: string | null = null
-        if (pixQrCodeData.encodedImage) {
-          // Se já vem como data URI, usar diretamente
-          if (pixQrCodeData.encodedImage.startsWith('data:')) {
-            pixQrCodeImage = pixQrCodeData.encodedImage
+            // Salvar ID do cliente no banco
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { asaasCustomerId } as any
+            })
           } else {
-            // Se vem como base64 puro, adicionar prefixo
-            pixQrCodeImage = `data:image/png;base64,${pixQrCodeData.encodedImage}`
+            // Verificar se o cliente existe e atualizar se necessário
+            try {
+              const existingCustomer = await getAsaasCustomerByEmail(user.email || '')
+              if (existingCustomer && existingCustomer.id !== asaasCustomerId) {
+                asaasCustomerId = existingCustomer.id
+                await prisma.user.update({
+                  where: { id: user.id },
+                  data: { asaasCustomerId } as any
+                })
+              }
+              
+              // Atualizar CPF/CNPJ se necessário
+              if (cpfCnpj && !existingCustomer?.cpfCnpj && asaasCustomerId) {
+                console.log('📝 Atualizando cliente no Asaas com CPF/CNPJ...')
+                await updateAsaasCustomer(asaasCustomerId, { cpfCnpj: cleanCpfCnpj(cpfCnpj as string) })
+              }
+            } catch (error: any) {
+              console.warn('⚠️ Não foi possível verificar cliente no Asaas:', error.message)
+            }
           }
-        }
 
-        // Criar pagamento no banco de dados
-        const payment = await prisma.payment.create({
-          data: {
-            userId: user.id,
-            planId: plan.id,
-            amount: plan.price,
-            method: 'PIX',
-            status: 'PENDING',
-            asaasId: asaasPayment.id,
+          // Garantir que temos um asaasCustomerId válido
+          if (!asaasCustomerId) {
+            throw new Error('Não foi possível criar ou obter o ID do cliente no Asaas')
+          }
+
+          // Calcular data de vencimento (hoje + 1 dia)
+          const dueDate = new Date()
+          dueDate.setDate(dueDate.getDate() + 1)
+          const dueDateStr = dueDate.toISOString().split('T')[0]
+
+          // Criar pagamento PIX no Asaas
+          const asaasPayment = await createAsaasPayment({
+            customer: asaasCustomerId,
+            billingType: 'PIX',
+            value: plan.price,
+            dueDate: dueDateStr,
+            description: `Plano ${plan.name} - Kaizen Gens`
+          })
+
+          // Buscar QR code PIX
+          const pixQrCodeData = await getAsaasPixQrCode(asaasPayment.id)
+
+          // Mapear dados do Asaas (payload = QR code, encodedImage = imagem)
+          const pixQrCode = pixQrCodeData.payload || ''
+          
+          // Preparar QR code image
+          let pixQrCodeImage: string | null = null
+          if (pixQrCodeData.encodedImage) {
+            // Se já vem como data URI, usar diretamente
+            if (pixQrCodeData.encodedImage.startsWith('data:')) {
+              pixQrCodeImage = pixQrCodeData.encodedImage
+            } else {
+              // Se vem como base64 puro, adicionar prefixo
+              pixQrCodeImage = `data:image/png;base64,${pixQrCodeData.encodedImage}`
+            }
+          }
+
+          // Criar pagamento no banco de dados
+          const payment = await prisma.payment.create({
+            data: {
+              userId: user.id,
+              planId: plan.id,
+              amount: plan.price,
+              method: 'PIX',
+              status: 'PENDING',
+              asaasId: asaasPayment.id,
+              pixQrCode: pixQrCode,
+              pixExpiresAt: asaasPayment.dueDate ? new Date(asaasPayment.dueDate + 'T23:59:59') : new Date(Date.now() + 30 * 60 * 1000)
+            }
+          })
+
+          return res.status(200).json({
+            id: payment.id,
+            paymentId: payment.id,
+            pixQrCodeImage: pixQrCodeImage,
+            qrCodeImage: pixQrCodeImage,
             pixQrCode: pixQrCode,
-            pixExpiresAt: asaasPayment.dueDate ? new Date(asaasPayment.dueDate + 'T23:59:59') : new Date(Date.now() + 30 * 60 * 1000)
-          }
-        })
-
-        return res.status(200).json({
-          id: payment.id,
-          paymentId: payment.id,
-          pixQrCodeImage: pixQrCodeImage,
-          qrCodeImage: pixQrCodeImage,
-          pixQrCode: pixQrCode,
-          pixCopyPaste: pixQrCode,
-          expiresAt: payment.pixExpiresAt
-        })
+            pixCopyPaste: pixQrCode,
+            expiresAt: payment.pixExpiresAt
+          })
+        }
       } catch (error: any) {
         console.error('Error creating PIX payment:', error)
         
         // Verificar se é erro de serviço indisponível
-        if (error.name === 'AsaasServiceUnavailableError') {
+        if (error.name === 'PagSeguroServiceUnavailableError' || error.name === 'AsaasServiceUnavailableError') {
           return res.status(503).json({
             error: 'Serviço temporariamente indisponível',
             message: error.message
@@ -168,7 +234,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         
         // Verificar se é erro de autenticação
-        if (error.name === 'AsaasAuthenticationError') {
+        if (error.name === 'PagSeguroAuthenticationError' || error.name === 'AsaasAuthenticationError') {
           return res.status(401).json({
             error: 'Erro de autenticação',
             message: error.message

@@ -1,24 +1,60 @@
 import axios from 'axios'
+import { prisma } from '@/lib/prisma'
 
 // Função para obter e validar a chave/token do PagSeguro
-function getPagSeguroKey(): string {
+async function getPagSeguroKey(): Promise<string> {
   // Primeiro tentar PAGSEGURO_APP_KEY (chave de aplicação)
   // Depois tentar PAGSEGURO_TOKEN (token) para compatibilidade
   const PAGSEGURO_APP_KEY = process.env.PAGSEGURO_APP_KEY
   const PAGSEGURO_TOKEN = process.env.PAGSEGURO_TOKEN
 
-  const key = PAGSEGURO_APP_KEY || PAGSEGURO_TOKEN
+  let key = PAGSEGURO_APP_KEY || PAGSEGURO_TOKEN
+
+  // Se não encontrar na variável de ambiente, tentar buscar no banco de dados
+  if (!key || (typeof key === 'string' && key.trim().length === 0)) {
+    console.log('⚠️ PAGSEGURO_APP_KEY/PAGSEGURO_TOKEN não encontrada em variáveis de ambiente, tentando buscar no banco de dados...')
+    try {
+      // Tentar primeiro PAGSEGURO_APP_KEY
+      let config = await prisma.systemConfig.findUnique({
+        where: { key: 'PAGSEGURO_APP_KEY' }
+      })
+      
+      if (config && config.value && config.value.trim().length > 0) {
+        key = config.value.trim()
+        console.log('✅ PAGSEGURO_APP_KEY encontrada no banco de dados!')
+        console.log('   Tamanho:', key.length, 'caracteres')
+        console.log('   Prefixo:', key.substring(0, 20))
+      } else {
+        // Tentar PAGSEGURO_TOKEN
+        config = await prisma.systemConfig.findUnique({
+          where: { key: 'PAGSEGURO_TOKEN' }
+        })
+        
+        if (config && config.value && config.value.trim().length > 0) {
+          key = config.value.trim()
+          console.log('✅ PAGSEGURO_TOKEN encontrada no banco de dados!')
+          console.log('   Tamanho:', key.length, 'caracteres')
+          console.log('   Prefixo:', key.substring(0, 20))
+        } else {
+          console.log('⚠️ PAGSEGURO_APP_KEY/PAGSEGURO_TOKEN não encontrada no banco de dados')
+        }
+      }
+    } catch (dbError: any) {
+      console.error('⚠️ Erro ao buscar PAGSEGURO_APP_KEY/PAGSEGURO_TOKEN no banco de dados:', dbError.message)
+      // Continuar para mostrar erro da variável de ambiente
+    }
+  }
 
   if (!key || (typeof key === 'string' && key.trim().length === 0)) {
     console.error('❌ ERRO: PAGSEGURO_APP_KEY ou PAGSEGURO_TOKEN não está configurada!')
-    console.error('   Configure no .env ou no Vercel: PAGSEGURO_APP_KEY=sua_chave')
+    console.error('   Configure no .env, no Vercel ou no dashboard admin: PAGSEGURO_APP_KEY ou PAGSEGURO_TOKEN')
     throw new Error('PAGSEGURO_APP_KEY ou PAGSEGURO_TOKEN não está configurada no servidor.')
   }
 
   const trimmedKey = key.trim()
 
   if (!(getPagSeguroKey as any).logged) {
-    const keyType = PAGSEGURO_APP_KEY ? 'APP_KEY' : 'TOKEN'
+    const keyType = PAGSEGURO_APP_KEY ? 'APP_KEY' : (key === PAGSEGURO_TOKEN ? 'TOKEN' : 'APP_KEY/TOKEN (DB)')
     console.log(`✅ PAGSEGURO_${keyType} carregada com sucesso!`)
     console.log('   Tamanho:', trimmedKey.length, 'caracteres')
     console.log('   Prefixo:', trimmedKey.substring(0, 20))
@@ -29,8 +65,25 @@ function getPagSeguroKey(): string {
 }
 
 // Função para obter a URL da API baseada no ambiente
-function getPagSeguroApiUrl(): string {
-  const isSandbox = process.env.PAGSEGURO_SANDBOX === 'true' || process.env.NODE_ENV === 'development'
+async function getPagSeguroApiUrl(): Promise<string> {
+  let isSandbox = process.env.PAGSEGURO_SANDBOX === 'true' || process.env.NODE_ENV === 'development'
+  
+  // Se não estiver definido nas variáveis de ambiente, tentar buscar no banco de dados
+  if (process.env.PAGSEGURO_SANDBOX === undefined) {
+    try {
+      const config = await prisma.systemConfig.findUnique({
+        where: { key: 'PAGSEGURO_SANDBOX' }
+      })
+      
+      if (config && config.value) {
+        isSandbox = config.value.trim().toLowerCase() === 'true'
+      }
+    } catch (dbError: any) {
+      console.error('⚠️ Erro ao buscar PAGSEGURO_SANDBOX no banco de dados:', dbError.message)
+      // Usar padrão baseado em NODE_ENV
+    }
+  }
+  
   const baseUrl = isSandbox 
     ? 'https://sandbox.api.pagseguro.com' 
     : 'https://api.pagseguro.com'
@@ -98,8 +151,8 @@ export async function createPagSeguroPixPayment(data: {
   description: string
 }) {
   try {
-    const key = getPagSeguroKey()
-    const apiUrl = getPagSeguroApiUrl()
+    const key = await getPagSeguroKey()
+    const apiUrl = await getPagSeguroApiUrl()
 
     // Converter valor de reais para centavos
     const valueInCents = Math.round(data.amount * 100)
@@ -231,8 +284,8 @@ export async function createPagSeguroPixPayment(data: {
 // Buscar status de um pagamento
 export async function getPagSeguroPayment(chargeId: string) {
   try {
-    const key = getPagSeguroKey()
-    const apiUrl = getPagSeguroApiUrl()
+    const key = await getPagSeguroKey()
+    const apiUrl = await getPagSeguroApiUrl()
 
     const response = await axios.get(
       `${apiUrl}/charges/${chargeId}`,
@@ -254,8 +307,8 @@ export async function getPagSeguroPayment(chargeId: string) {
 // Buscar QR code PIX de um pagamento existente
 export async function getPagSeguroPixQrCode(chargeId: string) {
   try {
-    const key = getPagSeguroKey()
-    const apiUrl = getPagSeguroApiUrl()
+    const key = await getPagSeguroKey()
+    const apiUrl = await getPagSeguroApiUrl()
 
     const response = await axios.get(
       `${apiUrl}/charges/${chargeId}/pix`,

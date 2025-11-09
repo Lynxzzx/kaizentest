@@ -58,7 +58,10 @@ export default function AdminConfig() {
       // Garantir que configurações padrão apareçam na lista
       const defaultConfigs = [
         { key: 'ASAAS_API_KEY', description: 'Chave de API do Asaas (para pagamentos PIX)' },
-        { key: 'ASAAS_API_URL', description: 'URL da API do Asaas' }
+        { key: 'ASAAS_API_URL', description: 'URL da API do Asaas' },
+        { key: 'PAGSEGURO_APP_KEY', description: 'Chave de Aplicação do PagSeguro (para pagamentos PIX)' },
+        { key: 'PAGSEGURO_TOKEN', description: 'Token do PagSeguro (alternativa à chave de aplicação)' },
+        { key: 'PAGSEGURO_SANDBOX', description: 'Usar ambiente sandbox do PagSeguro (true/false)' }
       ]
       
       const existingKeys = data.configs.map((c: SystemConfig) => c.key)
@@ -288,6 +291,24 @@ export default function AdminConfig() {
             >
               + ASAAS_API_URL
             </button>
+            <button
+              onClick={() => quickAddConfig('PAGSEGURO_APP_KEY', 'Chave de Aplicação do PagSeguro (para pagamentos PIX)')}
+              className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
+            >
+              + PAGSEGURO_APP_KEY
+            </button>
+            <button
+              onClick={() => quickAddConfig('PAGSEGURO_TOKEN', 'Token do PagSeguro (alternativa à chave de aplicação)')}
+              className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
+            >
+              + PAGSEGURO_TOKEN
+            </button>
+            <button
+              onClick={() => quickAddConfig('PAGSEGURO_SANDBOX', 'Usar ambiente sandbox do PagSeguro (true/false)')}
+              className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
+            >
+              + PAGSEGURO_SANDBOX
+            </button>
           </div>
         </div>
 
@@ -426,6 +447,12 @@ export default function AdminConfig() {
             </li>
             <li>
               • Para ASAAS_API_KEY: Cole a chave completa do Asaas (deve começar com $aact_prod_ ou $aact_hmlg_)
+            </li>
+            <li>
+              • Para PAGSEGURO_APP_KEY ou PAGSEGURO_TOKEN: Cole a chave/token do PagSeguro obtida no painel
+            </li>
+            <li>
+              • Para PAGSEGURO_SANDBOX: Use "true" para ambiente de testes ou "false" para produção
             </li>
             <li>
               • Após atualizar, a configuração será usada automaticamente nas próximas requisições

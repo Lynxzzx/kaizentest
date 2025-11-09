@@ -45,6 +45,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // Validar chaves do PagSeguro
+    if (key === 'PAGSEGURO_APP_KEY' || key === 'PAGSEGURO_TOKEN') {
+      const trimmedValue = value.trim()
+      if (trimmedValue.length < 20) {
+        return res.status(400).json({ error: `${key} deve ter pelo menos 20 caracteres` })
+      }
+    }
+
+    // Validar PAGSEGURO_SANDBOX (deve ser "true" ou "false")
+    if (key === 'PAGSEGURO_SANDBOX') {
+      const trimmedValue = value.trim().toLowerCase()
+      if (trimmedValue !== 'true' && trimmedValue !== 'false') {
+        return res.status(400).json({ error: 'PAGSEGURO_SANDBOX deve ser "true" ou "false"' })
+      }
+    }
+
     // Criar ou atualizar configuração
     const config = await prisma.systemConfig.upsert({
       where: { key },
