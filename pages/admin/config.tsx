@@ -61,6 +61,7 @@ export default function AdminConfig() {
         { key: 'ASAAS_API_URL', description: 'URL da API do Asaas' },
         { key: 'PAGSEGURO_APP_KEY', description: 'Chave de Aplicação do PagSeguro (para pagamentos PIX)' },
         { key: 'PAGSEGURO_TOKEN', description: 'Token do PagSeguro (alternativa à chave de aplicação)' },
+        { key: 'PAGSEGURO_SELLER_EMAIL', description: 'Email do vendedor/conta PagSeguro (obrigatório em alguns casos)' },
         { key: 'PAGSEGURO_API_URL', description: 'URL da API do PagSeguro (ex: https://api.pagseguro.com ou https://sandbox.api.pagseguro.com)' },
         { key: 'PAGSEGURO_SANDBOX', description: 'Usar ambiente sandbox do PagSeguro (true/false) - ignorado se PAGSEGURO_API_URL estiver configurada' }
       ]
@@ -305,6 +306,12 @@ export default function AdminConfig() {
               + PAGSEGURO_TOKEN
             </button>
             <button
+              onClick={() => quickAddConfig('PAGSEGURO_SELLER_EMAIL', 'Email do vendedor/conta PagSeguro (obrigatório em alguns casos)')}
+              className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
+            >
+              + PAGSEGURO_SELLER_EMAIL
+            </button>
+            <button
               onClick={() => quickAddConfig('PAGSEGURO_API_URL', 'URL da API do PagSeguro (ex: https://api.pagseguro.com ou https://sandbox.api.pagseguro.com)')}
               className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
             >
@@ -457,6 +464,9 @@ export default function AdminConfig() {
             </li>
             <li>
               • Para PAGSEGURO_APP_KEY ou PAGSEGURO_TOKEN: Cole a chave/token do PagSeguro obtida no painel
+            </li>
+            <li>
+              • Para PAGSEGURO_SELLER_EMAIL: Configure o email da conta PagSeguro/vendedor (obrigatório em alguns casos de autenticação)
             </li>
             <li>
               • Para PAGSEGURO_API_URL: Configure a URL completa da API (ex: https://api.pagseguro.com para produção ou https://sandbox.api.pagseguro.com para sandbox)

@@ -1,6 +1,30 @@
 import axios from 'axios'
 import { prisma } from '@/lib/prisma'
 
+// Função para obter o email do vendedor (se configurado)
+async function getPagSeguroSellerEmail(): Promise<string | null> {
+  // Primeiro verificar variável de ambiente
+  let email = process.env.PAGSEGURO_SELLER_EMAIL
+  
+  // Se não encontrar, buscar no banco de dados
+  if (!email || (typeof email === 'string' && email.trim().length === 0)) {
+    try {
+      const config = await prisma.systemConfig.findUnique({
+        where: { key: 'PAGSEGURO_SELLER_EMAIL' }
+      })
+      
+      if (config && config.value && config.value.trim().length > 0) {
+        email = config.value.trim()
+        console.log('✅ PAGSEGURO_SELLER_EMAIL encontrado no banco de dados:', email)
+      }
+    } catch (dbError: any) {
+      console.error('⚠️ Erro ao buscar PAGSEGURO_SELLER_EMAIL no banco de dados:', dbError.message)
+    }
+  }
+  
+  return email && email.trim().length > 0 ? email.trim() : null
+}
+
 // Função para obter e validar a chave/token do PagSeguro
 async function getPagSeguroKey(): Promise<string> {
   // Primeiro tentar PAGSEGURO_APP_KEY (chave de aplicação)
@@ -251,17 +275,43 @@ export async function createPagSeguroPixPayment(data: {
       'Content-Type': 'application/json'
     })
 
+    // Obter email do vendedor (se configurado)
+    const sellerEmail = await getPagSeguroSellerEmail()
+    
     // Criar pedido via /orders (método correto para PIX)
+    // Nota: PagBank/PagSeguro pode exigir email do vendedor junto com o token
+    const headers: any = {
+      'App-Token': key,
+      'Content-Type': 'application/json'
+    }
+    
+    // Adicionar email do vendedor se configurado (alguns ambientes exigem)
+    if (sellerEmail) {
+      headers['X-Seller-Email'] = sellerEmail
+      // Alguns ambientes podem exigir no formato Authorization: Bearer email:token
+      // Mas vamos tentar primeiro com App-Token e X-Seller-Email
+    }
+    
+    // Adicionar Authorization Bearer também (alguns ambientes podem precisar)
+    if (sellerEmail) {
+      // Se tiver email, pode ser necessário usar formato email:token
+      headers['Authorization'] = `Bearer ${sellerEmail}:${key}`
+    } else {
+      // Sem email, usar apenas o token
+      headers['Authorization'] = `Bearer ${key}`
+    }
+    
+    console.log('📋 Headers finais:', {
+      'Authorization': headers['Authorization'] ? (sellerEmail ? `Bearer ${sellerEmail}:${key.substring(0, 10)}...` : `Bearer ${key.substring(0, 20)}...`) : 'não enviado',
+      'App-Token': `${key.substring(0, 20)}...`,
+      'X-Seller-Email': sellerEmail || 'não configurado',
+      'Content-Type': 'application/json'
+    })
+    
     const orderResponse = await axios.post(
       `${apiUrl}/orders`,
       orderData,
-      {
-        headers: {
-          'Authorization': `Bearer ${key}`,
-          'App-Token': key,
-          'Content-Type': 'application/json'
-        }
-      }
+      { headers }
     )
 
     console.log('✅ Pedido PIX criado no PagSeguro:', orderResponse.data.id)
@@ -326,10 +376,30 @@ export async function createPagSeguroPixPayment(data: {
     // Verificar se é erro de autenticação
     if (error.response?.status === 401 || error.response?.status === 403) {
       const errorMessage = errorData?.error_messages?.[0]?.description || errorData?.message || 'Token inválido'
-      console.error('❌ ERRO DE AUTENTICAÇÃO: O token do PagSeguro está inválido ou expirado!')
-      console.error('   Mensagem do PagSeguro:', errorMessage)
+      const errorCode = errorData?.error_messages?.[0]?.code || 'UNKNOWN'
       
-      const authError = new Error(`Token do PagSeguro inválido: ${errorMessage}. Verifique se o token está correto.`)
+      console.error('❌ ERRO DE AUTENTICAÇÃO: O token do PagSeguro está inválido ou expirado!')
+      console.error('   Código do erro:', errorCode)
+      console.error('   Mensagem do PagSeguro:', errorMessage)
+      console.error('   URL usada:', apiUrl)
+      console.error('   Token (primeiros 20 caracteres):', key.substring(0, 20) + '...')
+      console.error('   ⚠️ IMPORTANTE: Verifique se:')
+      console.error('      1. O token é válido para o ambiente SANDBOX (não use token de produção)')
+      console.error('      2. O token foi gerado no painel do PagSeguro sandbox')
+      console.error('      3. A conta tem permissão para usar a API no sandbox')
+      console.error('      4. O token não está expirado')
+      
+      let detailedMessage = `Token do PagSeguro inválido: ${errorMessage}`
+      if (errorCode === 'UNAUTHORIZED') {
+        detailedMessage += '\n\nPossíveis causas:'
+        detailedMessage += '\n- Token não é válido para o ambiente sandbox'
+        detailedMessage += '\n- Token foi gerado para produção, mas está sendo usado no sandbox'
+        detailedMessage += '\n- Token está expirado ou foi revogado'
+        detailedMessage += '\n- Conta não tem permissão para usar a API no sandbox'
+        detailedMessage += '\n\nSolução: Gere um novo token no painel do PagSeguro SANDBOX e configure no admin.'
+      }
+      
+      const authError = new Error(detailedMessage)
       authError.name = 'PagSeguroAuthenticationError'
       throw authError
     }
