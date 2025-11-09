@@ -243,6 +243,13 @@ export async function createPagSeguroPixPayment(data: {
     }
 
     console.log('Criando pedido PIX no PagSeguro (via /orders):', JSON.stringify(orderData, null, 2))
+    console.log('📡 URL da requisição:', `${apiUrl}/orders`)
+    console.log('🔑 Token (primeiros 20 caracteres):', key.substring(0, 20) + '...')
+    console.log('📋 Headers:', {
+      'Authorization': `Bearer ${key.substring(0, 20)}...`,
+      'App-Token': `${key.substring(0, 20)}...`,
+      'Content-Type': 'application/json'
+    })
 
     // Criar pedido via /orders (método correto para PIX)
     const orderResponse = await axios.post(
