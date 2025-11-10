@@ -269,15 +269,6 @@ export async function createPagSeguroPixPayment(data: {
       ]
     }
 
-    console.log('Criando pedido PIX no PagSeguro (via /orders):', JSON.stringify(orderData, null, 2))
-    console.log('📡 URL da requisição:', `${apiUrl}/orders`)
-    console.log('🔑 Token (primeiros 20 caracteres):', key.substring(0, 20) + '...')
-    console.log('📋 Headers:', {
-      'Authorization': `Bearer ${key.substring(0, 20)}...`,
-      'App-Token': `${key.substring(0, 20)}...`,
-      'Content-Type': 'application/json'
-    })
-
     // Obter email do vendedor (se configurado)
     const sellerEmail = await getPagSeguroSellerEmail()
     
@@ -304,12 +295,19 @@ export async function createPagSeguroPixPayment(data: {
       headers['Authorization'] = `Bearer ${key}`
     }
     
-    console.log('📋 Headers finais:', {
-      'Authorization': headers['Authorization'] ? (sellerEmail ? `Bearer ${sellerEmail}:${key.substring(0, 10)}...` : `Bearer ${key.substring(0, 20)}...`) : 'não enviado',
-      'App-Token': `${key.substring(0, 20)}...`,
-      'X-Seller-Email': sellerEmail || 'não configurado',
-      'Content-Type': 'application/json'
-    })
+    // ============================================
+    // LOG COMPLETO DO REQUEST PARA HOMOLOGAÇÃO
+    // ============================================
+    console.log('='.repeat(80))
+    console.log('📤 REQUEST COMPLETO - PagSeguro API (Para Homologação)')
+    console.log('='.repeat(80))
+    console.log('📡 Método: POST')
+    console.log('📡 URL:', `${apiUrl}/orders`)
+    console.log('📋 Headers Completos:')
+    console.log(JSON.stringify(headers, null, 2))
+    console.log('📦 Body (Request Payload) Completo:')
+    console.log(JSON.stringify(orderData, null, 2))
+    console.log('='.repeat(80))
     
     const orderResponse = await axios.post(
       `${apiUrl}/orders`,
@@ -317,6 +315,19 @@ export async function createPagSeguroPixPayment(data: {
       { headers }
     )
 
+    // ============================================
+    // LOG COMPLETO DO RESPONSE PARA HOMOLOGAÇÃO
+    // ============================================
+    console.log('='.repeat(80))
+    console.log('📥 RESPONSE COMPLETO - PagSeguro API (Para Homologação)')
+    console.log('='.repeat(80))
+    console.log('📊 Status Code:', orderResponse.status)
+    console.log('📋 Headers da Resposta:')
+    console.log(JSON.stringify(orderResponse.headers, null, 2))
+    console.log('📦 Body (Response Payload) Completo:')
+    console.log(JSON.stringify(orderResponse.data, null, 2))
+    console.log('='.repeat(80))
+    
     console.log('✅ Pedido PIX criado no PagSeguro:', orderResponse.data.id)
     
     // Extrair dados do QR code da resposta
@@ -365,7 +376,40 @@ export async function createPagSeguroPixPayment(data: {
     }
   } catch (error: any) {
     const errorData = error.response?.data || error.message
-    console.error('PagSeguro API Error (Create PIX Payment):', JSON.stringify(errorData, null, 2))
+    
+    // ============================================
+    // LOG COMPLETO DO ERRO PARA HOMOLOGAÇÃO
+    // ============================================
+    console.error('='.repeat(80))
+    console.error('❌ ERRO - PagSeguro API (Para Homologação)')
+    console.error('='.repeat(80))
+    console.error('📡 URL da Requisição:', `${apiUrl}/orders`)
+    console.error('📡 Método: POST')
+    
+    if (error.config) {
+      console.error('📋 Headers Enviados (Request):')
+      console.error(JSON.stringify(error.config.headers, null, 2))
+      console.error('📦 Body Enviado (Request Payload):')
+      try {
+        const requestData = typeof error.config.data === 'string' ? JSON.parse(error.config.data) : error.config.data
+        console.error(JSON.stringify(requestData, null, 2))
+      } catch (e) {
+        console.error(error.config.data)
+      }
+    }
+    
+    if (error.response) {
+      console.error('📊 Status Code da Resposta:', error.response.status)
+      console.error('📋 Headers da Resposta:')
+      console.error(JSON.stringify(error.response.headers, null, 2))
+      console.error('📦 Body da Resposta (Response Payload) Completo:')
+      console.error(JSON.stringify(error.response.data, null, 2))
+    } else {
+      console.error('❌ Erro de Rede ou Timeout')
+      console.error('📝 Mensagem:', error.message)
+      console.error('📝 Código:', error.code)
+    }
+    console.error('='.repeat(80))
 
     // Verificar se é erro de rede/API fora do ar
     if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' ||

@@ -2,6 +2,92 @@
 
 Este documento contém exemplos de requests e responses da integração com PagSeguro para pagamentos PIX, necessários para o processo de homologação.
 
+## 📋 Como Obter os Logs Completos (Request e Response)
+
+O sistema agora gera logs completos de todas as requisições e respostas da API do PagSeguro. Para obter os logs completos:
+
+### 1. **Logs no Terminal do Servidor**
+
+Quando você criar um pagamento PIX via PagSeguro, os logs completos aparecerão no terminal onde o servidor Next.js está rodando (`npm run dev`).
+
+**Procure por estas seções nos logs:**
+
+```
+================================================================================
+📤 REQUEST COMPLETO - PagSeguro API (Para Homologação)
+================================================================================
+📡 Método: POST
+📡 URL: https://sandbox.api.pagseguro.com/orders
+📋 Headers Completos:
+{
+  "Authorization": "Bearer seu_token_completo_aqui",
+  "App-Token": "seu_token_completo_aqui",
+  "Content-Type": "application/json",
+  "X-Seller-Email": "email@vendedor.com" // se configurado
+}
+📦 Body (Request Payload) Completo:
+{
+  "reference_id": "payment_...",
+  "customer": { ... },
+  "items": [ ... ],
+  "qr_codes": [ ... ]
+}
+================================================================================
+```
+
+E logo após:
+
+```
+================================================================================
+📥 RESPONSE COMPLETO - PagSeguro API (Para Homologação)
+================================================================================
+📊 Status Code: 201
+📋 Headers da Resposta:
+{ ... }
+📦 Body (Response Payload) Completo:
+{
+  "id": "ORD-...",
+  "reference_id": "payment_...",
+  "status": "IN_ANALYSIS",
+  ...
+}
+================================================================================
+```
+
+### 2. **Em Caso de Erro**
+
+Se houver erro, os logs completos também serão exibidos:
+
+```
+================================================================================
+❌ ERRO - PagSeguro API (Para Homologação)
+================================================================================
+📡 URL da Requisição: https://sandbox.api.pagseguro.com/orders
+📡 Método: POST
+📋 Headers Enviados (Request):
+{ ... }
+📦 Body Enviado (Request Payload):
+{ ... }
+📊 Status Code da Resposta: 401
+📋 Headers da Resposta:
+{ ... }
+📦 Body da Resposta (Response Payload) Completo:
+{
+  "error_messages": [ ... ]
+}
+================================================================================
+```
+
+### 3. **Copiar os Logs para Enviar à Equipe de Homologação**
+
+1. Execute um pagamento PIX no sistema
+2. Copie toda a seção entre `📤 REQUEST COMPLETO` e `📥 RESPONSE COMPLETO` do terminal
+3. Envie para a equipe de homologação
+
+**Importante:** Os logs incluem o token completo, então certifique-se de enviar apenas para a equipe de homologação autorizada.
+
+---
+
 ## Configuração
 
 ### Variáveis de Ambiente Necessárias
