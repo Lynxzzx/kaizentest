@@ -59,7 +59,7 @@ npm run dev
 ## Login Admin
 
 - Usuário: Lynx
-- Senha: eliezermito1
+- Senha: aaaaa
 
 ## Estrutura
 
