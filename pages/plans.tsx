@@ -136,6 +136,7 @@ export default function Plans() {
       }
       return
     }
+  }
 
   const createPixPayment = async (plan: Plan, email: string) => {
     setLoading(true)
