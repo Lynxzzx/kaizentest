@@ -71,15 +71,10 @@ export default function Plans() {
 
     // Para PIX, pedir email do cliente primeiro (obrigatório no PagSeguro)
     if (method === 'PIX') {
-      // Se o usuário já tem email cadastrado, usar direto
-      if (session.user.email) {
-        setCustomerEmail(session.user.email)
-        await createPixPayment(plan, session.user.email)
-      } else {
-        // Mostrar modal para coletar email
-        setPendingPayment({ plan, method })
-        setShowEmailModal(true)
-      }
+      // Sempre mostrar modal para coletar email (mesmo que o usuário tenha email cadastrado)
+      // Isso garante que o email seja válido e diferente do email do vendedor
+      setPendingPayment({ plan, method })
+      setShowEmailModal(true)
       return
     }
 
