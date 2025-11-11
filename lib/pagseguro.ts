@@ -234,32 +234,29 @@ export async function createPagSeguroPixPayment(data: {
     // Converter valor de reais para centavos
     const valueInCents = Math.round(data.amount * 100)
 
-    // Obter email do vendedor (se configurado) - usado também como fallback para cliente
+    // Obter email do vendedor (se configurado)
     const sellerEmail = await getPagSeguroSellerEmail()
     
     // Preparar dados do cliente
-    // O PagSeguro exige que customer.email seja obrigatório
+    // O PagSeguro exige que customer.email seja obrigatório e diferente do email do vendedor
     const customerData: any = {
       name: data.customer.name,
       tax_id: data.customer.tax_id.replace(/\D/g, '') // Remover formatação do CPF/CNPJ
     }
     
-    // O email é obrigatório no PagSeguro
-    // Se não tiver email do cliente, usar email do vendedor como fallback
-    if (data.customer.email && data.customer.email.trim().length > 0) {
-      customerData.email = data.customer.email.trim()
-    } else {
-      // Usar email do vendedor como fallback se o cliente não tiver email
-      if (sellerEmail) {
-        customerData.email = sellerEmail
-        console.log('⚠️ Cliente não tem email, usando email do vendedor como fallback:', sellerEmail)
-      } else {
-        // Último recurso: gerar email temporário baseado no nome
-        const tempEmail = `${data.customer.name.toLowerCase().replace(/\s+/g, '.')}@temp.pagseguro.local`
-        customerData.email = tempEmail
-        console.log('⚠️ Nenhum email disponível, usando email temporário:', tempEmail)
-      }
+    // Validar e usar email do cliente
+    if (!data.customer.email || data.customer.email.trim().length === 0) {
+      throw new Error('Email do cliente é obrigatório para pagamentos via PagSeguro')
     }
+    
+    const customerEmail = data.customer.email.trim()
+    
+    // Verificar se o email do cliente é diferente do email do vendedor
+    if (sellerEmail && customerEmail.toLowerCase() === sellerEmail.toLowerCase()) {
+      throw new Error('O email do cliente não pode ser igual ao email do vendedor. Por favor, use um email diferente.')
+    }
+    
+    customerData.email = customerEmail
 
     // O endpoint /orders é o correto para PIX com qr_codes (conforme documentação oficial)
     // Estrutura: orders com items e qr_codes (sem payment_method)

@@ -44,6 +44,9 @@ export default function Plans() {
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null)
   const [loading, setLoading] = useState(false)
   const [qrCodeImageError, setQrCodeImageError] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [customerEmail, setCustomerEmail] = useState('')
+  const [pendingPayment, setPendingPayment] = useState<{ plan: Plan; method: 'PIX' | 'CRYPTO' } | null>(null)
   const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
@@ -63,6 +66,20 @@ export default function Plans() {
     if (!session) {
       toast.error('Faça login para continuar')
       router.push('/login')
+      return
+    }
+
+    // Para PIX, pedir email do cliente primeiro (obrigatório no PagSeguro)
+    if (method === 'PIX') {
+      // Se o usuário já tem email cadastrado, usar direto
+      if (session.user.email) {
+        setCustomerEmail(session.user.email)
+        await createPixPayment(plan, session.user.email)
+      } else {
+        // Mostrar modal para coletar email
+        setPendingPayment({ plan, method })
+        setShowEmailModal(true)
+      }
       return
     }
 
@@ -125,45 +142,57 @@ export default function Plans() {
       return
     }
 
-    // Para PIX: criar pagamento normalmente
-    if (method === 'PIX') {
-      setLoading(true)
-      setSelectedPlan(plan)
-      setPaymentMethod(method)
+  const createPixPayment = async (plan: Plan, email: string) => {
+    setLoading(true)
+    setSelectedPlan(plan)
+    setPaymentMethod('PIX')
+    setShowEmailModal(false)
+    
+    try {
+      const response = await axios.post('/api/payments/create', {
+        planId: plan.id,
+        method: 'PIX',
+        customerEmail: email // Enviar email do cliente
+      })
       
-      try {
-        const response = await axios.post('/api/payments/create', {
-          planId: plan.id,
-          method
-        })
-        
-        // Mapear dados da resposta para o formato esperado
-        setPaymentData({
-          id: response.data.paymentId || response.data.id,
-          pixQrCodeImage: response.data.qrCodeImage || response.data.pixQrCodeImage,
-          pixQrCode: response.data.pixCopyPaste || response.data.pixQrCode,
-          pixCopyPaste: response.data.pixCopyPaste || response.data.pixQrCode,
-          expiresAt: response.data.expiresAt ? new Date(response.data.expiresAt) : undefined
-        })
-        setQrCodeImageError(false) // Resetar erro quando criar novo pagamento
-        
-        // Log para debug
-        console.log('Payment data received:', {
-          hasPixQrCodeImage: !!response.data.qrCodeImage || !!response.data.pixQrCodeImage,
-          pixQrCodeImageLength: (response.data.qrCodeImage || response.data.pixQrCodeImage)?.length || 0,
-          pixQrCodeImagePreview: (response.data.qrCodeImage || response.data.pixQrCodeImage)?.substring(0, 100) || 'null',
-          hasPixCopyPaste: !!response.data.pixCopyPaste || !!response.data.pixQrCode,
-          pixCopyPasteLength: (response.data.pixCopyPaste || response.data.pixQrCode)?.length || 0
-        })
-        
-        toast.success('Pagamento PIX criado com sucesso!')
-      } catch (error: any) {
-        console.error('Erro ao criar pagamento PIX:', error)
-        toast.error(error.response?.data?.error || error.response?.data?.message || 'Erro ao criar pagamento PIX')
-      } finally {
-        setLoading(false)
-      }
+      // Mapear dados da resposta para o formato esperado
+      setPaymentData({
+        id: response.data.paymentId || response.data.id,
+        pixQrCodeImage: response.data.qrCodeImage || response.data.pixQrCodeImage,
+        pixQrCode: response.data.pixCopyPaste || response.data.pixQrCode,
+        pixCopyPaste: response.data.pixCopyPaste || response.data.pixQrCode,
+        expiresAt: response.data.expiresAt ? new Date(response.data.expiresAt) : undefined
+      })
+      setQrCodeImageError(false) // Resetar erro quando criar novo pagamento
+      
+      // Log para debug
+      console.log('Payment data received:', {
+        hasPixQrCodeImage: !!response.data.qrCodeImage || !!response.data.pixQrCodeImage,
+        pixQrCodeImageLength: (response.data.qrCodeImage || response.data.pixQrCodeImage)?.length || 0,
+        pixQrCodeImagePreview: (response.data.qrCodeImage || response.data.pixQrCodeImage)?.substring(0, 100) || 'null',
+        hasPixCopyPaste: !!response.data.pixCopyPaste || !!response.data.pixQrCode,
+        pixCopyPasteLength: (response.data.pixCopyPaste || response.data.pixQrCode)?.length || 0
+      })
+      
+      toast.success('Pagamento PIX criado com sucesso!')
+    } catch (error: any) {
+      console.error('Erro ao criar pagamento PIX:', error)
+      toast.error(error.response?.data?.error || error.response?.data?.message || 'Erro ao criar pagamento PIX')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleEmailSubmit = () => {
+    // Validar email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!customerEmail || !emailRegex.test(customerEmail)) {
+      toast.error('Por favor, insira um email válido')
       return
+    }
+
+    if (pendingPayment && pendingPayment.method === 'PIX') {
+      createPixPayment(pendingPayment.plan, customerEmail)
     }
   }
 
@@ -249,6 +278,60 @@ export default function Plans() {
           </div>
         )}
       </div>
+
+      {/* Email Modal - Para coletar email do cliente antes de criar pagamento PIX */}
+      {showEmailModal && pendingPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${themeClasses.card} rounded-xl sm:rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl`}>
+            <h2 className={`text-xl sm:text-2xl font-bold mb-4 ${themeClasses.text.primary}`}>
+              Informe seu email
+            </h2>
+            <p className={`text-sm mb-4 ${themeClasses.text.secondary}`}>
+              O PagSeguro exige um email válido para processar o pagamento PIX. Este email será usado apenas para a transação.
+            </p>
+            <div className="mb-6">
+              <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                Email *
+              </label>
+              <input
+                type="email"
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="seu@email.com"
+                className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handleEmailSubmit()
+                  }
+                }}
+                autoFocus
+              />
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={handleEmailSubmit}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-semibold hover:from-primary-700 hover:to-primary-800 transition-all"
+              >
+                Continuar
+              </button>
+              <button
+                onClick={() => {
+                  setShowEmailModal(false)
+                  setPendingPayment(null)
+                  setCustomerEmail('')
+                }}
+                className={`px-4 py-3 rounded-lg font-semibold transition-colors ${
+                  theme === 'dark' 
+                    ? 'bg-white/10 text-white hover:bg-white/20' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Payment Modal */}
       {(paymentData || (paymentMethod && loading)) && selectedPlan && paymentMethod && (

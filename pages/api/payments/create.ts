@@ -83,13 +83,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           // Usar PagSeguro para PIX
           console.log('📦 Criando pagamento PIX via PagSeguro...')
           
+          // Obter email do cliente (prioridade: customerEmail do request > email do usuário)
+          const customerEmail = req.body.customerEmail || user.email || ''
+          
+          if (!customerEmail || customerEmail.trim().length === 0) {
+            return res.status(400).json({ 
+              error: 'Email do cliente é obrigatório para pagamentos via PagSeguro. Por favor, informe um email válido.' 
+            })
+          }
+          
           const referenceId = `payment_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
           
           const pagSeguroPayment = await createPagSeguroPixPayment({
             reference_id: referenceId,
             customer: {
               name: user.username,
-              email: user.email || '',
+              email: customerEmail.trim(),
               tax_id: cleanCpfCnpj(cpfCnpj)
             },
             amount: plan.price,
