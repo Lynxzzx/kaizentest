@@ -273,26 +273,19 @@ export async function createPagSeguroPixPayment(data: {
     const sellerEmail = await getPagSeguroSellerEmail()
     
     // Criar pedido via /orders (método correto para PIX)
-    // Nota: PagBank/PagSeguro pode exigir email do vendedor junto com o token
+    // Conforme documentação oficial do PagSeguro:
+    // Authorization: Bearer [TOKEN] (apenas o token, sem email)
+    // App-Token: [TOKEN]
+    // X-Seller-Email: [EMAIL] (opcional, mas recomendado)
     const headers: any = {
+      'Authorization': `Bearer ${key}`,
       'App-Token': key,
       'Content-Type': 'application/json'
     }
     
-    // Adicionar email do vendedor se configurado (alguns ambientes exigem)
+    // Adicionar email do vendedor se configurado (recomendado pela documentação)
     if (sellerEmail) {
       headers['X-Seller-Email'] = sellerEmail
-      // Alguns ambientes podem exigir no formato Authorization: Bearer email:token
-      // Mas vamos tentar primeiro com App-Token e X-Seller-Email
-    }
-    
-    // Adicionar Authorization Bearer também (alguns ambientes podem precisar)
-    if (sellerEmail) {
-      // Se tiver email, pode ser necessário usar formato email:token
-      headers['Authorization'] = `Bearer ${sellerEmail}:${key}`
-    } else {
-      // Sem email, usar apenas o token
-      headers['Authorization'] = `Bearer ${key}`
     }
     
     // ============================================
