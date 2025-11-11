@@ -251,6 +251,13 @@ export default function AdminDashboard() {
               <span className="font-semibold">Sorteios</span>
             </Link>
             <Link
+              href="/admin/feedback"
+              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg"
+            >
+              <span className="text-3xl mb-2">💬</span>
+              <span className="font-semibold">Feedbacks</span>
+            </Link>
+            <Link
               href="/admin/config"
               className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-lg hover:from-teal-600 hover:to-teal-700 transition-all shadow-md hover:shadow-lg"
             >

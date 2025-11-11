@@ -49,6 +49,8 @@ model User {
   rafflesWon Raffle[] @relation("RaffleWinner")
   raffleParticipants RaffleParticipant[] @relation("RaffleParticipant")
   systemConfigs SystemConfig[] @relation("SystemConfigUpdater")
+  feedbacks Feedback[]
+  feedbacksApproved Feedback[] @relation("FeedbackApprover")
 }
 
 enum UserRole {
@@ -273,6 +275,21 @@ model SystemConfig {
   isEncrypted Boolean  @default(false) // Se o valor está criptografado
   updatedById String?  @db.ObjectId // Admin que atualizou
   updatedBy   User?    @relation("SystemConfigUpdater", fields: [updatedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Feedback {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String?  @db.ObjectId // Opcional: pode ser feedback anônimo
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name        String   // Nome do usuário (pode ser anônimo)
+  message     String   // Mensagem do feedback
+  rating      Int?     // Nota de 1 a 5 (opcional)
+  isApproved  Boolean  @default(false) // Se foi aprovado pelo admin
+  approvedById String? @db.ObjectId // Admin que aprovou
+  approvedBy  User?    @relation("FeedbackApprover", fields: [approvedById], references: [id])
+  approvedAt  DateTime? // Data de aprovação
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

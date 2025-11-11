@@ -1,11 +1,37 @@
 import { useTranslation } from '@/lib/i18n-helper'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
+import { useState, useEffect } from 'react'
+import axios from 'axios'
 import Logo from '@/components/Logo'
+
+interface Feedback {
+  id: string
+  name: string
+  message: string
+  rating: number | null
+  createdAt: string
+  user: {
+    username: string
+  } | null
+}
 
 export default function Home() {
   const { t } = useTranslation()
   const { data: session } = useSession()
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
+
+  useEffect(() => {
+    // Carregar alguns feedbacks aprovados para mostrar na landing page
+    axios.get('/api/feedback')
+      .then(response => {
+        // Pegar apenas os 3 mais recentes
+        setFeedbacks(response.data.slice(0, 3))
+      })
+      .catch(() => {
+        // Ignorar erros silenciosamente
+      })
+  }, [])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden relative">
@@ -180,6 +206,70 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Feedbacks Section */}
+      {feedbacks.length > 0 && (
+        <section className="relative z-10 py-20 sm:py-24 md:py-32 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12 sm:mb-16">
+              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
+                  O que nossos clientes dizem
+                </span>
+              </h2>
+              <p className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto">
+                Veja o que nossos usuários estão falando sobre nossa plataforma
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-8">
+              {feedbacks.map((feedback) => (
+                <div
+                  key={feedback.id}
+                  className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="relative z-10">
+                    {feedback.rating && (
+                      <div className="flex items-center gap-1 mb-4">
+                        {[...Array(5)].map((_, i) => (
+                          <span key={i} className={i < feedback.rating! ? 'text-yellow-400' : 'text-gray-500'}>
+                            ⭐
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-sm sm:text-base text-gray-300 leading-relaxed mb-4 line-clamp-4">
+                      "{feedback.message}"
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                        {feedback.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-white">{feedback.name}</p>
+                        {feedback.user && (
+                          <p className="text-xs text-gray-400">@{feedback.user.username}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center">
+              <Link
+                href="/feedback"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-lg text-white font-semibold rounded-xl border border-white/30 hover:bg-white/20 transition-all shadow-xl hover:shadow-2xl"
+              >
+                <span>Ver todos os feedbacks</span>
+                <span>→</span>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA Section */}
       <section className="relative z-10 py-20 sm:py-24 md:py-32 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600">
