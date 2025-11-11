@@ -234,15 +234,31 @@ export async function createPagSeguroPixPayment(data: {
     // Converter valor de reais para centavos
     const valueInCents = Math.round(data.amount * 100)
 
-    // Preparar dados do cliente (não enviar email se estiver vazio)
+    // Obter email do vendedor (se configurado) - usado também como fallback para cliente
+    const sellerEmail = await getPagSeguroSellerEmail()
+    
+    // Preparar dados do cliente
+    // O PagSeguro exige que customer.email seja obrigatório
     const customerData: any = {
       name: data.customer.name,
       tax_id: data.customer.tax_id.replace(/\D/g, '') // Remover formatação do CPF/CNPJ
     }
     
-    // Adicionar email apenas se não estiver vazio
+    // O email é obrigatório no PagSeguro
+    // Se não tiver email do cliente, usar email do vendedor como fallback
     if (data.customer.email && data.customer.email.trim().length > 0) {
-      customerData.email = data.customer.email
+      customerData.email = data.customer.email.trim()
+    } else {
+      // Usar email do vendedor como fallback se o cliente não tiver email
+      if (sellerEmail) {
+        customerData.email = sellerEmail
+        console.log('⚠️ Cliente não tem email, usando email do vendedor como fallback:', sellerEmail)
+      } else {
+        // Último recurso: gerar email temporário baseado no nome
+        const tempEmail = `${data.customer.name.toLowerCase().replace(/\s+/g, '.')}@temp.pagseguro.local`
+        customerData.email = tempEmail
+        console.log('⚠️ Nenhum email disponível, usando email temporário:', tempEmail)
+      }
     }
 
     // O endpoint /orders é o correto para PIX com qr_codes (conforme documentação oficial)
@@ -268,9 +284,6 @@ export async function createPagSeguroPixPayment(data: {
         }
       ]
     }
-
-    // Obter email do vendedor (se configurado)
-    const sellerEmail = await getPagSeguroSellerEmail()
     
     // Criar pedido via /orders (método correto para PIX)
     // Conforme documentação oficial do PagSeguro:
