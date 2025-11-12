@@ -224,8 +224,7 @@ export const translations: Record<string, Record<string, string>> = {
     'currencySymbol': '$',
     'paymentMethodPix': 'PIX',
     'paymentMethodCrypto': 'Cryptocurrencies',
-    'qrCodePixAlt': 'PIX QR Code',
-    'bitcoin': 'Bitcoin'
+    'qrCodePixAlt': 'PIX QR Code'
   }
 }
 
