@@ -240,19 +240,42 @@ export default function Layout({ children }: LayoutProps) {
               )}
             </div>
             <div className="flex items-center space-x-2 md:space-x-4">
-              <select
-                value={locale}
-                onChange={(e) => changeLanguage(e.target.value)}
-                className={`px-2 py-1.5 md:px-3 md:py-2 rounded-lg text-xs md:text-sm hover:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors ${
+              <div className={`flex items-center gap-1 rounded-lg overflow-hidden border ${
                   theme === 'dark'
-                    ? 'bg-white/10 border border-white/20 text-white'
-                    : 'bg-white border border-gray-300 text-gray-900'
-                }`}
-                style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
-              >
-                <option value="pt-BR" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>🇧🇷 PT-BR</option>
-                <option value="en" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>🇺🇸 EN</option>
-              </select>
+                    ? 'border-white/20'
+                    : 'border-gray-300'
+                }`}>
+                <button
+                  onClick={() => changeLanguage('pt-BR')}
+                  className={`px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium transition-all flex items-center gap-2 ${
+                    locale === 'pt-BR'
+                      ? theme === 'dark'
+                        ? 'bg-primary-600 text-white'
+                        : 'bg-primary-600 text-white'
+                      : theme === 'dark'
+                        ? 'bg-white/10 text-white hover:bg-white/20'
+                        : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="text-base">🇧🇷</span>
+                  <span className="hidden sm:inline">PT-BR</span>
+                </button>
+                <button
+                  onClick={() => changeLanguage('en')}
+                  className={`px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium transition-all flex items-center gap-2 border-l ${
+                    locale === 'en'
+                      ? theme === 'dark'
+                        ? 'bg-primary-600 text-white border-white/20'
+                        : 'bg-primary-600 text-white border-gray-300'
+                      : theme === 'dark'
+                        ? 'bg-white/10 text-white hover:bg-white/20 border-white/20'
+                        : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'
+                  }`}
+                >
+                  <span className="text-base">🇺🇸</span>
+                  <span className="hidden sm:inline">EN</span>
+                </button>
+              </div>
               {session ? (
                 <div className="flex items-center space-x-2 md:space-x-3">
                   <Link
