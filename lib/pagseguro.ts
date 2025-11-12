@@ -461,14 +461,36 @@ export async function createPagSeguroPixPayment(data: {
   }
 }
 
-// Buscar status de um pagamento
-export async function getPagSeguroPayment(chargeId: string) {
+// Buscar status de um pagamento (pode ser Order ID ou Charge ID)
+export async function getPagSeguroPayment(paymentId: string) {
   try {
     const key = await getPagSeguroKey()
     const apiUrl = await getPagSeguroApiUrl()
 
+    // Tentar buscar como Order primeiro (formato ORD-...)
+    if (paymentId.startsWith('ORD-')) {
+      try {
+        const response = await axios.get(
+          `${apiUrl}/orders/${paymentId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${key}`,
+              'App-Token': key
+            }
+          }
+        )
+        return response.data
+      } catch (error: any) {
+        // Se falhar, tentar como Charge
+        if (error.response?.status !== 404) {
+          throw error
+        }
+      }
+    }
+
+    // Tentar buscar como Charge (formato CHG-...)
     const response = await axios.get(
-      `${apiUrl}/charges/${chargeId}`,
+      `${apiUrl}/charges/${paymentId}`,
       {
         headers: {
           'Authorization': `Bearer ${key}`,

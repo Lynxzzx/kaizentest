@@ -47,11 +47,48 @@ export default function Plans() {
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [customerEmail, setCustomerEmail] = useState('')
   const [pendingPayment, setPendingPayment] = useState<{ plan: Plan; method: 'PIX' | 'CRYPTO' } | null>(null)
+  const [checkingPayment, setCheckingPayment] = useState(false)
   const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
     loadPlans()
   }, [])
+
+  // Verificar status do pagamento PIX periodicamente
+  useEffect(() => {
+    if (!paymentData?.id || paymentMethod !== 'PIX' || checkingPayment) {
+      return
+    }
+
+    // Verificar a cada 5 segundos se o pagamento foi confirmado
+    const interval = setInterval(async () => {
+      if (!paymentData?.id) return
+
+      try {
+        setCheckingPayment(true)
+        const response = await axios.post('/api/payments/check-pix', {
+          paymentId: paymentData.id
+        })
+
+        if (response.data.status === 'PAID') {
+          clearInterval(interval)
+          toast.success('🎉 Pagamento confirmado! Seu plano foi ativado automaticamente!')
+          // Recarregar a página após 2 segundos para atualizar o plano do usuário
+          setTimeout(() => {
+            window.location.reload()
+          }, 2000)
+        }
+      } catch (error: any) {
+        // Ignorar erros silenciosamente (pode ser que o pagamento ainda não foi confirmado)
+        console.log('Verificando pagamento...')
+      } finally {
+        setCheckingPayment(false)
+      }
+    }, 5000) // Verificar a cada 5 segundos
+
+    // Limpar intervalo quando o componente desmontar ou o pagamento mudar
+    return () => clearInterval(interval)
+  }, [paymentData?.id, paymentMethod, checkingPayment])
 
   const loadPlans = async () => {
     try {
@@ -345,6 +382,15 @@ export default function Plans() {
                 </div>
               </div>
             ) : paymentData && (
+              <>
+                {checkingPayment && (
+                  <div className={`mb-4 p-3 rounded-lg ${theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-50 border border-blue-200'}`}>
+                    <p className={`text-sm flex items-center gap-2 ${theme === 'dark' ? 'text-blue-200' : 'text-blue-800'}`}>
+                      <span className="animate-spin">⏳</span>
+                      Verificando pagamento automaticamente... (a cada 5 segundos)
+                    </p>
+                  </div>
+                )}
               <div className="space-y-4">
                 {(paymentData.pixQrCodeImage || paymentData.pixQrCode || paymentData.pixCopyPaste) ? (
                   <>
@@ -393,8 +439,11 @@ export default function Plans() {
                       />
                     </div>
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-800 mb-2">
+                        <strong>Instruções:</strong> Escaneie o QR Code ou copie o código PIX.
+                      </p>
                       <p className="text-sm text-blue-800">
-                        <strong>Instruções:</strong> Escaneie o QR Code ou copie o código PIX. Após o pagamento, seu plano será ativado automaticamente.
+                        <strong>✨ Ativação Automática:</strong> O sistema verifica o pagamento a cada 5 segundos. Assim que o pagamento for confirmado, seu plano será ativado automaticamente!
                       </p>
                     </div>
                   </>
@@ -420,6 +469,7 @@ export default function Plans() {
                   </div>
                 )}
               </div>
+              </>
             ))}
 
             {paymentMethod === 'CRYPTO' && paymentData && (
