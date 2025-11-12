@@ -139,7 +139,7 @@ export default function Plans() {
           console.log('📋 Dados completos:', JSON.stringify(response.data, null, 2))
           setPaymentData(response.data)
           setQrCodeImageError(false)
-          toast.success('Pagamento via criptomoedas criado com sucesso!')
+          toast.success(t('cryptoPaymentCreated'))
           // Garantir que o modal apareça
           setPaymentMethod('CRYPTO')
           setSelectedPlan(plan)
@@ -285,7 +285,7 @@ export default function Plans() {
               <p className={`text-sm sm:text-base mb-4 sm:mb-6 min-h-[60px] ${themeClasses.text.secondary}`}>{plan.description}</p>
               <div className="mb-4 sm:mb-6">
                 <div className="flex items-baseline mb-2">
-                  <span className={`text-3xl sm:text-4xl font-extrabold ${themeClasses.text.primary}`}>R$</span>
+                  <span className={`text-3xl sm:text-4xl font-extrabold ${themeClasses.text.primary}`}>{t('currencySymbol')}</span>
                   <span className={`text-4xl sm:text-5xl font-extrabold ml-1 ${themeClasses.text.primary}`}>{plan.price.toFixed(2)}</span>
                 </div>
                 <p className={`${themeClasses.text.muted} text-xs sm:text-sm`}>{t('or')} {plan.duration} {t('daysAccess')}</p>
@@ -400,7 +400,7 @@ export default function Plans() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className={`${themeClasses.card} rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full mx-4 shadow-2xl my-4`}>
             <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${themeClasses.text.primary}`}>
-              {t('paymentVia')} {paymentMethod}
+              {t('paymentVia')} {paymentMethod === 'PIX' ? t('paymentMethodPix') : t('paymentMethodCrypto')}
             </h2>
             
             {paymentMethod === 'PIX' && (loading && !paymentData ? (
@@ -428,7 +428,7 @@ export default function Plans() {
                         // Exibir imagem base64 diretamente (QR code oficial do Asaas)
                         <img 
                           src={paymentData.pixQrCodeImage} 
-                          alt="QR Code PIX" 
+                          alt={t('qrCodePixAlt')} 
                           className="w-48 h-48 sm:w-64 sm:h-64 object-contain mx-auto"
                           onError={(e) => {
                             console.error('Erro ao carregar imagem QR code')
@@ -528,7 +528,7 @@ export default function Plans() {
                         {paymentData.bitcoinAmount?.toFixed(8)} {paymentData.currency || 'BTC'}
                       </p>
                       <p className={`text-sm ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                        (R$ {paymentData.originalAmount?.toFixed(2)})
+                        ({t('currencySymbol')} {paymentData.originalAmount?.toFixed(2)})
                       </p>
                     </div>
                     
@@ -570,7 +570,7 @@ export default function Plans() {
 
                     <div className={`${theme === 'dark' ? 'bg-green-500/20 border border-green-400/30' : 'bg-green-50 border border-green-200'} rounded-lg p-4`}>
                       <p className={`text-sm mb-2 ${theme === 'dark' ? 'text-green-200' : 'text-green-800'}`}>
-                        <strong>{t('network')}</strong> {paymentData.network || 'Bitcoin'}
+                        <strong>{t('network')}</strong> {paymentData.network || t('bitcoin')}
                       </p>
                       <p className={`text-xs ${theme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
                         {t('sendExactly')} <strong>{paymentData.bitcoinAmount?.toFixed(8)} {paymentData.currency || 'BTC'}</strong> {t('toAddressAbove')}

@@ -108,7 +108,13 @@ export const translations: Record<string, Record<string, string>> = {
     'errorInvalidEmail': 'Por favor, insira um email válido',
     'errorIncompletePaymentData': 'Erro: Dados de pagamento incompletos. Tente novamente.',
     'addressCopied': 'Endereço copiado!',
-    'errorCreatingPaymentCrypto': 'Erro ao criar pagamento via criptomoedas'
+    'errorCreatingPaymentCrypto': 'Erro ao criar pagamento via criptomoedas',
+    'cryptoPaymentCreated': 'Pagamento via criptomoedas criado com sucesso!',
+    'currencySymbol': 'R$',
+    'paymentMethodPix': 'PIX',
+    'paymentMethodCrypto': 'Criptomoedas',
+    'qrCodePixAlt': 'QR Code PIX',
+    'bitcoin': 'Bitcoin'
   },
   'en': {
     'siteName': 'Kaizen Gens',
@@ -214,7 +220,13 @@ export const translations: Record<string, Record<string, string>> = {
     'errorInvalidEmail': 'Please enter a valid email',
     'errorIncompletePaymentData': 'Error: Incomplete payment data. Please try again.',
     'addressCopied': 'Address copied!',
-    'errorCreatingPaymentCrypto': 'Error creating cryptocurrency payment'
+    'errorCreatingPaymentCrypto': 'Error creating cryptocurrency payment',
+    'cryptoPaymentCreated': 'Cryptocurrency payment created successfully!',
+    'currencySymbol': '$',
+    'paymentMethodPix': 'PIX',
+    'paymentMethodCrypto': 'Cryptocurrencies',
+    'qrCodePixAlt': 'PIX QR Code',
+    'bitcoin': 'Bitcoin'
   }
 }
 
