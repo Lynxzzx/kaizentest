@@ -113,8 +113,7 @@ export const translations: Record<string, Record<string, string>> = {
     'currencySymbol': 'R$',
     'paymentMethodPix': 'PIX',
     'paymentMethodCrypto': 'Criptomoedas',
-    'qrCodePixAlt': 'QR Code PIX',
-    'bitcoin': 'Bitcoin'
+    'qrCodePixAlt': 'QR Code PIX'
   },
   'en': {
     'siteName': 'Kaizen Gens',
