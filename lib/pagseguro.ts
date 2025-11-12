@@ -151,10 +151,10 @@ async function getPagSeguroApiUrl(): Promise<string> {
     }
   }
   
-  // Se ainda não foi definido, usar padrão baseado em NODE_ENV (apenas em desenvolvimento)
+  // Se ainda não foi definido, usar PRODUÇÃO por padrão (mudança para produção)
   if (isSandbox === null) {
-    isSandbox = process.env.NODE_ENV === 'development'
-    console.log(`📦 PAGSEGURO_SANDBOX padrão (NODE_ENV=${process.env.NODE_ENV}): ${isSandbox}`)
+    isSandbox = false // Padrão: PRODUÇÃO
+    console.log(`📦 PAGSEGURO_SANDBOX padrão: ${isSandbox} (PRODUÇÃO)`)
   }
   
   const baseUrl = isSandbox 
@@ -299,13 +299,14 @@ export async function createPagSeguroPixPayment(data: {
     }
     
     // ============================================
-    // LOG COMPLETO DO REQUEST PARA HOMOLOGAÇÃO
+    // LOG COMPLETO DO REQUEST - PRODUÇÃO
     // ============================================
     console.log('='.repeat(80))
-    console.log('📤 REQUEST COMPLETO - PagSeguro API (Para Homologação)')
+    console.log('📤 REQUEST COMPLETO - PagSeguro API PRODUÇÃO')
     console.log('='.repeat(80))
     console.log('📡 Método: POST')
     console.log('📡 URL:', `${apiUrl}/orders`)
+    console.log('🌐 Ambiente:', apiUrl.includes('sandbox') ? 'SANDBOX' : 'PRODUÇÃO')
     console.log('📋 Headers Completos:')
     console.log(JSON.stringify(headers, null, 2))
     console.log('📦 Body (Request Payload) Completo:')
@@ -319,12 +320,13 @@ export async function createPagSeguroPixPayment(data: {
     )
 
     // ============================================
-    // LOG COMPLETO DO RESPONSE PARA HOMOLOGAÇÃO
+    // LOG COMPLETO DO RESPONSE - PRODUÇÃO
     // ============================================
     console.log('='.repeat(80))
-    console.log('📥 RESPONSE COMPLETO - PagSeguro API (Para Homologação)')
+    console.log('📥 RESPONSE COMPLETO - PagSeguro API PRODUÇÃO')
     console.log('='.repeat(80))
     console.log('📊 Status Code:', orderResponse.status)
+    console.log('🌐 Ambiente:', apiUrl.includes('sandbox') ? 'SANDBOX' : 'PRODUÇÃO')
     console.log('📋 Headers da Resposta:')
     console.log(JSON.stringify(orderResponse.headers, null, 2))
     console.log('📦 Body (Response Payload) Completo:')
@@ -381,13 +383,14 @@ export async function createPagSeguroPixPayment(data: {
     const errorData = error.response?.data || error.message
     
     // ============================================
-    // LOG COMPLETO DO ERRO PARA HOMOLOGAÇÃO
+    // LOG COMPLETO DO ERRO - PRODUÇÃO
     // ============================================
     console.error('='.repeat(80))
-    console.error('❌ ERRO - PagSeguro API (Para Homologação)')
+    console.error('❌ ERRO - PagSeguro API PRODUÇÃO')
     console.error('='.repeat(80))
     console.error('📡 URL da Requisição:', `${apiUrl}/orders`)
     console.error('📡 Método: POST')
+    console.error('🌐 Ambiente:', apiUrl.includes('sandbox') ? 'SANDBOX' : 'PRODUÇÃO')
     
     if (error.config) {
       console.error('📋 Headers Enviados (Request):')
