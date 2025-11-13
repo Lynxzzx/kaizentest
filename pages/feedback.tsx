@@ -48,7 +48,7 @@ export default function FeedbackPage() {
       const response = await axios.get('/api/feedback')
       setFeedbacks(response.data)
     } catch (error) {
-      toast.error('Erro ao carregar feedbacks')
+      toast.error(t('errorLoadingFeedbacks'))
     } finally {
       setLoading(false)
     }
@@ -58,12 +58,12 @@ export default function FeedbackPage() {
     e.preventDefault()
     
     if (!formData.name.trim() || !formData.message.trim()) {
-      toast.error('Por favor, preencha todos os campos obrigatórios')
+      toast.error(t('pleaseFillAllFields'))
       return
     }
 
     if (formData.message.length < 10) {
-      toast.error('A mensagem deve ter pelo menos 10 caracteres')
+      toast.error(t('messageMinLength'))
       return
     }
 
@@ -75,7 +75,7 @@ export default function FeedbackPage() {
         rating: formData.rating
       })
       
-      toast.success('Feedback enviado com sucesso! Aguarde aprovação do administrador.')
+      toast.success(t('feedbackSentSuccess'))
       setFormData({
         name: session?.user?.username || '',
         message: '',
@@ -86,7 +86,7 @@ export default function FeedbackPage() {
         loadFeedbacks()
       }, 1000)
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erro ao enviar feedback')
+      toast.error(error.response?.data?.error || t('errorSendingFeedback'))
     } finally {
       setSubmitting(false)
     }
@@ -112,11 +112,11 @@ export default function FeedbackPage() {
         <div className="text-center mb-12">
           <h1 className={`text-4xl sm:text-5xl font-extrabold mb-4 ${themeClasses.text.primary}`}>
             <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
-              Feedbacks
+              {t('feedbacks')}
             </span>
           </h1>
           <p className={`text-lg sm:text-xl ${themeClasses.text.secondary} max-w-2xl mx-auto`}>
-            Compartilhe sua experiência conosco! Seu feedback ajuda a melhorar nossos serviços.
+            {t('shareYourExperience')}
           </p>
         </div>
 
@@ -125,12 +125,12 @@ export default function FeedbackPage() {
           <div className="lg:col-span-1">
             <div className={getCardClasses()}>
               <h2 className={`text-2xl font-bold mb-6 ${themeClasses.text.primary}`}>
-                Enviar Feedback
+                {t('sendFeedback')}
               </h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${themeClasses.text.primary}`}>
-                    Nome {session && <span className="text-xs text-gray-500">(ou use seu username)</span>}
+                    {t('nameOrUsername')}
                   </label>
                   <input
                     type="text"
@@ -141,14 +141,14 @@ export default function FeedbackPage() {
                         ? 'bg-white/10 border-white/20 text-white placeholder-gray-400' 
                         : 'bg-white border-gray-300 text-gray-900'
                     } focus:outline-none focus:ring-2 focus:ring-purple-500`}
-                    placeholder="Seu nome"
+                    placeholder={t('yourName')}
                     required
                     disabled={submitting}
                   />
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${themeClasses.text.primary}`}>
-                    Avaliação (opcional)
+                    {t('ratingOptional')}
                   </label>
                   <div className="flex items-center gap-2">
                     {[1, 2, 3, 4, 5].map((rating) => (
@@ -171,7 +171,7 @@ export default function FeedbackPage() {
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-2 ${themeClasses.text.primary}`}>
-                    Mensagem *
+                    {t('message')}
                   </label>
                   <textarea
                     value={formData.message}
@@ -182,12 +182,12 @@ export default function FeedbackPage() {
                         ? 'bg-white/10 border-white/20 text-white placeholder-gray-400' 
                         : 'bg-white border-gray-300 text-gray-900'
                     } focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none`}
-                    placeholder="Compartilhe sua experiência, sugestões ou elogios..."
+                    placeholder={t('shareExperiencePlaceholder')}
                     required
                     disabled={submitting}
                   />
                   <p className={`text-xs mt-1 ${themeClasses.text.muted}`}>
-                    {formData.message.length}/1000 caracteres (mínimo 10)
+                    {formData.message.length}/1000 {t('charactersCount')}
                   </p>
                 </div>
                 <button
@@ -195,10 +195,10 @@ export default function FeedbackPage() {
                   disabled={submitting || formData.message.length < 10}
                   className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'Enviando...' : 'Enviar Feedback'}
+                  {submitting ? t('sending') : t('sendFeedbackButton')}
                 </button>
                 <p className={`text-xs text-center ${themeClasses.text.muted}`}>
-                  ⚠️ Seu feedback será revisado antes de ser publicado
+                  {t('feedbackWillBeReviewed')}
                 </p>
               </form>
             </div>
@@ -208,7 +208,7 @@ export default function FeedbackPage() {
           <div className="lg:col-span-2">
             <div className="mb-6">
               <h2 className={`text-2xl font-bold ${themeClasses.text.primary}`}>
-                Feedbacks Aprovados ({feedbacks.length})
+                {t('approvedFeedbacks')} ({feedbacks.length})
               </h2>
             </div>
 
@@ -220,10 +220,10 @@ export default function FeedbackPage() {
               <div className={`${getCardClasses()} text-center py-12`}>
                 <div className="text-6xl mb-4">💬</div>
                 <p className={`text-xl font-semibold ${themeClasses.text.primary} mb-2`}>
-                  Nenhum feedback ainda
+                  {t('noFeedbackYet')}
                 </p>
                 <p className={themeClasses.text.muted}>
-                  Seja o primeiro a compartilhar sua experiência!
+                  {t('beFirstToShare')}
                 </p>
               </div>
             ) : (

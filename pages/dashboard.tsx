@@ -108,7 +108,7 @@ export default function Dashboard() {
       const response = await axios.get('/api/services')
       setServices(response.data)
     } catch (error) {
-      toast.error('Erro ao carregar serviços')
+      toast.error(t('errorLoadingServices'))
     }
   }
 
@@ -128,7 +128,7 @@ export default function Dashboard() {
   const copyAffiliateLink = (code: string) => {
     const link = `${typeof window !== 'undefined' ? window.location.origin : ''}/register?ref=${code}`
     navigator.clipboard.writeText(link)
-    toast.success('Link de afiliado copiado!')
+    toast.success(t('affiliateLinkCopied'))
   }
 
   const getAffiliateLink = (code: string) => {
@@ -138,7 +138,7 @@ export default function Dashboard() {
 
   const handleGenerateAccount = async () => {
     if (!selectedService) {
-      toast.error('Selecione um serviço')
+      toast.error(t('selectService'))
       return
     }
 
@@ -148,10 +148,10 @@ export default function Dashboard() {
         serviceId: selectedService
       })
       setGeneratedAccount(response.data)
-      toast.success('Conta gerada com sucesso!')
+      toast.success(t('accountGeneratedSuccess'))
       loadUserPlan() // Recarregar plano para atualizar contagens
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erro ao gerar conta')
+      toast.error(error.response?.data?.error || t('errorGeneratingAccount'))
     } finally {
       setLoading(false)
     }
@@ -162,7 +162,7 @@ export default function Dashboard() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600">Carregando...</p>
+          <p className="mt-4 text-gray-600">{t('loading')}</p>
         </div>
       </div>
     )
@@ -180,14 +180,14 @@ export default function Dashboard() {
             <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-2 ${textClasses.primary}`}>
               {t('dashboard')}
             </h1>
-            <p className={`text-sm sm:text-base ${textClasses.secondary}`}>Bem-vindo, {session.user.username}!</p>
+            <p className={`text-sm sm:text-base ${textClasses.secondary}`}>{t('welcome')}, {session.user.username}!</p>
           </div>
           <Link
             href={`/profile/${session.user.username}`}
             className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all shadow-md"
           >
             <span>👤</span>
-            <span className="font-bold">Ver Perfil</span>
+            <span className="font-bold">{t('viewProfile')}</span>
           </Link>
         </div>
 
@@ -208,7 +208,7 @@ export default function Dashboard() {
                   <p className={`${textClasses.secondary} mb-4`}>{userPlan.plan.description}</p>
                   {userPlan.planExpiresAt && (
                     <div className={`flex items-center justify-between pt-4 border-t ${theme === 'dark' ? 'border-white/20' : 'border-purple-200'}`}>
-                      <span className={`text-sm font-medium ${theme === 'dark' ? 'text-purple-300' : 'text-purple-600'}`}>Expira em:</span>
+                      <span className={`text-sm font-medium ${theme === 'dark' ? 'text-purple-300' : 'text-purple-600'}`}>{t('expiresIn')}:</span>
                       <span className={`text-sm font-bold ${theme === 'dark' ? 'text-purple-200' : 'text-purple-900'}`}>
                         {format(new Date(userPlan.planExpiresAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
                       </span>
@@ -217,13 +217,13 @@ export default function Dashboard() {
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200'} rounded-lg p-3`}>
-                    <p className={textClasses.secondary}>Duração</p>
-                    <p className={`font-bold ${textClasses.primary}`}>{userPlan.plan.duration} dias</p>
+                    <p className={textClasses.secondary}>{t('duration')}</p>
+                    <p className={`font-bold ${textClasses.primary}`}>{userPlan.plan.duration} {t('days')}</p>
                   </div>
                   <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200'} rounded-lg p-3`}>
-                    <p className={textClasses.secondary}>Gerações</p>
+                    <p className={textClasses.secondary}>{t('generations')}</p>
                     <p className={`font-bold ${textClasses.primary}`}>
-                      {userPlan.plan.maxGenerations === 0 ? 'Ilimitadas' : userPlan.plan.maxGenerations}
+                      {userPlan.plan.maxGenerations === 0 ? t('unlimited') : userPlan.plan.maxGenerations}
                     </p>
                   </div>
                 </div>
@@ -237,18 +237,18 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600 mb-2">
-                  Plano Free
+                  {t('freePlan')}
                 </h3>
-                <p className={`${textClasses.secondary} mb-4`}>Você está usando o plano gratuito</p>
+                <p className={`${textClasses.secondary} mb-4`}>{t('youAreUsingFreePlan')}</p>
                 <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200'} rounded-lg p-4 mb-6`}>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <p className={textClasses.secondary}>Gerações diárias</p>
-                      <p className={`font-bold ${textClasses.primary}`}>2 grátis</p>
+                      <p className={textClasses.secondary}>{t('dailyGenerations')}</p>
+                      <p className={`font-bold ${textClasses.primary}`}>2 {t('free')}</p>
                     </div>
                     <div>
-                      <p className={textClasses.secondary}>Status</p>
-                      <p className="font-bold text-green-600">Ativo</p>
+                      <p className={textClasses.secondary}>{t('status')}</p>
+                      <p className="font-bold text-green-600">{t('active')}</p>
                     </div>
                   </div>
                 </div>
@@ -256,7 +256,7 @@ export default function Dashboard() {
                   href="/plans"
                   className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
-                  Upgrade para Premium
+                  {t('upgradeToPremium')}
                 </a>
               </div>
             )}
@@ -279,7 +279,7 @@ export default function Dashboard() {
                   className={`${getThemeClasses(theme).input} w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
                   style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
                 >
-                  <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Selecione um serviço</option>
+                  <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>{t('selectService')}</option>
                   {services
                     .filter((service) => service._count.stocks > 0)
                     .map((service) => (
@@ -304,7 +304,7 @@ export default function Dashboard() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Gerando...
+                    {t('generating')}
                   </span>
                 ) : (
                   t('generateAccount')
@@ -313,10 +313,10 @@ export default function Dashboard() {
               {!userPlan?.plan && (
                 <div className="text-sm text-center">
                   <p className="text-red-600 mb-2">
-                    Você não possui um plano ativo
+                    {t('youDontHaveActivePlan')}
                   </p>
                   <p className="text-green-600 font-medium">
-                    💡 Você tem 2 gerações grátis por dia!
+                    {t('youHave2FreeGenerations')}
                   </p>
                 </div>
               )}
@@ -327,11 +327,11 @@ export default function Dashboard() {
         {/* Generated Account */}
         {generatedAccount && (
           <div className={`${getCardClasses()} animate-slide-up mb-6 sm:mb-8`}>
-            <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${textClasses.primary}`}>Conta Gerada com Sucesso! ✅</h2>
+            <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${textClasses.primary}`}>{t('accountGeneratedSuccess')}</h2>
             <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200'} rounded-xl p-6`}>
               {/* Formato account:pass */}
               <div className="mb-6">
-                <label className={`block text-sm font-semibold mb-2 ${textClasses.primary}`}>Conta (formato: account:pass):</label>
+                <label className={`block text-sm font-semibold mb-2 ${textClasses.primary}`}>{t('accountFormat')}</label>
                 <div className={`flex items-center gap-2 p-4 ${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white rounded-lg border border-green-100'}`}>
                   <span className={`font-mono font-bold flex-1 break-all ${textClasses.primary}`}>
                     {generatedAccount.email || generatedAccount.username}:{generatedAccount.password}
@@ -340,10 +340,10 @@ export default function Dashboard() {
                     onClick={() => {
                       const fullAccount = `${generatedAccount.email || generatedAccount.username}:${generatedAccount.password}`
                       navigator.clipboard.writeText(fullAccount)
-                      toast.success('Conta completa copiada!')
+                      toast.success(t('copyFullAccount'))
                     }}
                     className="flex-shrink-0 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
-                    title="Copiar conta completa"
+                    title={t('copyFullAccount')}
                   >
                     📋
                   </button>
@@ -355,17 +355,17 @@ export default function Dashboard() {
                 <div className={`p-4 ${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white rounded-lg border border-green-100'}`}>
                   <div className="flex items-center justify-between mb-2">
                     <span className={`font-semibold ${textClasses.primary}`}>
-                      {generatedAccount.email ? 'Email/Usuário:' : 'Usuário:'}
+                      {generatedAccount.email ? t('emailUser') : t('usernameLabel')}
                     </span>
                     <button
                       onClick={() => {
                         const account = generatedAccount.email || generatedAccount.username
                         navigator.clipboard.writeText(account)
-                        toast.success('Email/Usuário copiado!')
+                        toast.success(t('emailUserCopied'))
                       }}
                       className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
                     >
-                      📋 Copiar
+                      {t('copy')}
                     </button>
                   </div>
                   <span className={`font-mono font-bold block break-all ${textClasses.primary}`}>
@@ -374,15 +374,15 @@ export default function Dashboard() {
                 </div>
                 <div className={`p-4 ${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white rounded-lg border border-green-100'}`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`font-semibold ${textClasses.primary}`}>Senha:</span>
+                    <span className={`font-semibold ${textClasses.primary}`}>{t('password')}</span>
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(generatedAccount.password)
-                        toast.success('Senha copiada!')
+                        toast.success(t('passwordCopied'))
                       }}
                       className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
                     >
-                      📋 Copiar
+                      {t('copy')}
                     </button>
                   </div>
                   <span className={`font-mono font-bold block break-all ${textClasses.primary}`}>
@@ -394,15 +394,15 @@ export default function Dashboard() {
               {/* Mensagem de aviso */}
               <div className={`mt-6 ${theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-50 border border-blue-200'} rounded-lg p-4`}>
                 <p className={`text-sm mb-2 ${theme === 'dark' ? 'text-blue-200' : 'text-blue-800'}`}>
-                  <strong>ℹ️ Informação Importante:</strong>
+                  <strong>{t('importantInfo')}</strong>
                 </p>
                 <p className={`text-sm ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                  Se a conta não funcionar, não há problema! Você pode gerar novamente. Às vezes o estoque pode estar vencendo ou alguém pode ter trocado a senha.
+                  {t('accountNotWorkingInfo')}
                 </p>
               </div>
               <div className={`mt-4 ${theme === 'dark' ? 'bg-yellow-500/20 border border-yellow-400/30' : 'bg-yellow-50 border border-yellow-200'} rounded-lg p-4`}>
                 <p className={`text-sm ${theme === 'dark' ? 'text-yellow-200' : 'text-yellow-800'}`}>
-                  <strong>⚠️ Importante:</strong> Salve estas credenciais em um local seguro. Elas não serão exibidas novamente.
+                  <strong>{t('saveCredentials')}</strong>
                 </p>
               </div>
             </div>
@@ -415,12 +415,12 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <div className="flex items-center gap-3">
                 <span className="text-3xl sm:text-4xl">🎁</span>
-                <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>Seu Link de Afiliado</h2>
+                <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>{t('yourAffiliateLink')}</h2>
               </div>
             </div>
             <div className="space-y-4">
               <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-white/80 backdrop-blur-sm border border-purple-200'} rounded-xl p-4`}>
-                <p className={`text-sm mb-2 font-semibold ${textClasses.secondary}`}>Link para compartilhar:</p>
+                <p className={`text-sm mb-2 font-semibold ${textClasses.secondary}`}>{t('linkToShare')}</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="text"
@@ -432,13 +432,13 @@ export default function Dashboard() {
                     onClick={() => copyAffiliateLink(userPlan.affiliateCode!)}
                     className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg font-semibold whitespace-nowrap"
                   >
-                    📋 Copiar Link
+                    {t('copyLink')}
                   </button>
                 </div>
               </div>
               <div className={`${theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-50 border border-blue-200'} rounded-lg p-3`}>
                 <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-blue-200' : 'text-blue-800'}`}>
-                  <strong>💡 Dica:</strong> Compartilhe este link com seus amigos! Quando eles se cadastrarem através do seu link, você ganha 2 gerações grátis e eles também ganham 2 gerações grátis!
+                  <strong>{t('affiliateTip')}</strong>
                 </p>
               </div>
               <div className="flex justify-center">
@@ -446,7 +446,7 @@ export default function Dashboard() {
                   href="/affiliate"
                   className={`text-sm font-semibold hover:underline ${theme === 'dark' ? 'text-purple-300 hover:text-purple-200' : 'text-purple-600 hover:text-purple-700'}`}
                 >
-                  Ver estatísticas completas de afiliados →
+                  {t('viewFullAffiliateStats')}
                 </Link>
               </div>
             </div>
@@ -455,7 +455,7 @@ export default function Dashboard() {
 
         {/* Available Services */}
         <div className={`mt-6 sm:mt-8 ${getCardClasses()}`}>
-          <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${textClasses.primary}`}>Serviços Disponíveis</h2>
+          <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${textClasses.primary}`}>{t('availableServices')}</h2>
           {services.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {services.map((service) => (
@@ -474,7 +474,7 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className={`font-bold ${textClasses.primary}`}>{service.name}</h3>
-                      <p className={`text-sm ${textClasses.secondary}`}>{service._count.stocks} disponíveis</p>
+                      <p className={`text-sm ${textClasses.secondary}`}>{service._count.stocks} {t('available')}</p>
                     </div>
                     {service._count.stocks > 0 ? (
                       <span className="text-2xl">✅</span>
@@ -486,7 +486,7 @@ export default function Dashboard() {
               ))}
             </div>
           ) : (
-            <p className={`${textClasses.secondary} text-center py-8`}>Nenhum serviço disponível no momento.</p>
+            <p className={`${textClasses.secondary} text-center py-8`}>{t('noServicesAvailable')}</p>
           )}
         </div>
       </div>

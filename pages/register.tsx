@@ -32,12 +32,12 @@ export default function Register() {
     e.preventDefault()
 
     if (password !== confirmPassword) {
-      toast.error('As senhas não coincidem')
+      toast.error(t('passwordsDontMatch'))
       return
     }
 
     if (password.length < 6) {
-      toast.error('A senha deve ter pelo menos 6 caracteres')
+      toast.error(t('passwordMinLength'))
       return
     }
 
@@ -63,7 +63,7 @@ export default function Register() {
 
       clearTimeout(timeoutId)
       
-      toast.success('Conta criada com sucesso!')
+      toast.success(t('accountCreatedSuccess'))
       
       const loginResult = await signIn('credentials', {
         redirect: false,
@@ -72,16 +72,16 @@ export default function Register() {
       })
 
       if (loginResult?.error) {
-        toast.error('Conta criada, mas erro ao fazer login automático. Faça login manualmente.')
+        toast.error(t('accountCreatedButLoginError'))
         router.push('/login')
       } else {
-        toast.success('Login realizado com sucesso!')
+        toast.success(t('loginSuccess'))
         router.push('/dashboard')
       }
     } catch (error: any) {
       console.error('Register error:', error)
       
-      let errorMessage = 'Erro ao criar conta'
+      let errorMessage = t('errorCreatingAccount')
       
       if (error.code === 'ECONNABORTED' || error.message === 'canceled') {
         errorMessage = 'Timeout: A requisição demorou muito. Verifique sua conexão com o banco de dados.'
@@ -96,7 +96,7 @@ export default function Register() {
       })
       
       if (errorMessage.includes('conexão') || errorMessage.includes('banco de dados') || errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
-        toast.error('Verifique se o MongoDB está acessível e a DATABASE_URL está correta no .env', {
+        toast.error(t('checkMongoDB'), {
           duration: 8000
         })
       }
@@ -113,12 +113,12 @@ export default function Register() {
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl mb-4">
               <span className="text-white font-bold text-2xl">K</span>
             </div>
-            <h2 className={`text-3xl font-bold mb-2 ${themeClasses.text.primary}`}>Criar Conta</h2>
-            <p className={themeClasses.text.secondary}>Junte-se a nós e comece agora</p>
+            <h2 className={`text-3xl font-bold mb-2 ${themeClasses.text.primary}`}>{t('createAccount')}</h2>
+            <p className={themeClasses.text.secondary}>{t('joinUs')}</p>
             {affiliateRef && (
               <div className="mt-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
                 <p className="text-sm text-green-800 font-semibold">
-                  🎁 Você ganhará 2 gerações grátis ao se cadastrar através deste link!
+                  {t('youWillGet2FreeGenerations')}
                 </p>
               </div>
             )}
@@ -133,21 +133,21 @@ export default function Register() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
-                placeholder="Digite seu usuário"
+                placeholder={t('enterUsername')}
                 required
                 minLength={3}
               />
             </div>
             <div>
               <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
-                {t('email')} <span className={`${themeClasses.text.muted} font-normal`}>(Opcional)</span>
+                {t('email')} <span className={`${themeClasses.text.muted} font-normal`}>{t('emailOptional')}</span>
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
-                placeholder="Digite seu email"
+                placeholder={t('enterEmail')}
               />
             </div>
             <div>
@@ -159,21 +159,21 @@ export default function Register() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
-                placeholder="Digite sua senha (mín. 6 caracteres)"
+                placeholder={t('enterPassword')}
                 required
                 minLength={6}
               />
             </div>
             <div>
               <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
-                Confirmar {t('password')}
+                {t('confirmPassword')}
               </label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
-                placeholder="Confirme sua senha"
+                placeholder={t('enterConfirmPassword')}
                 required
                 minLength={6}
               />
@@ -189,16 +189,16 @@ export default function Register() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Criando conta...
+                  {t('creating')}
                 </span>
               ) : (
-                'Criar Conta'
+                t('createAccount')
               )}
             </button>
           </form>
           <div className="mt-6 text-center">
             <p className={`text-sm ${themeClasses.text.secondary}`}>
-              Já tem uma conta?{' '}
+              {t('alreadyHaveAccount')}{' '}
               <Link href="/login" className="font-semibold text-primary-600 hover:text-primary-700 hover:underline">
                 {t('login')}
               </Link>
@@ -207,7 +207,7 @@ export default function Register() {
         </div>
         <div className="mt-6 text-center">
           <Link href="/" className={`text-sm ${themeClasses.text.secondary} hover:${themeClasses.text.primary} hover:underline`}>
-            ← Voltar para a página inicial
+            {t('backToHome')}
           </Link>
         </div>
       </div>
