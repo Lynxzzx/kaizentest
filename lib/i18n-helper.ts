@@ -158,7 +158,44 @@ export const translations: Record<string, Record<string, string>> = {
     'currencySymbol': 'R$',
     'paymentMethodPix': 'PIX',
     'paymentMethodCrypto': 'Criptomoedas',
-    'qrCodePixAlt': 'QR Code PIX'
+    'qrCodePixAlt': 'QR Code PIX',
+    // Landing Page
+    'heroSubtitle': 'Gere contas premium para os melhores serviços',
+    'heroDescription': 'Acesso rápido, seguro e confiável às plataformas mais populares',
+    'startNow': 'Começar Agora',
+    'viewPlans': 'Ver Planos',
+    'whyChooseUs': 'Por que escolher a gente?',
+    'whyChooseUsDesc': 'Tecnologia avançada, segurança máxima e experiência premium',
+    'fastInstant': 'Rápido e Instantâneo',
+    'fastInstantDesc': 'Gere contas em segundos com nossa tecnologia de ponta. Sem espera, sem complicação.',
+    'secure100': '100% Seguro',
+    'secure100Desc': 'Criptografia de nível bancário e proteção avançada para garantir total segurança dos seus dados.',
+    'multipleServices': 'Múltiplos Serviços',
+    'multipleServicesDesc': 'Acesso a diversas plataformas populares com um único plano. Streaming, gaming e muito mais.',
+    'premiumQuality': 'Premium Quality',
+    'premiumQualityDesc': 'Contas de alta qualidade testadas e verificadas para garantir a melhor experiência.',
+    'support247': 'Suporte 24/7',
+    'support247Desc': 'Equipe especializada disponível sempre que precisar. Resolvemos qualquer questão rapidamente.',
+    'freePlan': 'Plano Gratuito',
+    'freePlanDesc': 'Comece com 2 gerações grátis por dia. Sem compromisso, sem cartão de crédito.',
+    'whatClientsSay': 'O que nossos clientes dizem',
+    'whatClientsSayDesc': 'Veja o que nossos usuários estão falando sobre nossa plataforma',
+    'viewAllFeedbacks': 'Ver todos os feedbacks',
+    'readyToStart': 'Pronto para começar?',
+    'readyToStartDesc': 'Escolha um plano e tenha acesso imediato a todos os nossos serviços premium',
+    'createFreeAccount': 'Criar Conta Grátis',
+    // Layout Menu
+    'affiliates': 'Afiliados',
+    'raffles': 'Sorteios',
+    'support': 'Suporte',
+    'feedbacks': 'Feedbacks',
+    'redeemKey': 'Resgatar Chave',
+    'settings': 'Configurações',
+    'chat': 'Chat',
+    'tickets': 'Tickets',
+    'administrator': 'Administrador',
+    'user': 'Usuário',
+    'allRightsReserved': 'Todos os direitos reservados'
   },
   'en': {
     'siteName': 'Kaizen Gens',
@@ -269,8 +306,83 @@ export const translations: Record<string, Record<string, string>> = {
     'currencySymbol': '$',
     'paymentMethodPix': 'PIX',
     'paymentMethodCrypto': 'Cryptocurrencies',
-    'qrCodePixAlt': 'PIX QR Code'
+    'qrCodePixAlt': 'PIX QR Code',
+    // Landing Page
+    'heroSubtitle': 'Generate premium accounts for the best services',
+    'heroDescription': 'Fast, secure and reliable access to the most popular platforms',
+    'startNow': 'Start Now',
+    'viewPlans': 'View Plans',
+    'whyChooseUs': 'Why choose us?',
+    'whyChooseUsDesc': 'Advanced technology, maximum security and premium experience',
+    'fastInstant': 'Fast and Instant',
+    'fastInstantDesc': 'Generate accounts in seconds with our cutting-edge technology. No waiting, no complications.',
+    'secure100': '100% Secure',
+    'secure100Desc': 'Bank-level encryption and advanced protection to ensure total security of your data.',
+    'multipleServices': 'Multiple Services',
+    'multipleServicesDesc': 'Access to various popular platforms with a single plan. Streaming, gaming and much more.',
+    'premiumQuality': 'Premium Quality',
+    'premiumQualityDesc': 'High-quality accounts tested and verified to ensure the best experience.',
+    'support247': '24/7 Support',
+    'support247Desc': 'Specialized team available whenever you need. We solve any issue quickly.',
+    'freePlan': 'Free Plan',
+    'freePlanDesc': 'Start with 2 free generations per day. No commitment, no credit card.',
+    'whatClientsSay': 'What our clients say',
+    'whatClientsSayDesc': 'See what our users are saying about our platform',
+    'viewAllFeedbacks': 'View all feedbacks',
+    'readyToStart': 'Ready to start?',
+    'readyToStartDesc': 'Choose a plan and get immediate access to all our premium services',
+    'createFreeAccount': 'Create Free Account',
+    // Layout Menu
+    'affiliates': 'Affiliates',
+    'raffles': 'Raffles',
+    'support': 'Support',
+    'feedbacks': 'Feedbacks',
+    'redeemKey': 'Redeem Key',
+    'settings': 'Settings',
+    'chat': 'Chat',
+    'tickets': 'Tickets',
+    'administrator': 'Administrator',
+    'user': 'User',
+    'allRightsReserved': 'All rights reserved'
   }
+}
+
+// Função para traduzir texto dinâmico (como mensagens de feedback)
+export function useDynamicTranslation() {
+  const router = useRouter()
+  const locale = (router?.locale || 'pt-BR') as keyof typeof translations
+  const [translatedTexts, setTranslatedTexts] = useState<Record<string, string>>({})
+  const translatingRef = useRef<Set<string>>(new Set())
+
+  const translate = useCallback(async (text: string): Promise<string> => {
+    if (!text || locale !== 'en') {
+      return text
+    }
+
+    // Verificar cache
+    if (translatedTexts[text]) {
+      return translatedTexts[text]
+    }
+
+    // Se já está traduzindo, retornar original
+    if (translatingRef.current.has(text)) {
+      return text
+    }
+
+    // Iniciar tradução
+    translatingRef.current.add(text)
+    try {
+      const translated = await translateText(text, 'pt', 'en')
+      setTranslatedTexts(prev => ({ ...prev, [text]: translated }))
+      translatingRef.current.delete(text)
+      return translated
+    } catch (error) {
+      translatingRef.current.delete(text)
+      return text
+    }
+  }, [locale, translatedTexts])
+
+  return { translate }
 }
 
 export function useTranslation() {

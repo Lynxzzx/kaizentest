@@ -119,7 +119,7 @@ export default function Layout({ children }: LayoutProps) {
                               : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                           }`}
                         >
-                          Afiliados
+                          {t('affiliates')}
                         </Link>
                         <Link
                           href="/raffles"
@@ -129,7 +129,7 @@ export default function Layout({ children }: LayoutProps) {
                               : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                           }`}
                         >
-                          🎲 Sorteios
+                          🎲 {t('raffles')}
                         </Link>
                         <Link
                           href="/tickets"
@@ -139,7 +139,7 @@ export default function Layout({ children }: LayoutProps) {
                               : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                           }`}
                         >
-                          Suporte
+                          {t('support')}
                         </Link>
                         <Link
                           href="/feedback"
@@ -149,7 +149,7 @@ export default function Layout({ children }: LayoutProps) {
                               : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                           }`}
                         >
-                          💬 Feedbacks
+                          💬 {t('feedbacks')}
                         </Link>
                     <Link
                       href="/keys/redeem"
@@ -159,7 +159,7 @@ export default function Layout({ children }: LayoutProps) {
                           : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
-                      Resgatar Chave
+                      {t('redeemKey')}
                     </Link>
                     <Link
                       href="/settings"
@@ -169,7 +169,7 @@ export default function Layout({ children }: LayoutProps) {
                           : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
-                      ⚙️ Configurações
+                      ⚙️ {t('settings')}
                     </Link>
                     <button
                       onClick={() => setChatboxOpen(!chatboxOpen)}
@@ -180,7 +180,7 @@ export default function Layout({ children }: LayoutProps) {
                       }`}
                     >
                       <span>💬</span>
-                      <span>Chat</span>
+                      <span>{t('chat')}</span>
                     </button>
                       </>
                     )}
@@ -194,7 +194,7 @@ export default function Layout({ children }: LayoutProps) {
                           : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
-                      Tickets
+                      {t('tickets')}
                     </Link>
                     <Link
                       href="/settings"
@@ -204,7 +204,7 @@ export default function Layout({ children }: LayoutProps) {
                           : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                       }`}
                     >
-                      ⚙️ Configurações
+                      ⚙️ {t('settings')}
                     </Link>
                     <button
                       onClick={() => setChatboxOpen(!chatboxOpen)}
@@ -215,7 +215,7 @@ export default function Layout({ children }: LayoutProps) {
                       }`}
                     >
                       <span>💬</span>
-                      <span>Chat</span>
+                      <span>{t('chat')}</span>
                     </button>
                       </>
                     )}
@@ -289,7 +289,7 @@ export default function Layout({ children }: LayoutProps) {
                   <div className="hidden md:block text-right">
                     <p className="text-sm font-semibold text-gray-900">{session.user.username}</p>
                     <p className="text-xs text-gray-500">
-                      {session.user.role === 'OWNER' ? 'Administrador' : 'Usuário'}
+                      {session.user.role === 'OWNER' ? t('administrator') : t('user')}
                     </p>
                   </div>
                   <button
@@ -315,7 +315,7 @@ export default function Layout({ children }: LayoutProps) {
                     href="/register"
                     className="hidden sm:block px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors"
                   >
-                    Criar Conta
+                    {t('createAccount')}
                   </Link>
                   <Link
                     href="/login"
@@ -365,7 +365,7 @@ export default function Layout({ children }: LayoutProps) {
                             : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
-                        Afiliados
+                        {t('affiliates')}
                       </Link>
                       <Link
                         href="/raffles"
@@ -376,7 +376,7 @@ export default function Layout({ children }: LayoutProps) {
                             : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
-                        🎲 Sorteios
+                        🎲 {t('raffles')}
                       </Link>
                       <Link
                         href="/tickets"
@@ -387,7 +387,7 @@ export default function Layout({ children }: LayoutProps) {
                             : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
-                        Suporte
+                        {t('support')}
                       </Link>
                       <Link
                         href="/feedback"
@@ -398,7 +398,7 @@ export default function Layout({ children }: LayoutProps) {
                             : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
-                        💬 Feedbacks
+                        💬 {t('feedbacks')}
                       </Link>
                       <Link
                         href="/keys/redeem"
@@ -409,7 +409,7 @@ export default function Layout({ children }: LayoutProps) {
                             : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
-                        Resgatar Chave
+                        {t('redeemKey')}
                       </Link>
                       <Link
                         href="/settings"
@@ -420,7 +420,7 @@ export default function Layout({ children }: LayoutProps) {
                             : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
-                        ⚙️ Configurações
+                        ⚙️ {t('settings')}
                       </Link>
                       <button
                         onClick={() => {
@@ -434,7 +434,7 @@ export default function Layout({ children }: LayoutProps) {
                         }`}
                       >
                         <span>💬</span>
-                        <span>Chat</span>
+                        <span>{t('chat')}</span>
                       </button>
                     </>
                   )}
@@ -460,7 +460,7 @@ export default function Layout({ children }: LayoutProps) {
                             : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
                         }`}
                       >
-                        ⚙️ Configurações
+                        ⚙️ {t('settings')}
                       </Link>
                       <button
                         onClick={() => {
@@ -474,7 +474,7 @@ export default function Layout({ children }: LayoutProps) {
                         }`}
                       >
                         <span>💬</span>
-                        <span>Chat</span>
+                        <span>{t('chat')}</span>
                       </button>
                     </>
                   )}
@@ -484,7 +484,7 @@ export default function Layout({ children }: LayoutProps) {
                       {session.user.username}
                     </p>
                     <p className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>
-                      {session.user.role === 'OWNER' ? 'Administrador' : 'Usuário'}
+                      {session.user.role === 'OWNER' ? t('administrator') : t('user')}
                     </p>
                   </div>
                 </div>
@@ -500,7 +500,7 @@ export default function Layout({ children }: LayoutProps) {
             <div className="flex justify-center mb-4">
               <Logo size="sm" showText={true} className="justify-center" />
             </div>
-            <p className="text-sm">© {new Date().getFullYear()} Kaizen Gerador. Todos os direitos reservados</p>
+            <p className="text-sm">© {new Date().getFullYear()} Kaizen Gerador. {t('allRightsReserved')}</p>
           </div>
         </div>
       </footer>

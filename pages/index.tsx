@@ -1,4 +1,4 @@
-import { useTranslation } from '@/lib/i18n-helper'
+import { useTranslation, useDynamicTranslation } from '@/lib/i18n-helper'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useState, useEffect } from 'react'
@@ -17,9 +17,11 @@ interface Feedback {
 }
 
 export default function Home() {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const { translate } = useDynamicTranslation()
   const { data: session } = useSession()
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
+  const [translatedFeedbacks, setTranslatedFeedbacks] = useState<Record<string, string>>({})
 
   useEffect(() => {
     // Carregar alguns feedbacks aprovados para mostrar na landing page
@@ -32,6 +34,31 @@ export default function Home() {
         // Ignorar erros silenciosamente
       })
   }, [])
+
+  // Traduzir feedbacks quando o idioma for inglês
+  useEffect(() => {
+    if (feedbacks.length > 0 && locale === 'en') {
+      const translateFeedbacks = async () => {
+        const translations: Record<string, string> = {}
+        for (const feedback of feedbacks) {
+          if (feedback.message) {
+            try {
+              const translated = await translate(feedback.message)
+              translations[feedback.id] = translated
+            } catch (error) {
+              translations[feedback.id] = feedback.message
+            }
+          }
+        }
+        if (Object.keys(translations).length > 0) {
+          setTranslatedFeedbacks(translations)
+        }
+      }
+      translateFeedbacks()
+    } else if (locale !== 'en') {
+      setTranslatedFeedbacks({})
+    }
+  }, [feedbacks, translate, locale])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden relative">
@@ -64,10 +91,10 @@ export default function Home() {
 
           {/* Subtitle */}
           <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-4 sm:mb-6 text-gray-300 max-w-3xl mx-auto px-4 animate-fade-in animation-delay-400">
-            Gere contas premium para os melhores serviços
+            {t('heroSubtitle')}
           </p>
           <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto px-4 mb-8 sm:mb-12 animate-fade-in animation-delay-600">
-            Acesso rápido, seguro e confiável às plataformas mais populares
+            {t('heroDescription')}
           </p>
 
           {/* CTA Buttons */}
@@ -91,7 +118,7 @@ export default function Home() {
                 >
                   <span className="relative z-10 flex items-center gap-2">
                     <span>✨</span>
-                    <span>Começar Agora</span>
+                    <span>{t('startNow')}</span>
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>
@@ -101,7 +128,7 @@ export default function Home() {
                 >
                   <span className="relative z-10 flex items-center gap-2">
                     <span>💎</span>
-                    <span>Ver Planos</span>
+                    <span>{t('viewPlans')}</span>
                   </span>
                 </Link>
               </>
@@ -123,11 +150,11 @@ export default function Home() {
           <div className="text-center mb-12 sm:mb-16 md:mb-20">
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
-                Por que escolher a gente?
+                {t('whyChooseUs')}
               </span>
             </h2>
             <p className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto">
-              Tecnologia avançada, segurança máxima e experiência premium
+              {t('whyChooseUsDesc')}
             </p>
           </div>
 
@@ -137,9 +164,9 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative z-10">
                 <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">⚡</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">Rápido e Instantâneo</h3>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('fastInstant')}</h3>
                 <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  Gere contas em segundos com nossa tecnologia de ponta. Sem espera, sem complicação.
+                  {t('fastInstantDesc')}
                 </p>
               </div>
             </div>
@@ -149,9 +176,9 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative z-10">
                 <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🔒</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">100% Seguro</h3>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('secure100')}</h3>
                 <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  Criptografia de nível bancário e proteção avançada para garantir total segurança dos seus dados.
+                  {t('secure100Desc')}
                 </p>
               </div>
             </div>
@@ -161,9 +188,9 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative z-10">
                 <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🎯</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">Múltiplos Serviços</h3>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('multipleServices')}</h3>
                 <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  Acesso a diversas plataformas populares com um único plano. Streaming, gaming e muito mais.
+                  {t('multipleServicesDesc')}
                 </p>
               </div>
             </div>
@@ -173,9 +200,9 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative z-10">
                 <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">💎</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">Premium Quality</h3>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('premiumQuality')}</h3>
                 <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  Contas de alta qualidade testadas e verificadas para garantir a melhor experiência.
+                  {t('premiumQualityDesc')}
                 </p>
               </div>
             </div>
@@ -185,9 +212,9 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative z-10">
                 <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🚀</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">Suporte 24/7</h3>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('support247')}</h3>
                 <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  Equipe especializada disponível sempre que precisar. Resolvemos qualquer questão rapidamente.
+                  {t('support247Desc')}
                 </p>
               </div>
             </div>
@@ -197,9 +224,9 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative z-10">
                 <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🎁</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">Plano Gratuito</h3>
+                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('freePlan')}</h3>
                 <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  Comece com 2 gerações grátis por dia. Sem compromisso, sem cartão de crédito.
+                  {t('freePlanDesc')}
                 </p>
               </div>
             </div>
@@ -214,11 +241,11 @@ export default function Home() {
             <div className="text-center mb-12 sm:mb-16">
               <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6">
                 <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
-                  O que nossos clientes dizem
+                  {t('whatClientsSay')}
                 </span>
               </h2>
               <p className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto">
-                Veja o que nossos usuários estão falando sobre nossa plataforma
+                {t('whatClientsSayDesc')}
               </p>
             </div>
 
@@ -240,7 +267,7 @@ export default function Home() {
                       </div>
                     )}
                     <p className="text-sm sm:text-base text-gray-300 leading-relaxed mb-4 line-clamp-4">
-                      "{feedback.message}"
+                      "{translatedFeedbacks[feedback.id] || feedback.message}"
                     </p>
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
@@ -263,7 +290,7 @@ export default function Home() {
                 href="/feedback"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-lg text-white font-semibold rounded-xl border border-white/30 hover:bg-white/20 transition-all shadow-xl hover:shadow-2xl"
               >
-                <span>Ver todos os feedbacks</span>
+                <span>{t('viewAllFeedbacks')}</span>
                 <span>→</span>
               </Link>
             </div>
@@ -276,10 +303,10 @@ export default function Home() {
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 sm:mb-8">
-            Pronto para começar?
+            {t('readyToStart')}
           </h2>
           <p className="text-lg sm:text-xl md:text-2xl mb-8 sm:mb-12 text-white/90 max-w-2xl mx-auto">
-            Escolha um plano e tenha acesso imediato a todos os nossos serviços premium
+            {t('readyToStartDesc')}
           </p>
           {!session && (
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center">
@@ -287,9 +314,9 @@ export default function Home() {
                 href="/plans"
                 className="group relative px-8 py-4 sm:px-10 sm:py-5 bg-white text-purple-600 text-lg sm:text-xl font-bold rounded-2xl hover:bg-gray-100 transition-all shadow-2xl hover:shadow-white/50 transform hover:-translate-y-1 hover:scale-105 duration-300"
               >
-                <span className="relative z-10 flex items-center gap-2">
+                  <span className="relative z-10 flex items-center gap-2">
                   <span>💎</span>
-                  <span>Ver Planos</span>
+                  <span>{t('viewPlans')}</span>
                 </span>
               </Link>
               <Link
@@ -298,7 +325,7 @@ export default function Home() {
               >
                 <span className="relative z-10 flex items-center gap-2">
                   <span>✨</span>
-                  <span>Criar Conta Grátis</span>
+                  <span>{t('createFreeAccount')}</span>
                 </span>
               </Link>
             </div>
