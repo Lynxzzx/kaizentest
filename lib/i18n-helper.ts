@@ -36,7 +36,9 @@ async function translateText(text: string, from: string = 'pt', to: string = 'en
     // Limitar cache a 500 entradas
     if (clientTranslationCache.size > 500) {
       const firstKey = clientTranslationCache.keys().next().value
-      clientTranslationCache.delete(firstKey)
+      if (firstKey) {
+        clientTranslationCache.delete(firstKey)
+      }
     }
 
     return translatedText

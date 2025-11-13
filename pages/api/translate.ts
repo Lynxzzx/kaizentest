@@ -20,8 +20,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Verificar cache primeiro
   const cacheKey = `${from}-${to}-${text}`
-  if (translationCache.has(cacheKey)) {
-    return res.json({ translatedText: translationCache.get(cacheKey) })
+  const cachedTranslation = translationCache.get(cacheKey)
+  if (cachedTranslation) {
+    return res.json({ translatedText: cachedTranslation })
   }
 
   try {
@@ -43,7 +44,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Limitar cache a 1000 entradas para não consumir muita memória
       if (translationCache.size > 1000) {
         const firstKey = translationCache.keys().next().value
-        translationCache.delete(firstKey)
+        if (firstKey) {
+          translationCache.delete(firstKey)
+        }
       }
 
       return res.json({ translatedText })
