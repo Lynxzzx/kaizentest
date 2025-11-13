@@ -1,7 +1,50 @@
 import { useRouter } from 'next/router'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import axios from 'axios'
 
 // Helper functions for i18n translations
 // For now, we'll use simple translations until next-i18next is properly configured
+
+// Cache de traduções no cliente
+const clientTranslationCache = new Map<string, string>()
+
+// Função para traduzir texto usando API
+async function translateText(text: string, from: string = 'pt', to: string = 'en'): Promise<string> {
+  // Verificar cache primeiro
+  const cacheKey = `${from}-${to}-${text}`
+  if (clientTranslationCache.has(cacheKey)) {
+    return clientTranslationCache.get(cacheKey)!
+  }
+
+  // Se o texto já está em inglês ou é muito curto, retornar como está
+  if (to === 'en' && text.length < 3) {
+    return text
+  }
+
+  try {
+    const response = await axios.post('/api/translate', {
+      text,
+      from,
+      to
+    })
+
+    const translatedText = response.data.translatedText || text
+    
+    // Salvar no cache
+    clientTranslationCache.set(cacheKey, translatedText)
+    
+    // Limitar cache a 500 entradas
+    if (clientTranslationCache.size > 500) {
+      const firstKey = clientTranslationCache.keys().next().value
+      clientTranslationCache.delete(firstKey)
+    }
+
+    return translatedText
+  } catch (error) {
+    console.error('Error translating text:', error)
+    return text // Retornar texto original em caso de erro
+  }
+}
 
 export const translations: Record<string, Record<string, string>> = {
   'pt-BR': {
@@ -231,14 +274,75 @@ export const translations: Record<string, Record<string, string>> = {
 export function useTranslation() {
   const router = useRouter()
   const locale = (router?.locale || 'pt-BR') as keyof typeof translations
-  
-  const t = (key: string) => {
-    return translations[locale]?.[key] || key
-  }
+  const [translatedKeys, setTranslatedKeys] = useState<Record<string, string>>({})
+  const [translatingKeys, setTranslatingKeys] = useState<Set<string>>(new Set())
+  const translatingRef = useRef<Set<string>>(new Set())
+
+  // Limpar cache quando o idioma mudar
+  useEffect(() => {
+    if (locale !== 'en') {
+      setTranslatedKeys({})
+      translatingRef.current.clear()
+      setTranslatingKeys(new Set())
+    }
+  }, [locale])
+
+  const t = useCallback((key: string) => {
+    // Se não for inglês, usar tradução estática
+    if (locale !== 'en') {
+      return translations[locale]?.[key] || key
+    }
+
+    // Se for inglês, verificar se já tem tradução dinâmica
+    if (translatedKeys[key]) {
+      return translatedKeys[key]
+    }
+
+    // Verificar se já tem tradução estática em inglês
+    const enTranslation = translations['en']?.[key]
+    if (enTranslation && enTranslation !== key) {
+      return enTranslation
+    }
+
+    // Se não tem tradução e não está traduzindo, iniciar tradução
+    if (!translatingRef.current.has(key)) {
+      const ptText = translations['pt-BR']?.[key]
+      if (ptText && ptText !== key) {
+        translatingRef.current.add(key)
+        setTranslatingKeys(prev => new Set(prev).add(key))
+        
+        // Traduzir de forma assíncrona
+        translateText(ptText, 'pt', 'en')
+          .then(translated => {
+            setTranslatedKeys(prev => ({ ...prev, [key]: translated }))
+            translatingRef.current.delete(key)
+            setTranslatingKeys(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(key)
+              return newSet
+            })
+          })
+          .catch(() => {
+            // Em caso de erro, usar tradução estática ou texto original
+            setTranslatedKeys(prev => ({ ...prev, [key]: enTranslation || ptText }))
+            translatingRef.current.delete(key)
+            setTranslatingKeys(prev => {
+              const newSet = new Set(prev)
+              newSet.delete(key)
+              return newSet
+            })
+          })
+      }
+    }
+
+    // Retornar tradução estática enquanto traduz ou texto original
+    return enTranslation || translations['pt-BR']?.[key] || key
+  }, [locale, translatedKeys])
 
   return {
     t,
     locale,
+    translating: translatingKeys.size > 0,
     changeLanguage: (newLocale: string) => {
       router.push(router.asPath, router.asPath, { locale: newLocale })
     }
