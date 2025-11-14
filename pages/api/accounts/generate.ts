@@ -62,6 +62,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     useFreeGeneration = true
   }
 
+  const service = await prisma.service.findUnique({
+    where: { id: serviceId },
+    include: {
+      allowedPlans: true
+    }
+  })
+
+  if (!service || !service.isActive) {
+    return res.status(404).json({ error: 'Serviço indisponível no momento.' })
+  }
+
   // Verificar se tem plano ativo
   const hasActivePlan = user.planId && (!user.planExpiresAt || new Date() <= user.planExpiresAt)
   
@@ -71,6 +82,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Se não tem plano ativo, só pode usar gerações grátis diárias ou bonus
   if (!hasActivePlan && !useFreeGeneration && !hasBonusGenerations) {
     return res.status(400).json({ error: 'Você não possui um plano ativo e já usou suas 2 gerações grátis de hoje. Adquira um plano ou aguarde até amanhã.' })
+  }
+
+  const allowedPlanIds = service.allowedPlans?.map((access) => access.planId) ?? []
+  const requiresPaidPlan = allowedPlanIds.length > 0
+  const userPlanAllowed = hasActivePlan && user.planId ? allowedPlanIds.includes(user.planId) : false
+
+  if (requiresPaidPlan && !userPlanAllowed) {
+    return res.status(403).json({
+      error: 'Este serviço é exclusivo para assinantes de planos pagos. Faça um upgrade para gerar este serviço.'
+    })
   }
 
   // Se está usando geração grátis diária, não precisa verificar limites do plano

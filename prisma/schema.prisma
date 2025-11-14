@@ -70,6 +70,7 @@ model Service {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   stocks      Stock[]
+  allowedPlans ServicePlanAccess[]
 }
 
 model Stock {
@@ -101,6 +102,7 @@ model Plan {
   keys        Key[]
   payments    Payment[]
   raffles     Raffle[] // Planos que podem ser prêmios de sorteios
+  serviceAccess ServicePlanAccess[]
 }
 
 model Key {
@@ -148,6 +150,7 @@ model Payment {
   asaasId       String?      // ID from Asaas API (APENAS para PIX, Bitcoin não tem asaasId - sem constraint única para permitir múltiplos null)
   pixQrCode     String?
   pixExpiresAt  DateTime?
+  pagSeguroReferenceId String?
   bitcoinAddress String?
   telegramLink  String?
   paidAt        DateTime?
@@ -256,6 +259,16 @@ model BroadcastMessage {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   expiresAt   DateTime? // Opcional: mensagem expira
+}
+
+model ServicePlanAccess {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  serviceId String   @db.ObjectId
+  planId    String   @db.ObjectId
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  plan      Plan     @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([serviceId, planId])
 }
 
 model Raffle {

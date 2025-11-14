@@ -10,11 +10,21 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
 
+interface ServicePlanRule {
+  planId: string
+  plan?: {
+    id: string
+    name: string
+    price: number
+  } | null
+}
+
 interface Service {
   id: string
   name: string
   description: string
   icon: string
+  allowedPlans?: ServicePlanRule[]
   _count: {
     stocks: number
   }
@@ -89,6 +99,18 @@ export default function Dashboard() {
 
   const textClasses = getTextClasses()
 
+  const requiresPaidPlan = (service: Service) => (service.allowedPlans?.length ?? 0) > 0
+
+  const canAccessService = (service: Service) => {
+    if (!requiresPaidPlan(service)) {
+      return true
+    }
+    if (!userPlan?.plan) {
+      return false
+    }
+    return service.allowedPlans?.some((access) => access.planId === userPlan.plan!.id) ?? false
+  }
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login')
@@ -139,6 +161,18 @@ export default function Dashboard() {
   const handleGenerateAccount = async () => {
     if (!selectedService) {
       toast.error(t('selectService'))
+      return
+    }
+
+    const service = services.find((item) => item.id === selectedService)
+    if (!service) {
+      toast.error(t('errorLoadingServices'))
+      return
+    }
+
+    if (!canAccessService(service)) {
+      toast.error('Este serviço é exclusivo para assinantes de planos pagos. Faça um upgrade para continuar.')
+      router.push('/plans')
       return
     }
 
@@ -303,10 +337,24 @@ export default function Dashboard() {
                         value={service.id}
                         style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}
                       >
-                        {service.name} ({service._count.stocks} {t('available')})
+                        {service.name} ({service._count.stocks} {t('available')}){requiresPaidPlan(service) ? ' - 🔒 Plano pago' : ''}
                       </option>
                     ))}
                 </select>
+                {selectedService && (() => {
+                  const chosen = services.find((service) => service.id === selectedService)
+                  if (!chosen || !requiresPaidPlan(chosen)) return null
+                  const hasAccess = canAccessService(chosen)
+                  return hasAccess ? (
+                    <p className="text-xs text-green-500 mt-2">
+                      Serviço liberado para o seu plano atual.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-red-500 mt-2">
+                      Este serviço é exclusivo para planos pagos. Faça upgrade para gerar.
+                    </p>
+                  )
+                })()}
               </div>
               <button
                 onClick={handleGenerateAccount}

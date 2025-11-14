@@ -14,6 +14,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const services = await prisma.service.findMany({
       where: isOwner ? {} : { isActive: true },
       include: {
+        allowedPlans: {
+          include: {
+            plan: {
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                isActive: true
+              }
+            }
+          }
+        },
         _count: {
           select: {
             stocks: {
@@ -32,18 +44,63 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
-    const { name, description, icon } = req.body
+    const { name, description, icon, isActive, allowedPlanIds } = req.body
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' })
     }
 
-    const service = await prisma.service.create({
-      data: {
-        name,
-        description,
-        icon
+    const sanitizedPlanIds = Array.isArray(allowedPlanIds)
+      ? Array.from(
+          new Set(
+            allowedPlanIds.filter((planId: unknown) => typeof planId === 'string' && planId.trim().length > 0)
+          )
+        )
+      : []
+
+    const service = await prisma.$transaction(async (tx) => {
+      const created = await tx.service.create({
+        data: {
+          name,
+          description,
+          icon,
+          isActive: typeof isActive === 'boolean' ? isActive : true
+        }
+      })
+
+      if (sanitizedPlanIds.length > 0) {
+        await tx.servicePlanAccess.createMany({
+          data: sanitizedPlanIds.map((planId) => ({
+            serviceId: created.id,
+            planId
+          }))
+        })
       }
+
+      return tx.service.findUnique({
+        where: { id: created.id },
+        include: {
+          allowedPlans: {
+            include: {
+              plan: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  isActive: true
+                }
+              }
+            }
+          },
+          _count: {
+            select: {
+              stocks: {
+                where: { isUsed: false }
+              }
+            }
+          }
+        }
+      })
     })
 
     return res.json(service)

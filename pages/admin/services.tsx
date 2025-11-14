@@ -1,10 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
 import axios from 'axios'
 import toast from 'react-hot-toast'
+
+interface ServicePlanRule {
+  planId: string
+  plan?: {
+    id: string
+    name: string
+    price: number
+  } | null
+}
 
 interface Service {
   id: string
@@ -14,9 +23,17 @@ interface Service {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  allowedPlans?: ServicePlanRule[]
   _count?: {
     stocks: number
   }
+}
+
+interface Plan {
+  id: string
+  name: string
+  price: number
+  isActive: boolean
 }
 
 export default function AdminServices() {
@@ -25,16 +42,58 @@ export default function AdminServices() {
   const { theme } = useTheme()
   const router = useRouter()
   const [services, setServices] = useState<Service[]>([])
+  const [plans, setPlans] = useState<Plan[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     icon: '',
-    isActive: true
+    isActive: true,
+    allowedPlanIds: [] as string[]
   })
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [filterActive, setFilterActive] = useState<string>('all')
+  const [accessMode, setAccessMode] = useState<'all' | 'paid' | 'custom'>('all')
+
+  const paidPlanIds = useMemo(
+    () => plans.filter((plan) => plan.price > 0).map((plan) => plan.id),
+    [plans]
+  )
+
+  const determineAccessMode = (allowedIds: string[]) => {
+    if (!allowedIds || allowedIds.length === 0) return 'all'
+    if (
+      paidPlanIds.length > 0 &&
+      allowedIds.length === paidPlanIds.length &&
+      allowedIds.every((id) => paidPlanIds.includes(id))
+    ) {
+      return 'paid'
+    }
+    return 'custom'
+  }
+
+  const resetFormData = () => {
+    setFormData({
+      name: '',
+      description: '',
+      icon: '',
+      isActive: true,
+      allowedPlanIds: []
+    })
+    setAccessMode('all')
+  }
+
+  const getPlanAccessLabel = (service: Service) => {
+    if (!service.allowedPlans || service.allowedPlans.length === 0) {
+      return 'Todos (inclui plano grátis)'
+    }
+    const allPaid = service.allowedPlans.every((rule) => (rule.plan?.price ?? 0) > 0)
+    if (allPaid) {
+      return 'Somente planos pagos'
+    }
+    return service.allowedPlans.map((rule) => rule.plan?.name || 'Plano removido').join(', ')
+  }
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -47,6 +106,7 @@ export default function AdminServices() {
   useEffect(() => {
     if (session?.user?.role === 'OWNER') {
       loadServices()
+      loadPlans()
     }
   }, [session])
 
@@ -56,6 +116,45 @@ export default function AdminServices() {
       setServices(response.data)
     } catch (error) {
       toast.error('Erro ao carregar serviços')
+    }
+  }
+
+  const loadPlans = async () => {
+    try {
+      const response = await axios.get('/api/plans')
+      setPlans(response.data)
+    } catch (error) {
+      toast.error('Erro ao carregar planos disponíveis')
+    }
+  }
+
+  const handlePlanSelection = (planId: string) => {
+    if (accessMode !== 'custom') {
+      setAccessMode('custom')
+    }
+    setFormData((prev) => {
+      const alreadySelected = prev.allowedPlanIds.includes(planId)
+      return {
+        ...prev,
+        allowedPlanIds: alreadySelected
+          ? prev.allowedPlanIds.filter((id) => id !== planId)
+          : [...prev.allowedPlanIds, planId]
+      }
+    })
+  }
+
+  const handleAccessModeChange = (mode: 'all' | 'paid' | 'custom') => {
+    setAccessMode(mode)
+    if (mode === 'all') {
+      setFormData((prev) => ({
+        ...prev,
+        allowedPlanIds: []
+      }))
+    } else if (mode === 'paid') {
+      setFormData((prev) => ({
+        ...prev,
+        allowedPlanIds: paidPlanIds
+      }))
     }
   }
 
@@ -73,7 +172,7 @@ export default function AdminServices() {
         toast.success('Serviço criado com sucesso!')
         setShowForm(false)
       }
-      setFormData({ name: '', description: '', icon: '', isActive: true })
+      resetFormData()
       loadServices()
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao salvar serviço')
@@ -82,26 +181,33 @@ export default function AdminServices() {
 
   const handleEdit = (service: Service) => {
     setEditingService(service)
+    const allowedIds = service.allowedPlans?.map((rule) => rule.planId) ?? []
     setFormData({
       name: service.name,
       description: service.description || '',
       icon: service.icon || '',
-      isActive: service.isActive
+      isActive: service.isActive,
+      allowedPlanIds: allowedIds
     })
+    setAccessMode(determineAccessMode(allowedIds))
     setShowForm(true)
   }
 
   const handleCancelEdit = () => {
     setEditingService(null)
     setShowForm(false)
-    setFormData({ name: '', description: '', icon: '', isActive: true })
+    resetFormData()
   }
 
   const handleToggleActive = async (service: Service) => {
     try {
+      const allowedPlanIds = service.allowedPlans?.map((rule) => rule.planId) ?? []
       await axios.put(`/api/services/${service.id}`, {
-        ...service,
-        isActive: !service.isActive
+        name: service.name,
+        description: service.description,
+        icon: service.icon,
+        isActive: !service.isActive,
+        allowedPlanIds
       })
       toast.success('Serviço atualizado!')
       loadServices()
@@ -159,7 +265,7 @@ export default function AdminServices() {
             setShowForm(!showForm)
             setEditingService(null)
             if (!showForm) {
-              setFormData({ name: '', description: '', icon: '', isActive: true })
+              resetFormData()
             }
           }}
           className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors shadow-md"
@@ -277,6 +383,94 @@ export default function AdminServices() {
                 )}
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Planos autorizados
+                </label>
+                <p className="text-xs text-gray-500 mb-3">
+                  Defina quais assinantes podem gerar este serviço. Se nenhum plano for selecionado, todos (inclusive o plano grátis) terão acesso.
+                </p>
+                <div className="flex flex-wrap gap-3 mb-4">
+                  {[
+                    { mode: 'all' as const, label: 'Todos os planos', description: 'Inclui o plano grátis' },
+                    { mode: 'paid' as const, label: 'Somente planos pagos', description: 'Bloqueia usuários free' },
+                    { mode: 'custom' as const, label: 'Selecionar planos específicos', description: 'Escolha manualmente' }
+                  ].map((option) => (
+                    <button
+                      key={option.mode}
+                      type="button"
+                      onClick={() => handleAccessModeChange(option.mode)}
+                      className={`px-3 py-2 rounded-lg border text-sm transition-colors ${
+                        accessMode === option.mode
+                          ? 'border-primary-500 bg-primary-50 text-primary-700'
+                          : 'border-gray-300 text-gray-700 hover:border-primary-300 hover:text-primary-700'
+                      }`}
+                    >
+                      <div className="font-semibold">{option.label}</div>
+                      <div className="text-[11px] text-gray-500">{option.description}</div>
+                    </button>
+                  ))}
+                </div>
+                {accessMode === 'paid' && (
+                  <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-3">
+                    <span>🔒</span>
+                    <span>Somente assinantes de planos pagos poderão gerar este serviço.</span>
+                  </div>
+                )}
+                {accessMode !== 'custom' && (
+                  <p className="text-xs text-gray-500 mb-3">
+                    Para escolher planos individualmente, selecione &quot;Selecionar planos específicos&quot;.
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  {plans.length === 0 ? (
+                    <span className="text-sm text-gray-500">Nenhum plano ativo encontrado.</span>
+                  ) : (
+                    plans.map((plan) => (
+                      <label
+                        key={plan.id}
+                        className={`flex items-center gap-2 px-3 py-2 border rounded-lg ${
+                          formData.allowedPlanIds.includes(plan.id) ? 'border-primary-500 bg-primary-50' : 'border-gray-300'
+                        } ${accessMode !== 'custom' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.allowedPlanIds.includes(plan.id)}
+                          onChange={() => handlePlanSelection(plan.id)}
+                          disabled={accessMode !== 'custom'}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 disabled:opacity-60"
+                        />
+                        <span className="text-sm text-gray-700">
+                          {plan.name} {plan.price === 0 ? '(Grátis)' : `- R$ ${plan.price.toFixed(2)}`}
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {accessMode === 'custom' && (
+                  <>
+                    <div className="flex flex-wrap gap-3 mt-3">
+                      <button
+                        type="button"
+                        onClick={() => handleAccessModeChange('paid')}
+                        className="px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-100 rounded-md hover:bg-primary-200 transition-colors"
+                      >
+                        Selecionar todos os planos pagos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleAccessModeChange('all')}
+                        className="px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+                      >
+                        Liberar geral (inclui grátis)
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">
+                      Usuários no plano grátis continuam com 2 gerações/dia somente quando o serviço estiver liberado para eles.
+                    </p>
+                  </>
+                )}
+              </div>
+              <div>
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
@@ -326,6 +520,7 @@ export default function AdminServices() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Icon</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('name')}</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('description')}</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Planos liberados</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estoque</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('status')}</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
@@ -360,6 +555,11 @@ export default function AdminServices() {
                     </td>
                     <td className="px-6 py-4">
                       <span className="text-gray-600 text-sm">{service.description || '-'}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-gray-600 text-sm">
+                        {getPlanAccessLabel(service)}
+                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-gray-900 font-semibold">

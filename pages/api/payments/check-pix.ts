@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { getPagSeguroPayment } from '@/lib/pagseguro'
-import { registerCouponUsage } from '@/lib/coupon-utils'
+import { settlePaymentAsPaid } from '@/lib/payment-utils'
 
 /**
  * Verifica status de pagamento PIX (PagSeguro ou Asaas) e ativa plano automaticamente se pago
@@ -67,33 +67,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         
         const orderStatus = pagSeguroOrder.status
         const chargeStatus = pagSeguroOrder.charges?.[0]?.status
-        const isPaid = orderStatus === 'PAID' || chargeStatus === 'PAID'
+        const normalizedOrderStatus = typeof orderStatus === 'string' ? orderStatus.toUpperCase() : ''
+        const normalizedChargeStatus = typeof chargeStatus === 'string' ? chargeStatus.toUpperCase() : ''
+        const isPaid = normalizedOrderStatus === 'PAID' || normalizedChargeStatus === 'PAID'
+        const referenceId =
+          pagSeguroOrder.reference_id ||
+          pagSeguroOrder.order_id ||
+          pagSeguroOrder.charges?.[0]?.reference_id ||
+          pagSeguroOrder.charge_reference ||
+          null
 
         if (isPaid) {
-          // Atualizar status do pagamento
-          const paidAt = pagSeguroOrder.charges?.[0]?.paid_at 
-            ? new Date(pagSeguroOrder.charges[0].paid_at) 
+          const paidAt = pagSeguroOrder.charges?.[0]?.paid_at
+            ? new Date(pagSeguroOrder.charges[0].paid_at)
             : new Date()
 
-          await prisma.payment.update({
-            where: { id: payment.id },
-            data: {
-              status: 'PAID',
-              paidAt: paidAt
-            }
-          })
-          await registerCouponUsage(payment.couponId)
-
-          // Ativar plano do usuário
-          const expiresAt = new Date()
-          expiresAt.setDate(expiresAt.getDate() + payment.plan.duration)
-
-          await prisma.user.update({
-            where: { id: payment.userId },
-            data: {
-              planId: payment.planId,
-              planExpiresAt: expiresAt
-            }
+          await settlePaymentAsPaid(payment, {
+            paidAt,
+            pagSeguroReferenceId: referenceId ?? undefined
           })
 
           console.log('✅ Pagamento PagSeguro confirmado e plano ativado:', payment.id)
@@ -105,7 +96,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             payment: {
               ...payment,
               status: 'PAID',
-              paidAt: paidAt
+              paidAt
             }
           })
         }
@@ -116,8 +107,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           status: 'PENDING',
           message: 'Payment not yet confirmed',
           pagSeguroStatus: {
-            orderStatus,
-            chargeStatus
+            orderStatus: normalizedOrderStatus || orderStatus,
+            chargeStatus: normalizedChargeStatus || chargeStatus
           }
         })
       } catch (error: any) {

@@ -151,6 +151,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               method: 'PIX',
               status: 'PENDING',
               asaasId: pagSeguroPayment.id, // Usando asaasId para armazenar o ID do PagSeguro (compatibilidade)
+              pagSeguroReferenceId: referenceId,
               pixQrCode: pagSeguroPayment.qrCode,
               pixExpiresAt: pagSeguroPayment.expiresAt ? new Date(pagSeguroPayment.expiresAt) : new Date(Date.now() + 30 * 60 * 1000)
             }
