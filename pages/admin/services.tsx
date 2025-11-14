@@ -55,6 +55,9 @@ export default function AdminServices() {
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [filterActive, setFilterActive] = useState<string>('all')
   const [accessMode, setAccessMode] = useState<'all' | 'paid' | 'custom'>('all')
+  const [planModalService, setPlanModalService] = useState<Service | null>(null)
+  const [planModalSelection, setPlanModalSelection] = useState<string[]>([])
+  const [planModalMode, setPlanModalMode] = useState<'all' | 'paid' | 'custom'>('all')
 
   const paidPlanIds = useMemo(
     () => plans.filter((plan) => plan.price > 0).map((plan) => plan.id),
@@ -578,6 +581,18 @@ export default function AdminServices() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                       <button
+                        onClick={() => {
+                          const ids = service.allowedPlans?.map((rule) => rule.planId) ?? []
+                          setPlanModalService(service)
+                          setPlanModalSelection(ids)
+                          setPlanModalMode(determineAccessMode(ids))
+                        }}
+                        className="text-purple-600 hover:text-purple-800 transition-colors"
+                        title="Configurar planos liberados"
+                      >
+                        🔐 Planos
+                      </button>
+                      <button
                         onClick={() => handleEdit(service)}
                         className="text-blue-600 hover:text-blue-800 transition-colors"
                         title="Editar"
@@ -608,6 +623,153 @@ export default function AdminServices() {
           </table>
         </div>
       </div>
+
+      {planModalService && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 relative">
+            <button
+              onClick={() => {
+                setPlanModalService(null)
+                setPlanModalSelection([])
+                setPlanModalMode('all')
+              }}
+              className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
+              aria-label="Fechar"
+            >
+              ✕
+            </button>
+            <h3 className="text-xl font-bold mb-1">Planos permitidos</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Serviço: <span className="font-semibold text-gray-800">{planModalService.name}</span>
+            </p>
+
+            <div className="flex flex-wrap gap-3 mb-5">
+              {[
+                { mode: 'all' as const, label: 'Todos os planos', description: 'Inclui gratuito' },
+                { mode: 'paid' as const, label: 'Somente planos pagos', description: 'Bloqueia plano free' },
+                { mode: 'custom' as const, label: 'Selecionar manualmente', description: 'Escolha abaixo' }
+              ].map((option) => (
+                <button
+                  key={option.mode}
+                  type="button"
+                  onClick={() => {
+                    setPlanModalMode(option.mode)
+                    if (option.mode === 'all') {
+                      setPlanModalSelection([])
+                    } else if (option.mode === 'paid') {
+                      setPlanModalSelection(paidPlanIds)
+                    }
+                  }}
+                  className={`flex-1 min-w-[180px] px-4 py-3 rounded-xl border text-left transition ${
+                    planModalMode === option.mode
+                      ? 'border-primary-500 bg-primary-50 text-primary-800'
+                      : 'border-gray-300 text-gray-700 hover:border-primary-300'
+                  }`}
+                >
+                  <div className="font-semibold">{option.label}</div>
+                  <div className="text-xs text-gray-500">{option.description}</div>
+                </button>
+              ))}
+            </div>
+
+            {planModalMode === 'paid' && (
+              <div className="flex items-center gap-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-4">
+                <span>🔒</span>
+                <span>Somente assinantes de planos pagos poderão gerar este serviço.</span>
+              </div>
+            )}
+
+            <div className="border rounded-xl p-4 max-h-72 overflow-y-auto mb-4">
+              {plans.length === 0 ? (
+                <p className="text-sm text-gray-500">Nenhum plano encontrado.</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {plans.map((plan) => {
+                    const checked = planModalSelection.includes(plan.id)
+                    const disabled = planModalMode !== 'custom'
+                    return (
+                      <label
+                        key={plan.id}
+                        className={`flex items-center gap-3 border rounded-lg px-3 py-2 ${
+                          checked ? 'border-primary-500 bg-primary-50' : 'border-gray-200'
+                        } ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={disabled}
+                          onChange={() => {
+                            if (planModalMode !== 'custom') return
+                            setPlanModalSelection((prev) =>
+                              prev.includes(plan.id) ? prev.filter((id) => id !== plan.id) : [...prev, plan.id]
+                            )
+                          }}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500 disabled:opacity-60"
+                        />
+                        <div>
+                          <p className="font-medium text-gray-900">{plan.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {plan.price === 0 ? 'Plano gratuito' : `R$ ${plan.price.toFixed(2)}`}
+                          </p>
+                        </div>
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {planModalMode === 'custom' && (
+              <p className="text-xs text-gray-500 mb-4">
+                Usuários free ainda limitam-se às 2 gerações grátis diárias; selecione somente planos pagos para bloqueá-los.
+              </p>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setPlanModalService(null)
+                  setPlanModalSelection([])
+                  setPlanModalMode('all')
+                }}
+                className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  if (!planModalService) return
+                  const allowedPlanIds =
+                    planModalMode === 'all'
+                      ? []
+                      : planModalMode === 'paid'
+                      ? paidPlanIds
+                      : planModalSelection
+                  try {
+                    await axios.put(`/api/services/${planModalService.id}`, {
+                      name: planModalService.name,
+                      description: planModalService.description,
+                      icon: planModalService.icon,
+                      isActive: planModalService.isActive,
+                      allowedPlanIds
+                    })
+                    toast.success('Planos atualizados!')
+                    setPlanModalService(null)
+                    setPlanModalSelection([])
+                    setPlanModalMode('all')
+                    loadServices()
+                  } catch (error: any) {
+                    toast.error(error.response?.data?.error || 'Erro ao salvar planos')
+                  }
+                }}
+                className="px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
