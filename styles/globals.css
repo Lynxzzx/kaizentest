@@ -143,6 +143,27 @@
   .admin-shell .border-gray-300 {
     border-color: rgba(226, 232, 240, 0.25) !important;
   }
+
+  .theme-dark select,
+  .admin-shell select,
+  .theme-dark .admin-shell select {
+    background-color: rgba(15, 23, 42, 0.95) !important;
+    color: #f8fafc !important;
+    border-color: rgba(148, 163, 184, 0.35) !important;
+  }
+
+  .theme-dark select:focus,
+  .admin-shell select:focus {
+    outline: none;
+    border-color: rgba(56, 189, 248, 0.6) !important;
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.45);
+  }
+
+  .theme-dark select option,
+  .admin-shell select option {
+    background-color: #0f172a;
+    color: #f8fafc;
+  }
 }
 
 /* Scrollbar customization */
