@@ -1,7 +1,7 @@
 import { useTranslation, useDynamicTranslation } from '@/lib/i18n-helper'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import axios from 'axios'
 import Logo from '@/components/Logo'
 
@@ -23,19 +23,42 @@ export default function Home() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [translatedFeedbacks, setTranslatedFeedbacks] = useState<Record<string, string>>({})
 
+  const stats = [
+    { value: '25k+', label: t('metricsUsers'), desc: t('metricsUsersDesc') },
+    { value: '480k+', label: t('metricsAccounts'), desc: t('metricsAccountsDesc') },
+    { value: '99,98%', label: t('metricsUptime'), desc: t('metricsUptimeDesc') },
+    { value: '<5min', label: t('metricsSupport'), desc: t('metricsSupportDesc') }
+  ]
+
+  const partners = ['Netflix', 'Spotify', 'Disney+', 'HBO Max', 'Paramount+', 'Crunchyroll']
+
+  const features = [
+    { icon: '⚡', title: t('fastInstant'), desc: t('fastInstantDesc') },
+    { icon: '🔒', title: t('secure100'), desc: t('secure100Desc') },
+    { icon: '🎯', title: t('multipleServices'), desc: t('multipleServicesDesc') },
+    { icon: '💎', title: t('premiumQuality'), desc: t('premiumQualityDesc') },
+    { icon: '🛰️', title: t('support247'), desc: t('support247Desc') },
+    { icon: '🎁', title: t('freePlan'), desc: t('freePlanDesc') }
+  ]
+
+  const liveHighlights = [
+    { value: '58', label: t('availableServices') },
+    { value: '12.4k', label: t('confirmedPayments') },
+    { value: '4.9k', label: t('availableStocks') }
+  ]
+
+  const steps = [
+    { number: '01', title: t('workflowStep1Title'), desc: t('workflowStep1Desc') },
+    { number: '02', title: t('workflowStep2Title'), desc: t('workflowStep2Desc') },
+    { number: '03', title: t('workflowStep3Title'), desc: t('workflowStep3Desc') }
+  ]
+
   useEffect(() => {
-    // Carregar alguns feedbacks aprovados para mostrar na landing page
     axios.get('/api/feedback')
-      .then(response => {
-        // Pegar apenas os 3 mais recentes
-        setFeedbacks(response.data.slice(0, 3))
-      })
-      .catch(() => {
-        // Ignorar erros silenciosamente
-      })
+      .then(response => setFeedbacks(response.data.slice(0, 3)))
+      .catch(() => {})
   }, [])
 
-  // Traduzir feedbacks quando o idioma for inglês
   useEffect(() => {
     if (feedbacks.length > 0 && locale === 'en') {
       const translateFeedbacks = async () => {
@@ -61,325 +84,243 @@ export default function Home() {
   }, [feedbacks, translate, locale])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white overflow-hidden relative">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-2000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob animation-delay-4000"></div>
+    <div className="relative min-h-screen bg-[#01020f] text-white overflow-hidden">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-32 -right-20 w-[520px] h-[520px] bg-gradient-to-br from-indigo-600/30 via-purple-600/20 to-cyan-400/30 blur-[180px] animate-blob" />
+        <div className="absolute -bottom-24 -left-16 w-[480px] h-[480px] bg-gradient-to-br from-cyan-400/25 via-sky-500/15 to-transparent blur-[200px] animate-blob animation-delay-2000" />
+        <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_1px_1px,_rgba(148,163,184,.35),transparent_40px)]" />
       </div>
 
-      {/* Hero Section */}
-      <section className="relative z-10 min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8 py-20 sm:py-24">
-        <div className="max-w-7xl mx-auto text-center">
-          {/* Logo */}
-          <div className="flex justify-center mb-8 sm:mb-12 animate-fade-in">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-3xl blur-2xl opacity-50"></div>
-              <div className="relative bg-white/10 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/20 shadow-2xl">
-                <Logo size="lg" showText={false} className="justify-center" />
-              </div>
+      <section className="relative z-10 pt-28 pb-16 sm:pt-32 lg:pb-24 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto grid gap-12 lg:grid-cols-[1.15fr_0.85fr] items-center">
+          <div>
+            <div className="flex items-center gap-3 mb-6">
+              <Logo size="sm" showText={false} className="justify-start" />
+              <span className="text-xs uppercase tracking-[0.4em] text-white/60">{t('siteName')}</span>
+            </div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-md text-xs font-semibold uppercase tracking-[0.4em] text-white/70">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              {t('heroBadge')}
+            </div>
+            <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight">
+              {t('heroSubtitle')}{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-500 to-cyan-300">
+                {t('heroDescription')}
+              </span>
+            </h1>
+            <p className="mt-6 text-lg sm:text-xl text-white/70 max-w-2xl">
+              {t('heroTrustedBy')}
+            </p>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link
+                href={session ? '/dashboard' : '/register'}
+                className="group relative inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-8 py-4 text-base font-semibold shadow-[0_15px_35px_rgba(59,130,246,0.45)] transition-transform hover:-translate-y-1 hover:scale-[1.01]"
+              >
+                <span>{session ? '🚀' : '✨'}</span>
+                <span>{session ? t('dashboard') : t('startNow')}</span>
+                <span className="absolute inset-0 rounded-2xl border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Link>
+              <Link
+                href="/plans"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-8 py-4 text-base font-semibold text-white/80 hover:bg-white/5 transition-colors"
+              >
+                <span>💎</span>
+                <span>{t('viewPlans')}</span>
+              </Link>
+            </div>
+            <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {stats.map((stat) => (
+                <div key={stat.label} className="rounded-2xl border border-white/5 bg-white/5 backdrop-blur-lg p-4">
+                  <p className="text-2xl sm:text-3xl font-black text-white">{stat.value}</p>
+                  <p className="text-xs uppercase tracking-wide text-white/60">{stat.label}</p>
+                  <p className="text-[11px] text-white/40 mt-1">{stat.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Main Heading */}
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6 sm:mb-8 animate-fade-in animation-delay-200">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
-              {t('siteName')}
-            </span>
-          </h1>
-
-          {/* Subtitle */}
-          <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl mb-4 sm:mb-6 text-gray-300 max-w-3xl mx-auto px-4 animate-fade-in animation-delay-400">
-            {t('heroSubtitle')}
-          </p>
-          <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto px-4 mb-8 sm:mb-12 animate-fade-in animation-delay-600">
-            {t('heroDescription')}
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center px-4 animate-fade-in animation-delay-800">
-            {session ? (
-              <Link
-                href="/dashboard"
-                className="group relative px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-lg sm:text-xl font-bold rounded-2xl hover:from-purple-700 hover:to-blue-700 transition-all shadow-2xl hover:shadow-purple-500/50 transform hover:-translate-y-1 hover:scale-105 duration-300 overflow-hidden"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  <span>🚀</span>
-                  <span>{t('dashboard')}</span>
+          <div className="relative">
+            <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-indigo-500/20 via-transparent to-cyan-500/20 blur-3xl" />
+            <div className="relative rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_30px_80px_rgba(2,8,23,0.8)]">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.5em] text-white/60">{t('liveMonitorTitle')}</p>
+                  <p className="text-lg font-semibold text-white/90">{t('liveMonitorDesc')}</p>
+                </div>
+                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-300">
+                  {t('active')}
                 </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </Link>
-            ) : (
-              <>
-                <Link
-                  href="/register"
-                  className="group relative px-8 py-4 sm:px-10 sm:py-5 bg-gradient-to-r from-purple-600 to-blue-600 text-white text-lg sm:text-xl font-bold rounded-2xl hover:from-purple-700 hover:to-blue-700 transition-all shadow-2xl hover:shadow-purple-500/50 transform hover:-translate-y-1 hover:scale-105 duration-300 overflow-hidden"
-                >
-                  <span className="relative z-10 flex items-center gap-2">
-                    <span>✨</span>
-                    <span>{t('startNow')}</span>
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </Link>
-                <Link
-                  href="/plans"
-                  className="group relative px-8 py-4 sm:px-10 sm:py-5 bg-white/10 backdrop-blur-lg text-white text-lg sm:text-xl font-bold rounded-2xl border-2 border-white/30 hover:bg-white/20 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 duration-300"
-                >
-                  <span className="relative z-10 flex items-center gap-2">
-                    <span>💎</span>
-                    <span>{t('viewPlans')}</span>
-                  </span>
-                </Link>
-              </>
-            )}
-          </div>
-
-          {/* Scroll Indicator */}
-          <div className="mt-16 sm:mt-20 animate-bounce">
-            <div className="w-6 h-10 border-2 border-white/30 rounded-full mx-auto flex items-start justify-center p-2">
-              <div className="w-1.5 h-1.5 bg-white/50 rounded-full animate-pulse"></div>
+              </div>
+              <div className="mt-8 grid grid-cols-3 gap-4">
+                {liveHighlights.map((highlight) => (
+                  <div key={highlight.label} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+                    <p className="text-2xl font-black text-white">{highlight.value}</p>
+                    <p className="text-xs text-white/60">{highlight.label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8 space-y-3 text-sm">
+                <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div>
+                    <p className="text-white/80">{t('autoActivation')}</p>
+                    <p className="text-xs text-white/40">{t('autoActivationText')}</p>
+                  </div>
+                  <span className="text-emerald-400 text-xs font-semibold">{t('active')}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div>
+                    <p className="text-white/80">{t('paymentConfirmed')}</p>
+                    <p className="text-xs text-white/40">{t('checkingPayment')}</p>
+                  </div>
+                  <span className="text-xs text-white/50">+R$ 129,90</span>
+                </div>
+                <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div>
+                    <p className="text-white/80">{t('availableServices')}</p>
+                    <p className="text-xs text-white/40">{t('accessAllServices')}</p>
+                  </div>
+                  <span className="text-xs text-white/50">58</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="relative z-10 py-20 sm:py-24 md:py-32 bg-gradient-to-b from-transparent via-slate-800/50 to-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12 sm:mb-16 md:mb-20">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
+      <section className="relative z-10 pb-12">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-xs uppercase tracking-[0.6em] text-white/40">{t('partnersTitle')}</p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-sm font-semibold uppercase tracking-[0.5em] text-white/35">
+            {partners.map((partner) => (
+              <span key={partner}>{partner}</span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative z-10 py-16 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-300">
                 {t('whyChooseUs')}
               </span>
             </h2>
-            <p className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto">
+            <p className="mt-4 text-lg text-white/70 max-w-3xl mx-auto">
               {t('whyChooseUsDesc')}
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 md:gap-10">
-            {/* Feature 1 */}
-            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10">
-                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">⚡</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('fastInstant')}</h3>
-                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  {t('fastInstantDesc')}
-                </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature) => (
+              <div key={feature.title} className="group relative rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-xl p-6 sm:p-8 transition-transform hover:-translate-y-1 hover:border-white/30">
+                <div className="absolute inset-0 rounded-[28px] opacity-0 group-hover:opacity-100 bg-gradient-to-br from-indigo-500/10 via-transparent to-cyan-500/10 transition-opacity" />
+                <div className="relative z-10">
+                  <div className="text-4xl sm:text-5xl mb-4">{feature.icon}</div>
+                  <h3 className="text-xl font-semibold text-white">{feature.title}</h3>
+                  <p className="mt-3 text-sm text-white/60 leading-relaxed">{feature.desc}</p>
+                </div>
               </div>
-            </div>
-
-            {/* Feature 2 */}
-            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10">
-                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🔒</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('secure100')}</h3>
-                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  {t('secure100Desc')}
-                </p>
-              </div>
-            </div>
-
-            {/* Feature 3 */}
-            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10">
-                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🎯</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('multipleServices')}</h3>
-                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  {t('multipleServicesDesc')}
-                </p>
-              </div>
-            </div>
-
-            {/* Feature 4 */}
-            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10">
-                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">💎</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('premiumQuality')}</h3>
-                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  {t('premiumQualityDesc')}
-                </p>
-              </div>
-            </div>
-
-            {/* Feature 5 */}
-            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10">
-                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🚀</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('support247')}</h3>
-                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  {t('support247Desc')}
-                </p>
-              </div>
-            </div>
-
-            {/* Feature 6 */}
-            <div className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="relative z-10">
-                <div className="text-5xl sm:text-6xl mb-4 sm:mb-6">🎁</div>
-                <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white">{t('freePlan')}</h3>
-                <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-                  {t('freePlanDesc')}
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Feedbacks Section */}
-      {feedbacks.length > 0 && (
-        <section className="relative z-10 py-20 sm:py-24 md:py-32 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12 sm:mb-16">
-              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4 sm:mb-6">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
-                  {t('whatClientsSay')}
-                </span>
-              </h2>
-              <p className="text-lg sm:text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto">
-                {t('whatClientsSayDesc')}
-              </p>
-            </div>
+      <section className="relative z-10 py-16 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-2xl p-8 sm:p-12 shadow-[0_30px_80px_rgba(2,8,23,0.65)]">
+          <div className="text-center mb-12">
+            <p className="text-xs uppercase tracking-[0.6em] text-white/50">{t('workflowTitle')}</p>
+            <h3 className="mt-4 text-3xl font-extrabold text-white">{t('workflowDesc')}</h3>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {steps.map((step) => (
+              <div key={step.number} className="rounded-3xl border border-white/10 bg-white/5 p-6">
+                <span className="text-xs font-black uppercase tracking-[0.6em] text-white/50">{step.number}</span>
+                <h4 className="mt-4 text-xl font-semibold text-white">{step.title}</h4>
+                <p className="mt-3 text-sm text-white/60">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-8">
+      {feedbacks.length > 0 && (
+        <section className="relative z-10 py-16 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center mb-12">
+              <p className="text-xs uppercase tracking-[0.6em] text-white/50">{t('whatClientsSay')}</p>
+              <h3 className="mt-4 text-3xl font-extrabold">{t('whatClientsSayDesc')}</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {feedbacks.map((feedback) => (
-                <div
-                  key={feedback.id}
-                  className="group relative bg-white/5 backdrop-blur-lg rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-purple-500/50 transition-all duration-300 hover:transform hover:-translate-y-2 hover:shadow-2xl hover:shadow-purple-500/20"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  <div className="relative z-10">
-                    {feedback.rating && (
-                      <div className="flex items-center gap-1 mb-4">
-                        {[...Array(5)].map((_, i) => (
-                          <span key={i} className={i < feedback.rating! ? 'text-yellow-400' : 'text-gray-500'}>
-                            ⭐
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    <p className="text-sm sm:text-base text-gray-300 leading-relaxed mb-4 line-clamp-4">
-                      "{translatedFeedbacks[feedback.id] || feedback.message}"
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold">
-                        {feedback.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-white">{feedback.name}</p>
-                        {feedback.user && (
-                          <p className="text-xs text-gray-400">@{feedback.user.username}</p>
-                        )}
-                      </div>
+                <div key={feedback.id} className="rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-xl p-6">
+                  {feedback.rating && (
+                    <div className="flex items-center gap-1 text-yellow-400 text-lg mb-4">
+                      {[...Array(5)].map((_, i) => (
+                        <span key={i}>{i < feedback.rating! ? '★' : '☆'}</span>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-sm text-white/70 italic mb-4">
+                    “{translatedFeedbacks[feedback.id] || feedback.message}”
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-sky-500 flex items-center justify-center font-semibold">
+                      {feedback.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-white">{feedback.name}</p>
+                      {feedback.user && <p className="text-xs text-white/50">@{feedback.user.username}</p>}
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-
-            <div className="text-center">
+            <div className="text-center mt-10">
               <Link
                 href="/feedback"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-lg text-white font-semibold rounded-xl border border-white/30 hover:bg-white/20 transition-all shadow-xl hover:shadow-2xl"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-6 py-3 text-sm font-semibold text-white/80 hover:bg-white/5"
               >
-                <span>{t('viewAllFeedbacks')}</span>
-                <span>→</span>
+                {t('viewAllFeedbacks')} →
               </Link>
             </div>
           </div>
         </section>
       )}
 
-      {/* CTA Section */}
-      <section className="relative z-10 py-20 sm:py-24 md:py-32 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold mb-6 sm:mb-8">
-            {t('readyToStart')}
-          </h2>
-          <p className="text-lg sm:text-xl md:text-2xl mb-8 sm:mb-12 text-white/90 max-w-2xl mx-auto">
-            {t('readyToStartDesc')}
-          </p>
+      <section className="relative z-10 py-16 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-5xl mx-auto rounded-[36px] border border-white/10 bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-500 p-10 text-center shadow-[0_30px_80px_rgba(62,3,83,0.45)]">
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">{t('readyToStart')}</h2>
+          <p className="mt-4 text-lg text-white/80">{t('readyToStartDesc')}</p>
           {!session && (
-            <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center items-center">
+            <div className="mt-8 flex flex-wrap justify-center gap-4">
               <Link
                 href="/plans"
-                className="group relative px-8 py-4 sm:px-10 sm:py-5 bg-white text-purple-600 text-lg sm:text-xl font-bold rounded-2xl hover:bg-gray-100 transition-all shadow-2xl hover:shadow-white/50 transform hover:-translate-y-1 hover:scale-105 duration-300"
+                className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-base font-semibold text-purple-600 shadow-lg"
               >
-                  <span className="relative z-10 flex items-center gap-2">
-                  <span>💎</span>
-                  <span>{t('viewPlans')}</span>
-                </span>
+                💎 {t('viewPlans')}
               </Link>
               <Link
                 href="/register"
-                className="group relative px-8 py-4 sm:px-10 sm:py-5 bg-white/10 backdrop-blur-lg text-white text-lg sm:text-xl font-bold rounded-2xl border-2 border-white/30 hover:bg-white/20 transition-all shadow-xl hover:shadow-2xl transform hover:-translate-y-1 hover:scale-105 duration-300"
+                className="inline-flex items-center gap-2 rounded-2xl border border-white/30 px-6 py-3 text-base font-semibold text-white hover:bg-white/10"
               >
-                <span className="relative z-10 flex items-center gap-2">
-                  <span>✨</span>
-                  <span>{t('createFreeAccount')}</span>
-                </span>
+                ✨ {t('createFreeAccount')}
               </Link>
             </div>
           )}
         </div>
       </section>
 
-      {/* Custom CSS for animations */}
       <style jsx>{`
         @keyframes blob {
-          0%, 100% {
-            transform: translate(0, 0) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
+          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+          33% { transform: translate3d(30px, -50px, 0) scale(1.1); }
+          66% { transform: translate3d(-20px, 20px, 0) scale(0.9); }
         }
         .animate-blob {
-          animation: blob 7s infinite;
+          animation: blob 10s ease-in-out infinite;
         }
         .animation-delay-2000 {
           animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
-        }
-        .animation-delay-200 {
-          animation-delay: 0.2s;
-        }
-        .animation-delay-400 {
-          animation-delay: 0.4s;
-        }
-        .animation-delay-600 {
-          animation-delay: 0.6s;
-        }
-        .animation-delay-800 {
-          animation-delay: 0.8s;
-        }
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .animate-fade-in {
-          animation: fade-in 0.8s ease-out forwards;
-          opacity: 0;
         }
       `}</style>
     </div>
