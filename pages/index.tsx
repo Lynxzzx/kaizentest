@@ -1,7 +1,7 @@
 import { useTranslation, useDynamicTranslation } from '@/lib/i18n-helper'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
 import Logo from '@/components/Logo'
 
@@ -14,6 +14,13 @@ interface Feedback {
   user: {
     username: string
   } | null
+}
+
+type PlanPopup = {
+  name: string
+  planKey: 'planDaily' | 'planMonthly' | 'planLifetime'
+  price: string
+  emoji: string
 }
 
 export default function Home() {
@@ -42,8 +49,8 @@ export default function Home() {
   ]
 
   const liveHighlights = [
-    { value: '58', label: t('availableServices') },
-    { value: '12.4k', label: t('confirmedPayments') },
+    { value: '18ms', label: t('metricsLatency') },
+    { value: '32+', label: t('metricsCountries') },
     { value: '4.9k', label: t('availableStocks') }
   ]
 
@@ -52,6 +59,19 @@ export default function Home() {
     { number: '02', title: t('workflowStep2Title'), desc: t('workflowStep2Desc') },
     { number: '03', title: t('workflowStep3Title'), desc: t('workflowStep3Desc') }
   ]
+
+  const planPopups = useMemo<PlanPopup[]>(() => ([
+    { name: 'Luan', planKey: 'planMonthly', price: 'R$ 12,50', emoji: '🔥' },
+    { name: 'Priscila', planKey: 'planDaily', price: 'R$ 5,00', emoji: '⚡' },
+    { name: 'Yuri', planKey: 'planLifetime', price: 'R$ 20,00', emoji: '🎯' },
+    { name: 'Camila', planKey: 'planMonthly', price: 'R$ 12,50', emoji: '🚀' },
+    { name: 'Rafael', planKey: 'planDaily', price: 'R$ 5,00', emoji: '💥' },
+    { name: 'Ana', planKey: 'planLifetime', price: 'R$ 20,00', emoji: '💎' }
+  ]), [])
+
+  const [currentPopup, setCurrentPopup] = useState<PlanPopup>(planPopups[0])
+  const [popupVisible, setPopupVisible] = useState(true)
+  const popupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     axios.get('/api/feedback')
@@ -82,6 +102,24 @@ export default function Home() {
       setTranslatedFeedbacks({})
     }
   }, [feedbacks, translate, locale])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPopupVisible(false)
+      popupTimeoutRef.current = setTimeout(() => {
+        const next = planPopups[Math.floor(Math.random() * planPopups.length)]
+        setCurrentPopup(next)
+        setPopupVisible(true)
+      }, 250)
+    }, 6000)
+
+    return () => {
+      clearInterval(interval)
+      if (popupTimeoutRef.current) {
+        clearTimeout(popupTimeoutRef.current)
+      }
+    }
+  }, [planPopups])
 
   return (
     <div className="relative min-h-screen bg-[#01020f] text-white overflow-hidden">
@@ -309,6 +347,18 @@ export default function Home() {
           )}
         </div>
       </section>
+
+      {currentPopup && (
+        <div className={`fixed bottom-6 left-6 z-30 transition-all duration-300 ${popupVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
+          <div className="rounded-3xl border border-white/15 bg-white/10 backdrop-blur-xl px-5 py-4 shadow-[0_20px_45px_rgba(2,8,23,0.6)] max-w-xs">
+            <p className="text-sm font-semibold text-white flex items-center gap-2">
+              <span>{currentPopup.emoji}</span>
+              <span>{currentPopup.name} {t('popupUserActivated')} {t(currentPopup.planKey)}</span>
+            </p>
+            <p className="text-xs text-white/60 mt-1">{currentPopup.price} • {t('popupJustNow')}</p>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes blob {
