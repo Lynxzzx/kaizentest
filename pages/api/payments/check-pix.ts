@@ -54,8 +54,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     }
 
-    // Verificar se é PagSeguro (tem asaasId que começa com ORD- ou CHG-)
-    const isPagSeguro = payment.asaasId && (payment.asaasId.startsWith('ORD-') || payment.asaasId.startsWith('CHG-'))
+    // Verificar se é PagSeguro: usamos PagSeguro quando o pagamento PIX não possui ID no formato "pay_"
+    const isPagSeguro =
+      !!payment.asaasId &&
+      !payment.asaasId.startsWith('pay_') &&
+      !payment.asaasId.startsWith('pay')
 
     if (isPagSeguro && payment.asaasId) {
       try {

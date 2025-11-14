@@ -12,7 +12,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     try {
+      const search =
+        typeof req.query.search === 'string'
+          ? req.query.search.trim()
+          : ''
+
       const users = await prisma.user.findMany({
+        where: search
+          ? {
+              username: {
+                contains: search,
+                mode: 'insensitive'
+              }
+            }
+          : undefined,
         include: {
           plan: true,
           _count: {
@@ -39,6 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'UserId is required' })
     }
 
+    let computedPlanExpiresAt: Date | null | undefined
+
     try {
       const updateData: any = {}
 
@@ -48,15 +63,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           updateData.plan = {
             connect: { id: planId }
           }
+
+          const shouldAutoComputeExpiration =
+            planExpiresAt === undefined || planExpiresAt === null || planExpiresAt === ''
+
+          if (shouldAutoComputeExpiration) {
+            const plan = await prisma.plan.findUnique({
+              where: { id: planId }
+            })
+
+            if (plan) {
+              if (plan.duration > 0) {
+                const expiresAt = new Date()
+                expiresAt.setDate(expiresAt.getDate() + plan.duration)
+                computedPlanExpiresAt = expiresAt
+              } else {
+                computedPlanExpiresAt = null
+              }
+            }
+          }
         } else {
           updateData.plan = {
             disconnect: true
           }
+          computedPlanExpiresAt = null
         }
       }
 
       if (planExpiresAt !== undefined) {
-        updateData.planExpiresAt = planExpiresAt ? new Date(planExpiresAt) : null
+        computedPlanExpiresAt = planExpiresAt ? new Date(planExpiresAt) : null
+      }
+
+      if (computedPlanExpiresAt !== undefined) {
+        updateData.planExpiresAt = computedPlanExpiresAt
       }
 
       if (isBanned !== undefined) {
@@ -92,8 +131,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             setData.planId = planId ? { $oid: planId } : null
           }
           
-          if (planExpiresAt !== undefined) {
-            setData.planExpiresAt = planExpiresAt ? new Date(planExpiresAt) : null
+          if (computedPlanExpiresAt !== undefined) {
+            setData.planExpiresAt = computedPlanExpiresAt
           }
           
           if (isBanned !== undefined) {

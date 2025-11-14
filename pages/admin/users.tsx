@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
@@ -34,6 +34,7 @@ interface Plan {
   id: string
   name: string
   price: number
+  duration: number
 }
 
 export default function AdminUsers() {
@@ -44,6 +45,7 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
+  const [tableLoading, setTableLoading] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editData, setEditData] = useState({
     planId: '',
@@ -51,6 +53,7 @@ export default function AdminUsers() {
     isBanned: false,
     role: 'USER'
   })
+  const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -62,18 +65,30 @@ export default function AdminUsers() {
 
   useEffect(() => {
     if (session?.user?.role === 'OWNER') {
-      loadUsers()
+      loadUsers('')
       loadPlans()
     }
   }, [session])
 
-  const loadUsers = async () => {
+  const loadUsers = async (search = '') => {
+    const showTableLoader = !loading
+    if (showTableLoader) {
+      setTableLoading(true)
+    }
+
     try {
-      const response = await axios.get('/api/admin/users')
+      const response = await axios.get('/api/admin/users', {
+        params: {
+          search: search.trim() || undefined
+        }
+      })
       setUsers(response.data)
     } catch (error) {
       toast.error('Erro ao carregar usuários')
     } finally {
+      if (showTableLoader) {
+        setTableLoading(false)
+      }
       setLoading(false)
     }
   }
@@ -118,7 +133,7 @@ export default function AdminUsers() {
       
       toast.success('Usuário atualizado com sucesso!')
       setEditingUser(null)
-      loadUsers()
+      loadUsers(searchTerm)
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao atualizar usuário')
     }
@@ -131,7 +146,7 @@ export default function AdminUsers() {
         role: newRole
       })
       toast.success('Usuário promovido com sucesso!')
-      loadUsers()
+      loadUsers(searchTerm)
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao promover usuário')
     }
@@ -144,10 +159,163 @@ export default function AdminUsers() {
         isBanned: ban
       })
       toast.success(ban ? 'Usuário banido!' : 'Usuário desbanido!')
-      loadUsers()
+      loadUsers(searchTerm)
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao atualizar status de banimento')
     }
+  }
+
+  const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    loadUsers(searchTerm)
+  }
+
+  const handleResetSearch = () => {
+    setSearchTerm('')
+    loadUsers('')
+  }
+
+  const handlePlanSelection = (planId: string) => {
+    if (!planId) {
+      setEditData((prev) => ({
+        ...prev,
+        planId: '',
+        planExpiresAt: ''
+      }))
+      return
+    }
+
+    const selectedPlan = plans.find((plan) => plan.id === planId)
+    if (!selectedPlan) {
+      setEditData((prev) => ({
+        ...prev,
+        planId
+      }))
+      return
+    }
+
+    let computedExpiration = ''
+    if (selectedPlan.duration > 0) {
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + selectedPlan.duration)
+      computedExpiration = format(expiresAt, 'yyyy-MM-dd')
+    }
+
+    setEditData((prev) => ({
+      ...prev,
+      planId,
+      planExpiresAt: computedExpiration
+    }))
+  }
+
+  const selectedPlanDetails = plans.find((plan) => plan.id === editData.planId)
+
+  const renderUserRows = () => {
+    if (tableLoading) {
+      return (
+        <tr>
+          <td colSpan={7} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+            Carregando usuários...
+          </td>
+        </tr>
+      )
+    }
+
+    if (users.length === 0) {
+      return (
+        <tr>
+          <td colSpan={7} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+            Nenhum usuário encontrado
+          </td>
+        </tr>
+      )
+    }
+
+    return users.map((user) => (
+      <tr key={user.id} className={user.isBanned ? 'bg-red-50 dark:bg-red-900/20' : ''}>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="font-medium text-gray-900 dark:text-gray-100">{user.username}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {format(new Date(user.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+          {user.email || '-'}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-bold ${
+              user.role === 'OWNER'
+                ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+                : user.role === 'ADMIN'
+                ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                : user.role === 'MODERATOR'
+                ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+            }`}
+          >
+            {user.role === 'OWNER'
+              ? '👑 Owner'
+              : user.role === 'ADMIN'
+              ? '🔧 Admin'
+              : user.role === 'MODERATOR'
+              ? '🛡️ Moderador'
+              : '👤 Usuário'}
+          </span>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            {user.plan?.name || 'Sem plano'}
+          </div>
+          {user.planExpiresAt && (
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Expira: {format(new Date(user.planExpiresAt), "dd/MM/yyyy", { locale: ptBR })}
+            </div>
+          )}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          {user.isBanned ? (
+            <span className="px-2 py-1 rounded-full text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
+              Banido
+            </span>
+          ) : (
+            <span className="px-2 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+              Ativo
+            </span>
+          )}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+          <div>Total: {user._count.generatedAccounts}</div>
+          <div>Grátis hoje: {user.dailyFreeGenerations}/2</div>
+          <div>Bonus: {user.bonusGenerations}</div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handleEdit(user)}
+              className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
+            >
+              Editar
+            </button>
+            {user.isBanned ? (
+              <button
+                onClick={() => handleBan(user, false)}
+                className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
+              >
+                Desbanir
+              </button>
+            ) : (
+              <button
+                onClick={() => handleBan(user, true)}
+                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+              >
+                Banir
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    ))
   }
 
   if (status === 'loading' || loading) {
@@ -160,8 +328,36 @@ export default function AdminUsers() {
 
   return (
     <div className="admin-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-8">
         <h1 className="text-3xl font-bold">Gerenciar Usuários</h1>
+        <form onSubmit={handleSearchSubmit} className="flex w-full md:w-auto gap-2">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por nome de usuário"
+            className={`flex-1 md:w-64 px-4 py-2 rounded-md border ${
+              theme === 'dark'
+                ? 'bg-white/5 border-white/20 text-white placeholder-white/50'
+                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+            }`}
+          />
+          <button
+            type="submit"
+            className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+          >
+            Buscar
+          </button>
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={handleResetSearch}
+              className={`${theme === 'dark' ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'} px-4 py-2 rounded-md`}
+            >
+              Limpar
+            </button>
+          )}
+        </form>
       </div>
 
       {editingUser && (
@@ -172,7 +368,7 @@ export default function AdminUsers() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Plano</label>
               <select
                 value={editData.planId}
-                onChange={(e) => setEditData({ ...editData, planId: e.target.value })}
+                onChange={(e) => handlePlanSelection(e.target.value)}
                 className={`w-full px-3 py-2 rounded-md ${
                   theme === 'dark'
                     ? 'bg-white/10 border border-white/20 text-white'
@@ -198,6 +394,13 @@ export default function AdminUsers() {
                 onChange={(e) => setEditData({ ...editData, planExpiresAt: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md"
               />
+              {selectedPlanDetails && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {selectedPlanDetails.duration > 0
+                    ? `Este plano expira automaticamente em ${selectedPlanDetails.duration} dia${selectedPlanDetails.duration > 1 ? 's' : ''} a partir da data de ativação.`
+                    : 'Este plano não possui data de expiração definida.'}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Cargo</label>
@@ -249,7 +452,8 @@ export default function AdminUsers() {
 
       <div className="mb-4">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Total de usuários: <span className="font-bold text-primary-600 dark:text-primary-400">{users.length}</span>
+          {searchTerm ? 'Usuários encontrados' : 'Total de usuários'}:{' '}
+          <span className="font-bold text-primary-600 dark:text-primary-400">{users.length}</span>
         </p>
       </div>
 
@@ -268,91 +472,7 @@ export default function AdminUsers() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {users.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                    Nenhum usuário encontrado
-                  </td>
-                </tr>
-              ) : (
-                users.map((user) => (
-                  <tr key={user.id} className={user.isBanned ? 'bg-red-50 dark:bg-red-900/20' : ''}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{user.username}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {format(new Date(user.createdAt), "dd/MM/yyyy", { locale: ptBR })}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {user.email || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${
-                      user.role === 'OWNER' ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200' :
-                      user.role === 'ADMIN' ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200' :
-                      user.role === 'MODERATOR' ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200' :
-                      'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                    }`}>
-                      {user.role === 'OWNER' ? '👑 Owner' :
-                       user.role === 'ADMIN' ? '🔧 Admin' :
-                       user.role === 'MODERATOR' ? '🛡️ Moderador' :
-                       '👤 Usuário'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {user.plan?.name || 'Sem plano'}
-                    </div>
-                    {user.planExpiresAt && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        Expira: {format(new Date(user.planExpiresAt), "dd/MM/yyyy", { locale: ptBR })}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {user.isBanned ? (
-                      <span className="px-2 py-1 rounded-full text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
-                        Banido
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 rounded-full text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
-                        Ativo
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    <div>Total: {user._count.generatedAccounts}</div>
-                    <div>Grátis hoje: {user.dailyFreeGenerations}/2</div>
-                    <div>Bonus: {user.bonusGenerations}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleEdit(user)}
-                        className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
-                      >
-                        Editar
-                      </button>
-                      {user.isBanned ? (
-                        <button
-                          onClick={() => handleBan(user, false)}
-                          className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
-                        >
-                          Desbanir
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleBan(user, true)}
-                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
-                        >
-                          Banir
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
-              )}
+              {renderUserRows()}
             </tbody>
           </table>
         </div>
