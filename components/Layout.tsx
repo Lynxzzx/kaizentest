@@ -1,9 +1,10 @@
-import { ReactNode, useState } from 'react'
+import { ReactNode, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
+import { getThemeClasses } from '@/lib/theme-utils'
 import Logo from './Logo'
 import Chatbox from './Chatbox'
 import BroadcastBanner from './BroadcastBanner'
@@ -20,490 +21,212 @@ export default function Layout({ children }: LayoutProps) {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [chatboxOpen, setChatboxOpen] = useState(false)
+  const themeClasses = useMemo(() => getThemeClasses(theme), [theme])
 
-  // Classes de tema para o container principal
-  const getThemeClasses = () => {
-    switch (theme) {
-      case 'dark':
-        return 'min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white'
-      case 'light':
-        return 'min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 text-gray-900'
-      case 'default':
-        return 'min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 text-gray-900'
-      default:
-        return 'min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white'
+  const navigationLinks = useMemo(() => {
+    if (!session) return []
+    if (session.user.role === 'OWNER') {
+      return [
+        { href: '/admin', label: t('admin'), icon: '🛰️' },
+        { href: '/dashboard', label: t('dashboard'), icon: '📊' },
+        { href: '/admin/services', label: t('services'), icon: '🛠️' },
+        { href: '/admin/stocks', label: t('stocks'), icon: '📦' },
+        { href: '/admin/plans', label: t('plans'), icon: '📋' },
+        { href: '/admin/users', label: t('users'), icon: '👥' },
+        { href: '/tickets', label: t('tickets'), icon: '🎟️' },
+        { href: '/admin/maintenance', label: t('maintenance'), icon: '🧰' }
+      ]
     }
-  }
+    return [
+      { href: '/dashboard', label: t('dashboard'), icon: '📊' },
+      { href: '/plans', label: t('plans'), icon: '💎' },
+      { href: '/affiliate', label: t('affiliates'), icon: '🤝' },
+      { href: '/raffles', label: t('raffles'), icon: '🎲' },
+      { href: '/tickets', label: t('support'), icon: '🛟' },
+      { href: '/feedback', label: t('feedbacks'), icon: '💬' },
+      { href: '/keys/redeem', label: t('redeemKey'), icon: '🔑' },
+      { href: '/settings', label: t('settings'), icon: '⚙️' }
+    ]
+  }, [session, t])
 
-  // Classes de tema para navbar
-  const getNavbarClasses = () => {
-    switch (theme) {
-      case 'dark':
-        return 'bg-white/10 backdrop-blur-lg shadow-lg border-b border-white/20 sticky top-0 z-50'
-      case 'light':
-        return 'bg-white/80 backdrop-blur-lg shadow-lg border-b border-gray-200/50 sticky top-0 z-50'
-      case 'default':
-        return 'bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50'
-      default:
-        return 'bg-white/10 backdrop-blur-lg shadow-lg border-b border-white/20 sticky top-0 z-50'
-    }
-  }
+  const navLinkClasses = (href: string) => {
+    const isActive = router.pathname === href || router.pathname.startsWith(`${href}/`)
+    const activeClasses = theme === 'dark'
+      ? 'text-white shadow-[0_20px_35px_rgba(59,130,246,0.35)] bg-white/10'
+      : 'text-slate-900 shadow-[0_20px_35px_rgba(15,23,42,0.2)] bg-white'
+    const idleClasses = theme === 'dark'
+      ? 'text-slate-300 hover:text-white/80 hover:bg-white/5'
+      : 'text-slate-600 hover:text-slate-900 hover:bg-white/70'
 
-  // Classes de tema para footer
-  const getFooterClasses = () => {
-    switch (theme) {
-      case 'dark':
-        return 'bg-slate-900/50 border-t border-white/20 mt-16'
-      case 'light':
-        return 'bg-white border-t border-gray-200 mt-16'
-      case 'default':
-        return 'bg-white border-t border-gray-200 mt-16'
-      default:
-        return 'bg-slate-900/50 border-t border-white/20 mt-16'
-    }
-  }
-
-  // Classes de tema para texto do footer
-  const getFooterTextClasses = () => {
-    switch (theme) {
-      case 'dark':
-        return 'text-gray-300'
-      case 'light':
-      case 'default':
-        return 'text-gray-600'
-      default:
-        return 'text-gray-300'
-    }
+    return `flex items-center gap-2 rounded-2xl px-4 py-2 text-sm font-semibold transition-all duration-300 ${isActive ? activeClasses : idleClasses}`
   }
 
   return (
-    <div className={getThemeClasses()}>
+    <div className={`relative overflow-hidden min-h-screen ${themeClasses.bg}`}>
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-gradient-to-br from-indigo-500/30 via-purple-500/20 to-cyan-400/25 blur-[160px] glow-pulse" />
+        <div className="absolute bottom-[-15%] left-[-5%] w-[520px] h-[520px] bg-gradient-to-br from-cyan-500/25 via-sky-400/10 to-transparent blur-[200px] orbit-spin" />
+        <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_1px_1px,_rgba(148,163,184,.35),transparent_40px)]" />
+      </div>
+
       <MaintenanceBanner />
       <BroadcastBanner />
-      <nav className={getNavbarClasses()}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 md:h-20">
-            <div className="flex items-center space-x-4 md:space-x-8">
-              <Logo size="md" showText={false} />
-              {session && (
-                <>
-                  {/* Desktop Menu */}
-                  <div className="hidden md:flex items-center space-x-1">
-                    <Link
-                      href={session.user.role === 'OWNER' ? '/admin' : '/dashboard'}
-                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                        router.pathname === '/admin' || router.pathname === '/dashboard'
-                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                          : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {session.user.role === 'OWNER' ? t('admin') : t('dashboard')}
-                    </Link>
-                    {session.user.role !== 'OWNER' && (
-                      <>
-                        <Link
-                          href="/plans"
-                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                            router.pathname === '/plans'
-                              ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                              : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                          }`}
-                        >
-                          {t('plans')}
+
+      <nav className="sticky top-0 z-50">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+          <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_25px_60px_rgba(15,23,42,0.45)] px-4 sm:px-6 lg:px-8">
+            <div className="flex h-16 md:h-20 items-center justify-between">
+              <div className="flex items-center gap-4 md:gap-8">
+                <Logo size="md" showText={false} />
+                {session && (
+                  <>
+                    <div className="hidden lg:flex items-center gap-2">
+                      {navigationLinks.map((item) => (
+                        <Link key={item.href} href={item.href} className={navLinkClasses(item.href)}>
+                          <span>{item.icon}</span>
+                          <span>{item.label}</span>
                         </Link>
-                        <Link
-                          href="/affiliate"
-                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                            router.pathname === '/affiliate'
-                              ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                              : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                          }`}
-                        >
-                          {t('affiliates')}
-                        </Link>
-                        <Link
-                          href="/raffles"
-                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                            router.pathname === '/raffles'
-                              ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                              : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                          }`}
-                        >
-                          🎲 {t('raffles')}
-                        </Link>
-                        <Link
-                          href="/tickets"
-                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                            router.pathname === '/tickets'
-                              ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                              : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                          }`}
-                        >
-                          {t('support')}
-                        </Link>
-                        <Link
-                          href="/feedback"
-                          className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                            router.pathname === '/feedback'
-                              ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                              : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                          }`}
-                        >
-                          💬 {t('feedbacks')}
-                        </Link>
-                    <Link
-                      href="/keys/redeem"
-                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                        router.pathname === '/keys/redeem'
-                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                          : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {t('redeemKey')}
-                    </Link>
-                    <Link
-                      href="/settings"
-                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                        router.pathname === '/settings'
-                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                          : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      ⚙️ {t('settings')}
-                    </Link>
-                    <button
-                      onClick={() => setChatboxOpen(!chatboxOpen)}
-                      className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${
-                        chatboxOpen
-                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                          : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      <span>💬</span>
-                      <span>{t('chat')}</span>
-                    </button>
-                      </>
-                    )}
-                    {session.user.role === 'OWNER' && (
-                      <>
-                    <Link
-                      href="/tickets"
-                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                        router.pathname === '/tickets'
-                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                          : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {t('tickets')}
-                    </Link>
-                    <Link
-                      href="/settings"
-                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                        router.pathname === '/settings'
-                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                          : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      ⚙️ {t('settings')}
-                    </Link>
-                    <button
-                      onClick={() => setChatboxOpen(!chatboxOpen)}
-                      className={`px-4 py-2 rounded-lg font-medium transition-all flex items-center space-x-2 ${
-                        chatboxOpen
-                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                          : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      <span>💬</span>
-                      <span>{t('chat')}</span>
-                    </button>
-                      </>
-                    )}
-                  </div>
-                  {/* Mobile Menu Button */}
-                  <button
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                    className={`md:hidden p-2 rounded-lg transition-colors ${
-                      theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                    aria-label="Toggle menu"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      {mobileMenuOpen ? (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      ) : (
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                      )}
-                    </svg>
-                  </button>
-                </>
-              )}
-            </div>
-            <div className="flex items-center space-x-2 md:space-x-4">
-              <div className={`flex items-center gap-1 rounded-lg overflow-hidden border ${
-                  theme === 'dark'
-                    ? 'border-white/20'
-                    : 'border-gray-300'
-                }`}>
-                <button
-                  onClick={() => changeLanguage('pt-BR')}
-                  className={`px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium transition-all flex items-center gap-2 ${
-                    locale === 'pt-BR'
-                      ? theme === 'dark'
-                        ? 'bg-primary-600 text-white'
-                        : 'bg-primary-600 text-white'
-                      : theme === 'dark'
-                        ? 'bg-white/10 text-white hover:bg-white/20'
-                        : 'bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <span className="text-base">🇧🇷</span>
-                  <span className="hidden sm:inline">PT-BR</span>
-                </button>
-                <button
-                  onClick={() => changeLanguage('en')}
-                  className={`px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium transition-all flex items-center gap-2 border-l ${
-                    locale === 'en'
-                      ? theme === 'dark'
-                        ? 'bg-primary-600 text-white border-white/20'
-                        : 'bg-primary-600 text-white border-gray-300'
-                      : theme === 'dark'
-                        ? 'bg-white/10 text-white hover:bg-white/20 border-white/20'
-                        : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'
-                  }`}
-                >
-                  <span className="text-base">🇺🇸</span>
-                  <span className="hidden sm:inline">EN</span>
-                </button>
-              </div>
-              {session ? (
-                <div className="flex items-center space-x-2 md:space-x-3">
-                  <Link
-                    href={`/profile/${session.user.username}`}
-                    className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-                  >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white font-bold text-xs">
-                      {session.user.username.charAt(0).toUpperCase()}
+                      ))}
+                      <button
+                        onClick={() => setChatboxOpen((prev) => !prev)}
+                        className={`${navLinkClasses('chat')} ${chatboxOpen ? 'ring-2 ring-cyan-400/60 ring-offset-2 ring-offset-transparent' : ''}`}
+                      >
+                        <span>💬</span>
+                        <span>{t('chat')}</span>
+                      </button>
                     </div>
-                  </Link>
-                  <div className="hidden md:block text-right">
-                    <p className="text-sm font-semibold text-gray-900">{session.user.username}</p>
-                    <p className="text-xs text-gray-500">
-                      {session.user.role === 'OWNER' ? t('administrator') : t('user')}
-                    </p>
-                  </div>
+                    <button
+                      onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                      className="lg:hidden inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-slate-200 hover:bg-white/10 transition-colors"
+                      aria-label="Toggle menu"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {mobileMenuOpen ? (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        ) : (
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                        )}
+                      </svg>
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 rounded-2xl border border-white/10 bg-white/5 p-1">
                   <button
-                    onClick={async () => {
-                      // Fazer logout sem redirecionamento automático do NextAuth
-                      // Isso evita o problema com localhost
-                      await signOut({ redirect: false })
-                      
-                      // Redirecionar manualmente para a página principal usando caminho relativo
-                      // Isso garante que sempre vai para a URL correta do site, não localhost
-                      if (typeof window !== 'undefined') {
-                        window.location.href = '/'
-                      }
-                    }}
-                    className="px-3 py-1.5 md:px-4 md:py-2 bg-red-50 text-red-600 rounded-lg text-sm md:text-base font-medium hover:bg-red-100 transition-colors border border-red-200"
-                  >
-                    {t('logout')}
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Link
-                    href="/register"
-                    className="hidden sm:block px-3 py-1.5 md:px-4 md:py-2 text-sm md:text-base text-gray-700 rounded-lg font-medium hover:bg-gray-100 transition-colors"
-                  >
-                    {t('createAccount')}
-                  </Link>
-                  <Link
-                    href="/login"
-                    className="px-4 py-1.5 md:px-6 md:py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm md:text-base rounded-lg font-medium hover:from-primary-700 hover:to-primary-800 transition-all shadow-md hover:shadow-lg"
-                  >
-                    {t('login')}
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Mobile Menu */}
-          {mobileMenuOpen && session && (
-            <div className={`md:hidden ${theme === 'dark' ? 'border-t border-white/20' : 'border-t border-gray-200'} py-4`}>
-              <div className="flex flex-col space-y-2">
-                  <Link
-                    href={session.user.role === 'OWNER' ? '/admin' : '/dashboard'}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                      router.pathname === '/admin' || router.pathname === '/dashboard'
-                        ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                        : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
+                    onClick={() => changeLanguage('pt-BR')}
+                    className={`flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-semibold transition-all ${
+                      locale === 'pt-BR'
+                        ? 'bg-gradient-to-r from-emerald-400/40 to-cyan-400/40 text-white'
+                        : 'text-slate-200 hover:text-white'
                     }`}
                   >
-                    {session.user.role === 'OWNER' ? t('admin') : t('dashboard')}
-                  </Link>
-                  {session.user.role !== 'OWNER' && (
-                    <>
-                      <Link
-                        href="/plans"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                          router.pathname === '/plans'
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        {t('plans')}
-                      </Link>
-                      <Link
-                        href="/affiliate"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                          router.pathname === '/affiliate'
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        {t('affiliates')}
-                      </Link>
-                      <Link
-                        href="/raffles"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                          router.pathname === '/raffles'
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        🎲 {t('raffles')}
-                      </Link>
-                      <Link
-                        href="/tickets"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                          router.pathname === '/tickets'
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        {t('support')}
-                      </Link>
-                      <Link
-                        href="/feedback"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                          router.pathname === '/feedback'
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        💬 {t('feedbacks')}
-                      </Link>
-                      <Link
-                        href="/keys/redeem"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                          router.pathname === '/keys/redeem'
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        {t('redeemKey')}
-                      </Link>
-                      <Link
-                        href="/settings"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                          router.pathname === '/settings'
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        ⚙️ {t('settings')}
-                      </Link>
-                      <button
-                        onClick={() => {
-                          setChatboxOpen(!chatboxOpen)
-                          setMobileMenuOpen(false)
-                        }}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all flex items-center space-x-2 ${
-                          chatboxOpen
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        <span>💬</span>
-                        <span>{t('chat')}</span>
-                      </button>
-                    </>
-                  )}
-                  {session.user.role === 'OWNER' && (
-                    <>
-                      <Link
-                        href="/tickets"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                          router.pathname === '/tickets'
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        Tickets
-                      </Link>
-                      <Link
-                        href="/settings"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all ${
-                          router.pathname === '/settings'
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        ⚙️ {t('settings')}
-                      </Link>
-                      <button
-                        onClick={() => {
-                          setChatboxOpen(!chatboxOpen)
-                          setMobileMenuOpen(false)
-                        }}
-                        className={`px-4 py-3 rounded-lg font-medium transition-all flex items-center space-x-2 ${
-                          chatboxOpen
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                            : theme === 'dark' ? 'text-gray-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        <span>💬</span>
-                        <span>{t('chat')}</span>
-                      </button>
-                    </>
-                  )}
-                <div className={`pt-4 ${theme === 'dark' ? 'border-t border-white/20' : 'border-t border-gray-200'}`}>
-                  <div className="px-4 py-2">
-                    <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                      {session.user.username}
-                    </p>
-                    <p className={`text-xs ${theme === 'dark' ? 'text-gray-300' : 'text-gray-500'}`}>
-                      {session.user.role === 'OWNER' ? t('administrator') : t('user')}
-                    </p>
-                  </div>
+                    <span>🇧🇷</span>
+                    <span className="hidden sm:inline">PT</span>
+                  </button>
+                  <button
+                    onClick={() => changeLanguage('en')}
+                    className={`flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-semibold transition-all ${
+                      locale === 'en'
+                        ? 'bg-gradient-to-r from-emerald-400/40 to-cyan-400/40 text-white'
+                        : 'text-slate-200 hover:text-white'
+                    }`}
+                  >
+                    <span>🇺🇸</span>
+                    <span className="hidden sm:inline">EN</span>
+                  </button>
                 </div>
+
+                {session ? (
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/profile/${session.user.username}`}
+                      className="hidden md:flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-3 py-1.5 hover:bg-white/10 transition-colors"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400 via-sky-500 to-indigo-600 flex items-center justify-center text-sm font-bold text-white">
+                        {session.user.username.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="text-left text-xs font-semibold text-white/80">
+                        <p className="text-sm text-white">{session.user.username}</p>
+                        <p className="text-[10px] uppercase tracking-wide text-white/60">
+                          {session.user.role === 'OWNER' ? t('administrator') : t('user')}
+                        </p>
+                      </div>
+                    </Link>
+                    <button
+                      onClick={async () => {
+                        await signOut({ redirect: false })
+                        if (typeof window !== 'undefined') {
+                          window.location.href = '/'
+                        }
+                      }}
+                      className="rounded-2xl border border-red-400/40 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/20 transition-all"
+                    >
+                      {t('logout')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href="/register"
+                      className="hidden sm:inline-flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white hover:bg-white/10 transition-all"
+                    >
+                      {t('createAccount')}
+                    </Link>
+                    <Link
+                      href="/login"
+                      className="inline-flex items-center rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-5 py-2 text-sm font-semibold text-white shadow-[0_20px_35px_rgba(59,130,246,0.4)]"
+                    >
+                      {t('login')}
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
-          )}
+
+            {mobileMenuOpen && session && (
+              <div className="mt-4 border-t border-white/10 pt-4 lg:hidden">
+                <div className="grid gap-2">
+                  {navigationLinks.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={`${navLinkClasses(item.href)} border border-white/10 bg-white/5`}
+                    >
+                      <span>{item.icon}</span>
+                      <span>{item.label}</span>
+                    </Link>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    setChatboxOpen((prev) => !prev)
+                    setMobileMenuOpen(false)
+                  }}
+                  className="mt-3 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-white/10"
+                >
+                  <span>💬</span>
+                  <span>{t('chat')}</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </nav>
-      <main className="min-h-[calc(100vh-80px)]">{children}</main>
-      <footer className={getFooterClasses()}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className={`text-center ${getFooterTextClasses()}`}>
-            <div className="flex justify-center mb-4">
-              <Logo size="sm" showText={true} className="justify-center" />
-            </div>
-            <p className="text-sm">© {new Date().getFullYear()} Kaizen Gerador. {t('allRightsReserved')}</p>
+
+      <main className="relative z-10 min-h-[calc(100vh-80px)]">{children}</main>
+
+      <footer className="relative z-10 mt-16 border-t border-white/5 bg-white/5/20 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 text-center text-sm text-white/70">
+          <div className="flex justify-center mb-3">
+            <Logo size="sm" showText className="justify-center" />
           </div>
+          <p>© {new Date().getFullYear()} Kaizen Gerador · {t('allRightsReserved')}</p>
         </div>
       </footer>
+
       {session?.user && (
         <Chatbox isOpen={chatboxOpen} onToggle={() => setChatboxOpen(!chatboxOpen)} />
       )}

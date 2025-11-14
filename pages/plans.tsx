@@ -301,7 +301,7 @@ export default function Plans() {
                   <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
-                  <span>{plan.maxGenerations === 0 ? t('unlimited') : `${plan.maxGenerations} ${t('generations')}`}</span>
+                  <span>{plan.maxGenerations === 0 ? t('unlimitedLabel') : `${plan.maxGenerations} ${t('generations')}`}</span>
                 </div>
                 <div className={`flex items-center ${themeClasses.text.secondary}`}>
                   <svg className="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -553,7 +553,7 @@ export default function Plans() {
                           }}
                           className="px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium whitespace-nowrap"
                         >
-                          {t('copy')}
+                          {t('copyButton')}
                         </button>
                       </div>
                     </div>

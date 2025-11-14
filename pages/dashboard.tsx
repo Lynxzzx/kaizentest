@@ -50,13 +50,13 @@ export default function Dashboard() {
   const getDashboardThemeClasses = () => {
     switch (theme) {
       case 'dark':
-        return 'min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8'
+        return 'relative min-h-screen bg-[#050816] text-slate-100 bg-tech-grid py-8 sm:py-10 md:py-14 px-4 sm:px-6 lg:px-8'
       case 'light':
-        return 'min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 text-gray-900 py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8'
+        return 'relative min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),transparent_55%)] from-slate-50 via-slate-100 to-slate-200 text-slate-900 py-8 sm:py-10 md:py-14 px-4 sm:px-6 lg:px-8'
       case 'default':
-        return 'min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 text-gray-900 py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8'
+        return 'relative min-h-screen bg-[#020617] text-slate-100 bg-tech-grid py-8 sm:py-10 md:py-14 px-4 sm:px-6 lg:px-8'
       default:
-        return 'min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white py-6 sm:py-8 md:py-12 px-4 sm:px-6 lg:px-8'
+        return 'relative min-h-screen bg-[#050816] text-slate-100 bg-tech-grid py-8 sm:py-10 md:py-14 px-4 sm:px-6 lg:px-8'
     }
   }
 
@@ -65,25 +65,25 @@ export default function Dashboard() {
   const getCardClasses = () => {
     switch (theme) {
       case 'dark':
-        return 'bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-white/20'
+        return 'relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-2xl p-5 sm:p-6 md:p-8 shadow-[0_25px_60px_rgba(15,23,42,0.55)]'
       case 'light':
-        return 'bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200'
+        return 'relative overflow-hidden rounded-[28px] border border-white bg-white/90 backdrop-blur-xl p-5 sm:p-6 md:p-8 shadow-[0_25px_50px_rgba(15,23,42,0.12)]'
       case 'default':
-        return 'bg-white rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-gray-200'
+        return 'relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-2xl p-5 sm:p-6 md:p-8 shadow-[0_25px_60px_rgba(15,23,42,0.55)]'
       default:
-        return 'bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8 border border-white/20'
+        return 'relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-2xl p-5 sm:p-6 md:p-8 shadow-[0_25px_60px_rgba(15,23,42,0.55)]'
     }
   }
 
   const getTextClasses = () => {
     switch (theme) {
       case 'dark':
-        return { primary: 'text-white', secondary: 'text-gray-300', muted: 'text-gray-400' }
+        return { primary: 'text-slate-50', secondary: 'text-slate-300', muted: 'text-slate-400' }
       case 'light':
       case 'default':
-        return { primary: 'text-gray-900', secondary: 'text-gray-600', muted: 'text-gray-500' }
+        return { primary: 'text-slate-900', secondary: 'text-slate-600', muted: 'text-slate-500' }
       default:
-        return { primary: 'text-white', secondary: 'text-gray-300', muted: 'text-gray-400' }
+        return { primary: 'text-slate-50', secondary: 'text-slate-300', muted: 'text-slate-400' }
     }
   }
 
@@ -175,25 +175,40 @@ export default function Dashboard() {
   return (
     <div className={getDashboardThemeClasses()}>
       <div className="max-w-7xl mx-auto">
-        <div className="mb-6 sm:mb-8 flex justify-between items-center">
-          <div>
-            <h1 className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-2 ${textClasses.primary}`}>
-              {t('dashboard')}
-            </h1>
-            <p className={`text-sm sm:text-base ${textClasses.secondary}`}>{t('welcome')}, {session.user.username}!</p>
+        <div className={`${getCardClasses()} neon-shadow mb-8`}>
+          <div className="absolute inset-0 bg-gradient-to-r from-sky-500/10 via-purple-500/10 to-cyan-400/10" />
+          <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-white/70">{t('welcome')}</p>
+              <h1 className="text-3xl md:text-4xl font-black text-white leading-tight">
+                {session.user.username}
+              </h1>
+              <p className="text-sm text-white/70 max-w-xl">
+                {t('joinTelegram')} · {t('shareYourExperience')}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href="/plans"
+                className="inline-flex items-center rounded-2xl border border-white/20 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
+              >
+                <span className="mr-2">🚀</span>
+                {t('viewPlans')}
+              </Link>
+              <Link
+                href={`/profile/${session.user.username}`}
+                className="inline-flex items-center rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-2 text-sm font-semibold text-white shadow-[0_15px_35px_rgba(99,102,241,0.45)]"
+              >
+                <span className="mr-2">👤</span>
+                {t('viewProfile')}
+              </Link>
+            </div>
           </div>
-          <Link
-            href={`/profile/${session.user.username}`}
-            className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all shadow-md"
-          >
-            <span>👤</span>
-            <span className="font-bold">{t('viewProfile')}</span>
-          </Link>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
           {/* Plan Card */}
-          <div className={getCardClasses()}>
+          <div className={`${getCardClasses()} neon-shadow`}>
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>{t('myPlan')}</h2>
               <span className="text-3xl sm:text-4xl">📋</span>
@@ -217,13 +232,13 @@ export default function Dashboard() {
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200'} rounded-lg p-3`}>
-                    <p className={textClasses.secondary}>{t('duration')}</p>
+                    <p className={textClasses.secondary}>{t('durationLabel')}</p>
                     <p className={`font-bold ${textClasses.primary}`}>{userPlan.plan.duration} {t('days')}</p>
                   </div>
                   <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200'} rounded-lg p-3`}>
-                    <p className={textClasses.secondary}>{t('generations')}</p>
+                    <p className={textClasses.secondary}>{t('generationsLabel')}</p>
                     <p className={`font-bold ${textClasses.primary}`}>
-                      {userPlan.plan.maxGenerations === 0 ? t('unlimited') : userPlan.plan.maxGenerations}
+                      {userPlan.plan.maxGenerations === 0 ? t('unlimitedLabel') : userPlan.plan.maxGenerations}
                     </p>
                   </div>
                 </div>
@@ -237,7 +252,7 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600 mb-2">
-                  {t('freePlan')}
+                  {t('freePlanLabel')}
                 </h3>
                 <p className={`${textClasses.secondary} mb-4`}>{t('youAreUsingFreePlan')}</p>
                 <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200'} rounded-lg p-4 mb-6`}>
@@ -263,7 +278,7 @@ export default function Dashboard() {
           </div>
 
           {/* Generate Account Card */}
-          <div className={getCardClasses()}>
+          <div className={`${getCardClasses()} neon-shadow`}>
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>{t('generateAccount')}</h2>
               <span className="text-3xl sm:text-4xl">⚡</span>
@@ -326,7 +341,7 @@ export default function Dashboard() {
 
         {/* Generated Account */}
         {generatedAccount && (
-          <div className={`${getCardClasses()} animate-slide-up mb-6 sm:mb-8`}>
+          <div className={`${getCardClasses()} neon-shadow animate-slide-up mb-6 sm:mb-8`}>
             <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${textClasses.primary}`}>{t('accountGeneratedSuccess')}</h2>
             <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200'} rounded-xl p-6`}>
               {/* Formato account:pass */}
@@ -365,7 +380,7 @@ export default function Dashboard() {
                       }}
                       className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
                     >
-                      {t('copy')}
+                      {t('copyButton')}
                     </button>
                   </div>
                   <span className={`font-mono font-bold block break-all ${textClasses.primary}`}>
@@ -374,7 +389,7 @@ export default function Dashboard() {
                 </div>
                 <div className={`p-4 ${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white rounded-lg border border-green-100'}`}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`font-semibold ${textClasses.primary}`}>{t('password')}</span>
+                    <span className={`font-semibold ${textClasses.primary}`}>{t('passwordLabel')}</span>
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(generatedAccount.password)
@@ -382,7 +397,7 @@ export default function Dashboard() {
                       }}
                       className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
                     >
-                      {t('copy')}
+                      {t('copyButton')}
                     </button>
                   </div>
                   <span className={`font-mono font-bold block break-all ${textClasses.primary}`}>
@@ -411,7 +426,7 @@ export default function Dashboard() {
 
         {/* Affiliate Link Card */}
         {userPlan?.affiliateCode && (
-          <div className={`mb-6 sm:mb-8 ${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 border border-purple-200'} rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 md:p-8`}>
+          <div className={`mb-6 sm:mb-8 ${getCardClasses()} neon-shadow`}>
             <div className="flex items-center justify-between mb-4 sm:mb-6">
               <div className="flex items-center gap-3">
                 <span className="text-3xl sm:text-4xl">🎁</span>
@@ -454,7 +469,7 @@ export default function Dashboard() {
         )}
 
         {/* Available Services */}
-        <div className={`mt-6 sm:mt-8 ${getCardClasses()}`}>
+        <div className={`mt-6 sm:mt-8 ${getCardClasses()} neon-shadow`}>
           <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${textClasses.primary}`}>{t('availableServices')}</h2>
           {services.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

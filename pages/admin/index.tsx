@@ -153,23 +153,54 @@ export default function AdminDashboard() {
     }
   ] : []
 
+  const quickActions = [
+    { href: '/admin/services', icon: '🛠️', label: t('services'), gradient: 'from-sky-500 via-indigo-500 to-blue-600' },
+    { href: '/admin/stocks', icon: '📦', label: t('stocks'), gradient: 'from-purple-500 via-fuchsia-500 to-pink-500' },
+    { href: '/admin/plans', icon: '📋', label: t('plans'), gradient: 'from-pink-500 via-rose-500 to-orange-500' },
+    { href: '/admin/keys', icon: '🔑', label: t('keys'), gradient: 'from-amber-500 via-orange-500 to-red-500' },
+    { href: '/admin/users', icon: '👥', label: t('users'), gradient: 'from-emerald-500 via-teal-500 to-sky-500' },
+    { href: '/admin/broadcast', icon: '📢', label: t('broadcast'), gradient: 'from-cyan-500 via-blue-500 to-indigo-600' },
+    { href: '/admin/raffles', icon: '🎲', label: t('raffles'), gradient: 'from-indigo-500 via-purple-500 to-pink-500' },
+    { href: '/admin/feedback', icon: '💬', label: t('feedbacks'), gradient: 'from-teal-500 via-emerald-500 to-lime-500' },
+    { href: '/admin/config', icon: '⚙️', label: t('settings'), gradient: 'from-slate-600 via-slate-700 to-slate-900' },
+    { href: '/admin/maintenance', icon: '🧰', label: t('maintenance'), gradient: 'from-orange-500 via-amber-500 to-yellow-500' }
+  ]
+
   return (
-    <div className={`min-h-screen ${themeClasses.bg}`}>
+    <div className={`relative min-h-screen overflow-hidden ${themeClasses.bg}`}>
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-[-20%] right-[-5%] w-[520px] h-[520px] bg-gradient-to-br from-indigo-500/25 via-fuchsia-500/15 to-cyan-400/20 blur-[200px]" />
+        <div className="absolute bottom-[-25%] left-[-10%] w-[540px] h-[540px] bg-gradient-to-br from-sky-400/20 via-transparent to-emerald-400/15 blur-[220px]" />
+      </div>
       {/* Header */}
-      <div className={`${theme === 'dark' ? 'bg-white/10 backdrop-blur-lg border-b border-white/20' : 'bg-white shadow-sm border-b border-gray-200'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className={`${themeClasses.card} neon-shadow`}>
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/15 via-transparent to-cyan-400/10" />
+          <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className={`text-3xl font-bold ${themeClasses.text.primary}`}>{t('adminPanel')}</h1>
-              <p className={`mt-1 text-sm ${themeClasses.text.muted}`}>{t('welcome')}, {session?.user?.username}</p>
+              <p className="text-xs uppercase tracking-[0.3em] text-white/70">{t('administrator')}</p>
+              <h1 className="text-3xl md:text-4xl font-black text-white leading-tight">
+                {t('adminPanel')}
+              </h1>
+              <p className="text-sm text-white/60">
+                {t('welcome')}, {session?.user?.username}
+              </p>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 onClick={loadStats}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-md"
+                className="inline-flex items-center rounded-2xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 transition-all"
               >
+                <span className="mr-2">🔄</span>
                 {t('update')}
               </button>
+              <Link
+                href="/admin"
+                className="inline-flex items-center rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-2 text-sm font-semibold text-white shadow-[0_15px_30px_rgba(15,23,42,0.45)]"
+              >
+                <span className="mr-2">📈</span>
+                {t('dashboard')}
+              </Link>
             </div>
           </div>
         </div>
@@ -182,15 +213,16 @@ export default function AdminDashboard() {
             <Link
               key={index}
               href={card.link}
-              className={`${themeClasses.card} rounded-xl shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 p-6 border-l-4 border-transparent hover:border-primary-500`}
+              className={`${themeClasses.card} neon-shadow group overflow-hidden`}
             >
-              <div className="flex items-center justify-between">
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-indigo-500/20 via-transparent to-cyan-400/15" />
+              <div className="relative z-10 flex items-center justify-between">
                 <div>
-                  <p className={`text-sm font-medium mb-1 ${themeClasses.text.secondary}`}>{card.title}</p>
-                  <p className={`text-2xl font-bold ${themeClasses.text.primary}`}>{card.value}</p>
+                  <p className={`text-xs uppercase tracking-widest ${themeClasses.text.secondary}`}>{card.title}</p>
+                  <p className={`text-3xl font-black ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{card.value}</p>
                 </div>
-                <div className={`${card.color} rounded-full p-3 text-2xl`}>
-                  {card.icon}
+                <div className={`rounded-2xl px-3 py-2 text-xl shadow-inner ${theme === 'dark' ? 'bg-white/10 text-white' : 'bg-slate-900/5 text-slate-900'}`}>
+                  <span>{card.icon}</span>
                 </div>
               </div>
             </Link>
@@ -198,86 +230,29 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className={`${themeClasses.card} rounded-xl shadow-md p-6 mb-8`}>
+        <div className={`${themeClasses.card} neon-shadow p-6 mb-8`}>
           <h2 className={`text-xl font-bold mb-4 ${themeClasses.text.primary}`}>{t('quickActions')}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link
-              href="/admin/services"
-              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg"
-            >
-              <span className="text-3xl mb-2">🛠️</span>
-              <span className="font-semibold">{t('services')}</span>
-            </Link>
-            <Link
-              href="/admin/stocks"
-              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
-            >
-              <span className="text-3xl mb-2">📦</span>
-              <span className="font-semibold">{t('stocks')}</span>
-            </Link>
-            <Link
-              href="/admin/plans"
-              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-pink-500 to-pink-600 text-white rounded-lg hover:from-pink-600 hover:to-pink-700 transition-all shadow-md hover:shadow-lg"
-            >
-              <span className="text-3xl mb-2">📋</span>
-              <span className="font-semibold">{t('plans')}</span>
-            </Link>
-            <Link
-              href="/admin/keys"
-              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md hover:shadow-lg"
-            >
-              <span className="text-3xl mb-2">🔑</span>
-              <span className="font-semibold">{t('keys')}</span>
-            </Link>
-            <Link
-              href="/admin/users"
-              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-red-500 to-red-600 text-white rounded-lg hover:from-red-600 hover:to-red-700 transition-all shadow-md hover:shadow-lg"
-            >
-              <span className="text-3xl mb-2">👥</span>
-              <span className="font-semibold">{t('users')}</span>
-            </Link>
-            <Link
-              href="/admin/broadcast"
-              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg"
-            >
-              <span className="text-3xl mb-2">📢</span>
-              <span className="font-semibold">{t('broadcast')}</span>
-            </Link>
-            <Link
-              href="/admin/raffles"
-              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-indigo-500 to-indigo-600 text-white rounded-lg hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-md hover:shadow-lg"
-            >
-              <span className="text-3xl mb-2">🎲</span>
-              <span className="font-semibold">{t('raffles')}</span>
-            </Link>
-            <Link
-              href="/admin/feedback"
-              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white rounded-lg hover:from-cyan-600 hover:to-cyan-700 transition-all shadow-md hover:shadow-lg"
-            >
-              <span className="text-3xl mb-2">💬</span>
-              <span className="font-semibold">{t('feedbacks')}</span>
-            </Link>
-            <Link
-              href="/admin/config"
-              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-lg hover:from-teal-600 hover:to-teal-700 transition-all shadow-md hover:shadow-lg"
-            >
-              <span className="text-3xl mb-2">⚙️</span>
-              <span className="font-semibold">{t('settings')}</span>
-            </Link>
-            <Link
-              href="/admin/maintenance"
-              className="flex flex-col items-center justify-center p-4 bg-gradient-to-br from-orange-500 to-orange-600 text-white rounded-lg hover:from-orange-600 hover:to-orange-700 transition-all shadow-md hover:shadow-lg"
-            >
-              <span className="text-3xl mb-2">🔧</span>
-              <span className="font-semibold">{t('maintenance')}</span>
-            </Link>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {quickActions.map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${action.gradient} text-white p-4 shadow-lg transition-transform hover:-translate-y-1`}
+              >
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-30 bg-white/40 transition-opacity" />
+                <div className="relative z-10 flex flex-col items-center text-center space-y-2">
+                  <span className="text-3xl">{action.icon}</span>
+                  <span className="text-sm font-semibold">{action.label}</span>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
 
         {stats && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Recent Users */}
-            <div className={themeClasses.card}>
+            <div className={`${themeClasses.card} neon-shadow`}>
               <h2 className={`text-xl font-bold mb-4 ${themeClasses.text.primary}`}>{t('recentUsers')}</h2>
               <div className="space-y-3">
                 {stats.recentUsers.length > 0 ? (
@@ -304,7 +279,7 @@ export default function AdminDashboard() {
             </div>
 
             {/* Recent Payments */}
-            <div className={themeClasses.card}>
+            <div className={`${themeClasses.card} neon-shadow`}>
               <h2 className={`text-xl font-bold mb-4 ${themeClasses.text.primary}`}>{t('recentPayments')}</h2>
               <div className="space-y-3">
                 {stats.recentPayments.length > 0 ? (

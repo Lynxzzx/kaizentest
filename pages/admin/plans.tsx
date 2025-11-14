@@ -183,7 +183,7 @@ export default function AdminPlans() {
             <div className="space-y-2 mb-4">
               <p><strong>Preço:</strong> R$ {plan.price.toFixed(2)}</p>
               <p><strong>Duração:</strong> {plan.duration} dias</p>
-              <p><strong>Max Gerações:</strong> {plan.maxGenerations === 0 ? t('unlimited') : plan.maxGenerations}</p>
+              <p><strong>Max Gerações:</strong> {plan.maxGenerations === 0 ? t('unlimitedLabel') : plan.maxGenerations}</p>
             </div>
             <button
               onClick={() => handleToggleActive(plan)}
