@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { getAsaasPayment } from '@/lib/asaas'
 import { getPagSeguroPayment } from '@/lib/pagseguro'
+import { registerCouponUsage } from '@/lib/coupon-utils'
 
 /**
  * Webhook para confirmar pagamentos PIX (Asaas e PagSeguro)
@@ -82,6 +83,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           paidAt: paidAt
         }
       })
+      await registerCouponUsage(dbPayment.couponId)
 
       console.log('✅ Pagamento PagSeguro confirmado:', dbPayment.id)
 
@@ -139,6 +141,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             paidAt: new Date()
           }
         })
+        await registerCouponUsage(dbPayment.couponId)
 
         console.log('✅ Pagamento confirmado:', dbPayment.id)
 

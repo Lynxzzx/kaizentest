@@ -167,7 +167,7 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className={`relative min-h-screen overflow-hidden ${themeClasses.bg}`}>
+    <div className={`admin-shell relative min-h-screen overflow-hidden ${themeClasses.bg}`}>
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-[-20%] right-[-5%] w-[520px] h-[520px] bg-gradient-to-br from-indigo-500/25 via-fuchsia-500/15 to-cyan-400/20 blur-[200px]" />
         <div className="absolute bottom-[-25%] left-[-10%] w-[540px] h-[540px] bg-gradient-to-br from-sky-400/20 via-transparent to-emerald-400/15 blur-[220px]" />

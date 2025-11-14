@@ -30,13 +30,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
-    const { planId, count, expiresAt } = req.body
+    const { planId, count, expiresAt, expiresIn } = req.body
 
     if (!planId) {
       return res.status(400).json({ error: 'PlanId is required' })
     }
 
     const keyCount = count || 1
+    let computedExpiresAt: Date | null = null
+
+    if (expiresIn && typeof expiresIn.value === 'number' && expiresIn.value > 0) {
+      const now = new Date()
+      const value = expiresIn.value
+      switch (expiresIn.unit) {
+        case 'minutes':
+          now.setMinutes(now.getMinutes() + value)
+          break
+        case 'hours':
+          now.setHours(now.getHours() + value)
+          break
+        case 'days':
+          now.setDate(now.getDate() + value)
+          break
+        case 'months':
+          now.setMonth(now.getMonth() + value)
+          break
+        case 'years':
+          now.setFullYear(now.getFullYear() + value)
+          break
+        default:
+          break
+      }
+      computedExpiresAt = now
+    } else if (expiresAt) {
+      computedExpiresAt = new Date(expiresAt)
+    }
     const keys = []
 
     for (let i = 0; i < keyCount; i++) {
@@ -46,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: {
           key: keyString,
           planId,
-          expiresAt: expiresAt ? new Date(expiresAt) : null
+          expiresAt: computedExpiresAt
         }
       })
 

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { checkPaymentStatus } from '@/lib/binance'
+import { registerCouponUsage } from '@/lib/coupon-utils'
 
 /**
  * API para verificar manualmente o status de um pagamento Bitcoin
@@ -77,6 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           paidAt: new Date()
         }
       })
+      await registerCouponUsage(payment.couponId)
 
       // Ativar plano do usuário
       const expiresAt = new Date()

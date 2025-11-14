@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
+import { getThemeClasses } from '@/lib/theme-utils'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
@@ -25,6 +26,7 @@ export default function AdminKeys() {
   const { t } = useTranslation()
   const { data: session, status } = useSession()
   const { theme } = useTheme()
+  const themeClasses = getThemeClasses(theme)
   const router = useRouter()
   const [keys, setKeys] = useState<Key[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
@@ -33,6 +35,9 @@ export default function AdminKeys() {
     planId: '',
     count: '1'
   })
+  const [expiresInEnabled, setExpiresInEnabled] = useState(false)
+  const [expiresInValue, setExpiresInValue] = useState('1')
+  const [expiresInUnit, setExpiresInUnit] = useState<'minutes' | 'hours' | 'days' | 'months' | 'years'>('days')
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -70,10 +75,18 @@ export default function AdminKeys() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await axios.post('/api/keys', formData)
+      await axios.post('/api/keys', {
+        ...formData,
+        expiresIn: expiresInEnabled && Number(expiresInValue) > 0
+          ? { value: Number(expiresInValue), unit: expiresInUnit }
+          : undefined
+      })
       toast.success('Chaves criadas com sucesso!')
       setShowForm(false)
       setFormData({ planId: '', count: '1' })
+      setExpiresInEnabled(false)
+      setExpiresInValue('1')
+      setExpiresInUnit('days')
       loadKeys()
     } catch (error) {
       toast.error('Erro ao criar chaves')
@@ -81,7 +94,14 @@ export default function AdminKeys() {
   }
 
   if (status === 'loading') {
-    return <div className="text-center py-12">Carregando...</div>
+    return (
+      <div className={`admin-shell min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
+        <div className="text-center">
+          <div className={`inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${theme === 'dark' ? 'border-purple-500' : 'border-primary-600'}`}></div>
+          <p className={`mt-4 ${themeClasses.text.secondary}`}>Carregando...</p>
+        </div>
+      </div>
+    )
   }
 
   if (session?.user?.role !== 'OWNER') {
@@ -89,94 +109,123 @@ export default function AdminKeys() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">{t('keys')}</h1>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
-        >
-          {showForm ? t('cancel') : t('create')} {t('keys')}
-        </button>
-      </div>
+    <div className={`admin-shell min-h-screen ${themeClasses.bg} py-10 px-4 sm:px-6 lg:px-10`}>
+      <div className="max-w-6xl mx-auto space-y-8">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.6em] text-white/40">{t('keys')}</p>
+            <h1 className={`text-3xl font-bold ${themeClasses.text.primary}`}>Gerar Keys</h1>
+            <p className={`${themeClasses.text.secondary} text-sm`}>Crie chaves com expiração personalizada</p>
+          </div>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white px-5 py-2 rounded-2xl font-semibold hover:opacity-90 transition-all"
+          >
+            {showForm ? t('cancel') : `${t('create')} ${t('keys')}`}
+          </button>
+        </div>
 
-      {showForm && (
-        <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">{t('create')} {t('keys')}</h2>
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t('plans')}
-                </label>
+        {showForm && (
+          <div className={`${themeClasses.card} rounded-3xl p-6`}>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="col-span-1 sm:col-span-2">
+                <label className="block text-sm font-semibold mb-2">{t('plans')}</label>
                 <select
                   value={formData.planId}
                   onChange={(e) => setFormData({ ...formData, planId: e.target.value })}
-                  className={`w-full px-3 py-2 rounded-md ${
-                    theme === 'dark'
-                      ? 'bg-white/10 border border-white/20 text-white'
-                      : 'bg-white border border-gray-300 text-gray-900'
-                  }`}
-                  style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
+                  className={`${themeClasses.input} w-full px-4 py-3 rounded-xl`}
                   required
                 >
-                  <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Selecione um plano</option>
+                  <option value="">{t('selectService')}</option>
                   {plans.map((plan) => (
-                    <option key={plan.id} value={plan.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
+                    <option key={plan.id} value={plan.id}>
                       {plan.name}
                     </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Quantidade
-                </label>
+                <label className="block text-sm font-semibold mb-2">Quantidade</label>
                 <input
                   type="number"
                   min="1"
                   value={formData.count}
                   onChange={(e) => setFormData({ ...formData, count: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={`${themeClasses.input} w-full px-4 py-3 rounded-xl`}
                   required
                 />
               </div>
-              <button
-                type="submit"
-                className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
-              >
-                {t('save')}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+              <div>
+                <label className="block text-sm font-semibold mb-2">{t('expirationSettings')}</label>
+                <div className="flex items-center gap-2 mb-2">
+                  <input
+                    type="checkbox"
+                    checked={!expiresInEnabled}
+                    onChange={(e) => setExpiresInEnabled(!e.target.checked)}
+                  />
+                  <span className="text-sm">{t('noExpiration')}</span>
+                </div>
+                {expiresInEnabled && (
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      value={expiresInValue}
+                      onChange={(e) => setExpiresInValue(e.target.value)}
+                      className={`${themeClasses.input} flex-1 px-4 py-3 rounded-xl`}
+                    />
+                    <select
+                      value={expiresInUnit}
+                      onChange={(e) => setExpiresInUnit(e.target.value as any)}
+                      className={`${themeClasses.input} w-32 px-4 py-3 rounded-xl`}
+                    >
+                      <option value="minutes">{t('minutes')}</option>
+                      <option value="hours">{t('hours')}</option>
+                      <option value="days">{t('days')}</option>
+                      <option value="months">{t('months')}</option>
+                      <option value="years">{t('years')}</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+              <div className="col-span-1 sm:col-span-2">
+                <button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 text-white py-3 rounded-2xl font-bold hover:opacity-90 transition-all"
+                >
+                  {t('save')}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Key</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('plans')}</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">{t('status')}</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {keys.map((key) => (
-              <tr key={key.id}>
-                <td className="px-6 py-4 whitespace-nowrap font-mono">{key.key}</td>
-                <td className="px-6 py-4 whitespace-nowrap">{key.plan.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 py-1 rounded-full text-xs ${
-                    key.isUsed ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                  }`}>
-                    {key.isUsed ? 'Usada' : 'Disponível'}
-                  </span>
-                </td>
+        <div className={`${themeClasses.card} rounded-3xl overflow-hidden`}>
+          <table className="min-w-full divide-y divide-white/10">
+            <thead>
+              <tr className="text-left text-xs uppercase tracking-wider text-white/50">
+                <th className="px-6 py-3">Key</th>
+                <th className="px-6 py-3">{t('plans')}</th>
+                <th className="px-6 py-3">{t('status')}</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {keys.map((key) => (
+                <tr key={key.id}>
+                  <td className="px-6 py-4 font-mono">{key.key}</td>
+                  <td className="px-6 py-4">{key.plan.name}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      key.isUsed ? 'bg-red-500/20 text-red-300' : 'bg-green-500/20 text-green-300'
+                    }`}>
+                      {key.isUsed ? 'Usada' : 'Disponível'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

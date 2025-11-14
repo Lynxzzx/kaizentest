@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { getPagSeguroPayment } from '@/lib/pagseguro'
+import { registerCouponUsage } from '@/lib/coupon-utils'
 
 /**
  * Verifica status de pagamento PIX (PagSeguro ou Asaas) e ativa plano automaticamente se pago
@@ -78,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               paidAt: paidAt
             }
           })
+          await registerCouponUsage(payment.couponId)
 
           // Ativar plano do usuário
           const expiresAt = new Date()

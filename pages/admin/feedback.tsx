@@ -102,7 +102,7 @@ export default function AdminFeedback() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className={`min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
+      <div className={`admin-shell min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
         <div className="text-center">
           <div className={`inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${theme === 'dark' ? 'border-purple-500' : 'border-primary-600'}`}></div>
           <p className={`mt-4 ${themeClasses.text.secondary}`}>Carregando...</p>
@@ -119,7 +119,7 @@ export default function AdminFeedback() {
   const pendingCount = feedbacks.filter(f => !f.isApproved).length
 
   return (
-    <div className={`min-h-screen ${themeClasses.bg}`}>
+    <div className={`admin-shell min-h-screen ${themeClasses.bg}`}>
       {/* Header */}
       <div className={`${theme === 'dark' ? 'bg-white/10 backdrop-blur-lg border-b border-white/20' : 'bg-white shadow-sm border-b border-gray-200'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">

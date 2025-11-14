@@ -22,6 +22,7 @@ export default function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [chatboxOpen, setChatboxOpen] = useState(false)
   const themeClasses = useMemo(() => getThemeClasses(theme), [theme])
+  const isAdminRoute = router.pathname.startsWith('/admin')
 
   const navigationLinks = useMemo(() => {
     if (!session) return []
@@ -34,6 +35,7 @@ export default function Layout({ children }: LayoutProps) {
         { href: '/admin/plans', label: t('plans'), icon: '📋' },
         { href: '/admin/users', label: t('users'), icon: '👥' },
         { href: '/tickets', label: t('tickets'), icon: '🎟️' },
+        { href: '/admin/coupons', label: t('coupons'), icon: '💸' },
         { href: '/admin/maintenance', label: t('maintenance'), icon: '🧰' }
       ]
     }
@@ -62,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className={`relative overflow-hidden min-h-screen ${themeClasses.bg}`}>
+    <div className={`${isAdminRoute ? 'admin-shell' : ''} relative overflow-hidden min-h-screen ${themeClasses.bg}`}>
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-gradient-to-br from-indigo-500/30 via-purple-500/20 to-cyan-400/25 blur-[160px] glow-pulse" />
         <div className="absolute bottom-[-15%] left-[-5%] w-[520px] h-[520px] bg-gradient-to-br from-cyan-500/25 via-sky-400/10 to-transparent blur-[200px] orbit-spin" />

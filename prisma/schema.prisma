@@ -51,6 +51,7 @@ model User {
   systemConfigs SystemConfig[] @relation("SystemConfigUpdater")
   feedbacks Feedback[]
   feedbacksApproved Feedback[] @relation("FeedbackApprover")
+  couponsCreated Coupon[] @relation("CouponCreatedBy")
 }
 
 enum UserRole {
@@ -140,6 +141,8 @@ model Payment {
   planId        String       @db.ObjectId
   plan          Plan         @relation(fields: [planId], references: [id])
   amount        Float
+  finalAmount   Float?
+  discountValue Float?      @default(0)
   method        PaymentMethod
   status        PaymentStatus @default(PENDING)
   asaasId       String?      // ID from Asaas API (APENAS para PIX, Bitcoin não tem asaasId - sem constraint única para permitir múltiplos null)
@@ -150,6 +153,8 @@ model Payment {
   paidAt        DateTime?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  couponId      String?      @db.ObjectId
+  coupon        Coupon?      @relation(fields: [couponId], references: [id])
 }
 
 enum PaymentMethod {
@@ -162,6 +167,29 @@ enum PaymentStatus {
   PAID
   EXPIRED
   CANCELLED
+}
+
+model Coupon {
+  id            String              @id @default(auto()) @map("_id") @db.ObjectId
+  code          String              @unique
+  description   String?
+  discountType  CouponDiscountType  @default(PERCENTAGE)
+  discountValue Float
+  maxUses       Int?
+  usedCount     Int                 @default(0)
+  minAmount     Float?
+  expiresAt     DateTime?
+  isActive      Boolean             @default(true)
+  createdById   String?             @db.ObjectId
+  createdBy     User?               @relation("CouponCreatedBy", fields: [createdById], references: [id])
+  payments      Payment[]
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+}
+
+enum CouponDiscountType {
+  PERCENTAGE
+  VALUE
 }
 
 model Ticket {

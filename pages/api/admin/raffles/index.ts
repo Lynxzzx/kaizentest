@@ -15,6 +15,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
+    await finalizeExpiredRaffles()
+
     const raffles = await prisma.raffle.findMany({
       include: {
         prizePlan: {
@@ -54,6 +56,76 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error: any) {
     console.error('Error fetching raffles:', error)
     return res.status(500).json({ error: 'Error fetching raffles', details: error.message })
+  }
+}
+
+async function finalizeExpiredRaffles() {
+  const now = new Date()
+  const raffles = await prisma.raffle.findMany({
+    where: {
+      isFinished: false,
+      isActive: true,
+      endDate: {
+        lt: now
+      }
+    },
+    include: {
+      participants: {
+        include: {
+          user: true
+        }
+      },
+      prizePlan: true
+    }
+  })
+
+  for (const raffle of raffles) {
+    if (raffle.participants.length === 0) {
+      await prisma.raffle.update({
+        where: { id: raffle.id },
+        data: {
+          isFinished: true,
+          isActive: false
+        }
+      })
+      continue
+    }
+
+    const randomIndex = Math.floor(Math.random() * raffle.participants.length)
+    const winner = raffle.participants[randomIndex].user
+
+    await prisma.raffle.update({
+      where: { id: raffle.id },
+      data: {
+        winnerId: winner.id,
+        isFinished: true,
+        isActive: false
+      }
+    })
+
+    if (raffle.prizeType === 'PLAN' && raffle.prizePlanId && raffle.prizePlan) {
+      const plan = raffle.prizePlan
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + plan.duration)
+
+      await prisma.user.update({
+        where: { id: winner.id },
+        data: {
+          planId: plan.id,
+          planExpiresAt: expiresAt
+        }
+      })
+    } else if (raffle.prizeType === 'GENERATIONS') {
+      const generations = parseInt(raffle.prize) || 10
+      await prisma.user.update({
+        where: { id: winner.id },
+        data: {
+          bonusGenerations: {
+            increment: generations
+          }
+        }
+      })
+    }
   }
 }
 

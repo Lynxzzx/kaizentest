@@ -119,6 +119,30 @@
       transform: scale(1.05);
     }
   }
+
+  .admin-shell {
+    background: #030712;
+    min-height: 100vh;
+    color: #f8fafc;
+  }
+
+  .admin-shell .bg-white,
+  .admin-shell .bg-gray-50,
+  .admin-shell .bg-white\/90 {
+    background-color: rgba(15, 23, 42, 0.75) !important;
+    color: #e2e8f0;
+  }
+
+  .admin-shell .text-gray-700,
+  .admin-shell .text-gray-600,
+  .admin-shell .text-gray-500 {
+    color: #cbd5f5 !important;
+  }
+
+  .admin-shell .border-gray-200,
+  .admin-shell .border-gray-300 {
+    border-color: rgba(226, 232, 240, 0.25) !important;
+  }
 }
 
 /* Scrollbar customization */

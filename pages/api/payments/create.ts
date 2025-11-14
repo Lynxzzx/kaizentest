@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  const { planId, method } = req.body
+  const { planId, method, couponCode } = req.body
 
   if (!planId || !method) {
     return res.status(400).json({ error: 'PlanId and method are required' })
@@ -31,6 +31,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!plan) {
       return res.status(404).json({ error: 'Plan not found' })
+    }
+
+    let appliedCoupon: any = null
+    let discountAmount = 0
+    let finalAmount = plan.price
+
+    if (couponCode) {
+      const coupon = await prisma.coupon.findFirst({
+        where: { code: couponCode.trim().toUpperCase() }
+      })
+
+      if (!coupon || !coupon.isActive) {
+        return res.status(400).json({ error: 'Invalid coupon code' })
+      }
+
+      if (coupon.expiresAt && coupon.expiresAt < new Date()) {
+        return res.status(400).json({ error: 'Coupon expired' })
+      }
+
+      if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
+        return res.status(400).json({ error: 'Coupon usage limit reached' })
+      }
+
+      if (coupon.minAmount && plan.price < coupon.minAmount) {
+        return res.status(400).json({ error: 'Plan price does not reach coupon minimum' })
+      }
+
+      discountAmount = coupon.discountType === 'PERCENTAGE'
+        ? (plan.price * coupon.discountValue) / 100
+        : coupon.discountValue
+
+      discountAmount = Math.min(discountAmount, plan.price)
+      finalAmount = Math.max(plan.price - discountAmount, 0)
+      appliedCoupon = coupon
     }
 
     if (method === 'PIX') {
@@ -101,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               email: customerEmail.trim(),
               tax_id: cleanCpfCnpj(cpfCnpj)
             },
-            amount: plan.price,
+            amount: finalAmount,
             description: `Plano ${plan.name} - Kaizen Gens`
           })
 
@@ -111,6 +145,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               userId: user.id,
               planId: plan.id,
               amount: plan.price,
+              finalAmount,
+              discountValue: discountAmount,
+              couponId: appliedCoupon?.id,
               method: 'PIX',
               status: 'PENDING',
               asaasId: pagSeguroPayment.id, // Usando asaasId para armazenar o ID do PagSeguro (compatibilidade)
@@ -126,7 +163,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             qrCodeImage: pagSeguroPayment.qrCodeImage,
             pixQrCode: pagSeguroPayment.qrCode,
             pixCopyPaste: pagSeguroPayment.qrCode,
-            expiresAt: payment.pixExpiresAt
+            expiresAt: payment.pixExpiresAt,
+            originalAmount: plan.price,
+            finalAmount,
+            discountAmount
           })
         } else {
           // Fallback para Asaas se PagSeguro não estiver configurado
@@ -184,7 +224,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const asaasPayment = await createAsaasPayment({
             customer: asaasCustomerId,
             billingType: 'PIX',
-            value: plan.price,
+            value: finalAmount,
             dueDate: dueDateStr,
             description: `Plano ${plan.name} - Kaizen Gens`
           })
@@ -213,6 +253,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               userId: user.id,
               planId: plan.id,
               amount: plan.price,
+              finalAmount,
+              discountValue: discountAmount,
+              couponId: appliedCoupon?.id,
               method: 'PIX',
               status: 'PENDING',
               asaasId: asaasPayment.id,
@@ -228,7 +271,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             qrCodeImage: pixQrCodeImage,
             pixQrCode: pixQrCode,
             pixCopyPaste: pixQrCode,
-            expiresAt: payment.pixExpiresAt
+            expiresAt: payment.pixExpiresAt,
+            originalAmount: plan.price,
+            finalAmount,
+            discountAmount
           })
         }
       } catch (error: any) {
@@ -258,8 +304,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else if (method === 'BITCOIN') {
       // Criar pagamento via Binance (criptomoedas)
       // SEMPRE retornar dados do Binance, usar valores padrão se necessário
-      console.log('💰 Iniciando pagamento via Bitcoin...')
-      console.log('📊 Plano:', plan.name, '- Valor:', plan.price)
+        console.log('💰 Iniciando pagamento via Bitcoin...')
+        console.log('📊 Plano:', plan.name, '- Valor original:', plan.price, '- Valor final:', finalAmount)
       
       try {
         // Verificar se já existe um pagamento pendente para este usuário e plano
@@ -279,14 +325,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let btcAmount: number
         try {
           console.log('🔄 Tentando converter BRL para BTC via API...')
-          btcAmount = await convertBrlToCrypto(plan.price, 'BTC')
+          btcAmount = await convertBrlToCrypto(finalAmount, 'BTC')
           console.log('✅ Valor convertido via API:', btcAmount, 'BTC')
         } catch (conversionError: any) {
           console.warn('⚠️ Erro na conversão via API, usando valores padrão:', conversionError.message)
           // Usar valores padrão se a conversão falhar
           const defaultBtcPrice = 50000 // Preço padrão BTC em USD
           const usdBrlRate = 5.0 // 1 USD = 5 BRL
-          const amountUsd = plan.price / usdBrlRate
+          const amountUsd = finalAmount / usdBrlRate
           btcAmount = Math.round((amountUsd / defaultBtcPrice) * 100000000) / 100000000
           console.log('✅ Usando valor padrão:', btcAmount, 'BTC')
         }
@@ -300,6 +346,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               userId: session.user.id,
               planId: plan.id,
               amount: plan.price,
+              finalAmount,
+              discountValue: discountAmount,
+              couponId: appliedCoupon?.id,
               method: 'BITCOIN',
               status: 'PENDING'
               // NÃO incluir asaasId - Bitcoin não usa Asaas!
@@ -399,6 +448,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           network: paymentAddress.network,
           qrCode: paymentAddress.qrCode,
           originalAmount: plan.price,
+          finalAmount,
+          discountAmount,
           currency: 'BTC'
         }
         
@@ -442,7 +493,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           
           const defaultBtcPrice = 50000
           const usdBrlRate = 5.0
-          const amountUsd = plan.price / usdBrlRate
+          const amountUsd = finalAmount / usdBrlRate
           const btcAmount = Math.round((amountUsd / defaultBtcPrice) * 100000000) / 100000000
           
           // Criar pagamento apenas se não existir NENHUM pagamento pendente
@@ -455,6 +506,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   userId: session.user.id,
                   planId: plan.id,
                   amount: plan.price,
+                  finalAmount,
+                  discountValue: discountAmount,
+                  couponId: appliedCoupon?.id,
                   method: 'BITCOIN',
                   status: 'PENDING'
                   // NÃO incluir asaasId - Bitcoin não usa Asaas!
@@ -516,6 +570,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               network: 'Bitcoin',
               qrCode: `bitcoin:${simpleAddress}?amount=${btcAmount}`,
               originalAmount: plan.price,
+              finalAmount,
+              discountAmount,
               currency: 'BTC'
             })
           } else {
@@ -527,6 +583,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               network: 'Bitcoin',
               qrCode: `bitcoin:${payment.bitcoinAddress}?amount=${btcAmount}`,
               originalAmount: plan.price,
+              finalAmount,
+              discountAmount,
               currency: 'BTC'
             })
           }

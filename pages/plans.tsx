@@ -28,9 +28,18 @@ interface PaymentData {
   network?: string
   qrCode?: string
   originalAmount?: number
+  finalAmount?: number
+  discountAmount?: number
   currency?: string
   fallback?: boolean
   expiresAt?: Date
+}
+
+interface AppliedCoupon {
+  code: string
+  planId: string
+  discountAmount: number
+  finalAmount: number
 }
 
 export default function Plans() {
@@ -48,11 +57,29 @@ export default function Plans() {
   const [customerEmail, setCustomerEmail] = useState('')
   const [pendingPayment, setPendingPayment] = useState<{ plan: Plan; method: 'PIX' | 'CRYPTO' } | null>(null)
   const [checkingPayment, setCheckingPayment] = useState(false)
+  const [couponCode, setCouponCode] = useState('')
+  const [couponPlanId, setCouponPlanId] = useState<string>('')
+  const [couponApplying, setCouponApplying] = useState(false)
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
   const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
     loadPlans()
   }, [])
+
+  useEffect(() => {
+    if (!couponPlanId && plans.length > 0) {
+      setCouponPlanId(plans[0].id)
+    }
+  }, [plans, couponPlanId])
+
+  useEffect(() => {
+    setAppliedCoupon(null)
+  }, [couponCode])
+
+  useEffect(() => {
+    setAppliedCoupon(null)
+  }, [couponPlanId])
 
   // Verificar status do pagamento PIX periodicamente
   useEffect(() => {
@@ -99,11 +126,61 @@ export default function Plans() {
     }
   }
 
+  const validateCouponForPlan = async (plan: Plan, silent = false) => {
+    const trimmedCode = couponCode.trim().toUpperCase()
+    if (!trimmedCode) {
+      toast.error(t('invalidCoupon'))
+      return null
+    }
+
+    try {
+      if (!silent) {
+        setCouponApplying(true)
+      }
+      const response = await axios.post('/api/coupons/validate', {
+        code: trimmedCode,
+        planId: plan.id
+      })
+
+      const data = response.data
+      setAppliedCoupon({
+        code: trimmedCode,
+        planId: plan.id,
+        discountAmount: data.discountAmount,
+        finalAmount: data.finalAmount
+      })
+
+      if (!silent) {
+        toast.success(t('couponApplied'))
+      }
+
+      return data
+    } catch (error: any) {
+      const message = error.response?.data?.error || t('invalidCoupon')
+      toast.error(message)
+      setAppliedCoupon(null)
+      return null
+    } finally {
+      if (!silent) {
+        setCouponApplying(false)
+      }
+    }
+  }
+
   const handlePayment = async (plan: Plan, method: 'PIX' | 'CRYPTO') => {
     if (!session) {
       toast.error(t('loginToContinue'))
       router.push('/login')
       return
+    }
+
+    const trimmedCoupon = couponCode.trim()
+    const normalizedCoupon = trimmedCoupon ? trimmedCoupon.toUpperCase() : ''
+    if (trimmedCoupon) {
+      const valid = await validateCouponForPlan(plan, true)
+      if (!valid) {
+        return
+      }
     }
 
     // Para PIX, pedir email do cliente primeiro (obrigatório no PagSeguro)
@@ -125,7 +202,8 @@ export default function Plans() {
         console.log('🚀 Criando pagamento via criptomoedas...')
         const response = await axios.post('/api/payments/create', {
           planId: plan.id,
-          method: 'BITCOIN' // Usar BITCOIN internamente para manter compatibilidade
+          method: 'BITCOIN', // Usar BITCOIN internamente para manter compatibilidade
+          couponCode: normalizedCoupon || undefined
         })
         
         console.log('✅ Resposta recebida:', response.data)
@@ -137,7 +215,20 @@ export default function Plans() {
         if (response.data.bitcoinAddress) {
           console.log('✅ Dados Binance recebidos com sucesso!')
           console.log('📋 Dados completos:', JSON.stringify(response.data, null, 2))
-          setPaymentData(response.data)
+          setPaymentData({
+            ...response.data,
+            originalAmount: response.data.originalAmount || plan.price,
+            finalAmount: response.data.finalAmount ?? response.data.originalAmount ?? plan.price,
+            discountAmount: response.data.discountAmount || 0
+          })
+          if (normalizedCoupon && response.data.discountAmount) {
+            setAppliedCoupon({
+              code: normalizedCoupon,
+              planId: plan.id,
+              discountAmount: response.data.discountAmount,
+              finalAmount: response.data.finalAmount ?? plan.price
+            })
+          }
           setQrCodeImageError(false)
           toast.success(t('cryptoPaymentCreated'))
           // Garantir que o modal apareça
@@ -180,12 +271,14 @@ export default function Plans() {
     setSelectedPlan(plan)
     setPaymentMethod('PIX')
     setShowEmailModal(false)
+    const normalizedCoupon = couponCode.trim().toUpperCase()
     
     try {
       const response = await axios.post('/api/payments/create', {
         planId: plan.id,
         method: 'PIX',
-        customerEmail: email // Enviar email do cliente
+        customerEmail: email, // Enviar email do cliente
+        couponCode: normalizedCoupon || undefined
       })
       
       // Mapear dados da resposta para o formato esperado
@@ -194,8 +287,19 @@ export default function Plans() {
         pixQrCodeImage: response.data.qrCodeImage || response.data.pixQrCodeImage,
         pixQrCode: response.data.pixCopyPaste || response.data.pixQrCode,
         pixCopyPaste: response.data.pixCopyPaste || response.data.pixQrCode,
-        expiresAt: response.data.expiresAt ? new Date(response.data.expiresAt) : undefined
+        expiresAt: response.data.expiresAt ? new Date(response.data.expiresAt) : undefined,
+        originalAmount: response.data.originalAmount || plan.price,
+        finalAmount: response.data.finalAmount,
+        discountAmount: response.data.discountAmount
       })
+      if (normalizedCoupon && response.data.discountAmount) {
+        setAppliedCoupon({
+          code: normalizedCoupon,
+          planId: plan.id,
+          discountAmount: response.data.discountAmount,
+          finalAmount: response.data.finalAmount ?? plan.price
+        })
+      }
       setQrCodeImageError(false) // Resetar erro quando criar novo pagamento
       
       // Log para debug
@@ -267,6 +371,66 @@ export default function Plans() {
             {t('freeKeys')}
           </p>
         </div>
+
+        {plans.length > 0 && (
+          <div className={`${themeClasses.card} rounded-2xl shadow-xl p-6 mb-8`}>
+            <h3 className={`text-xl font-semibold mb-2 ${themeClasses.text.primary}`}>{t('enterCoupon')}</h3>
+            <p className={`${themeClasses.text.secondary} text-sm mb-4`}>
+              {t('couponPlaceholder')}
+            </p>
+            <div className="flex flex-col md:flex-row gap-3">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                className={`${themeClasses.input} flex-1 px-4 py-3 rounded-xl uppercase tracking-widest`}
+                placeholder="PROMO50"
+              />
+              <select
+                value={couponPlanId}
+                onChange={(e) => setCouponPlanId(e.target.value)}
+                className={`${themeClasses.input} md:w-56 px-4 py-3 rounded-xl`}
+              >
+                {plans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.name}
+                  </option>
+                ))}
+              </select>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    const plan = plans.find((p) => p.id === couponPlanId)
+                    if (!plan) {
+                      toast.error(t('noPlansAvailable'))
+                      return
+                    }
+                    await validateCouponForPlan(plan)
+                  }}
+                  disabled={!couponCode.trim() || couponApplying}
+                  className="px-4 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all disabled:opacity-50"
+                >
+                  {couponApplying ? '...' : t('applyCoupon')}
+                </button>
+                {appliedCoupon && (
+                  <button
+                    onClick={() => setAppliedCoupon(null)}
+                    className={`px-4 py-3 rounded-xl font-semibold ${theme === 'dark' ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                  >
+                    {t('removeCoupon')}
+                  </button>
+                )}
+              </div>
+            </div>
+            {appliedCoupon && (
+              <div className="mt-4 text-sm">
+                <p className={themeClasses.text.secondary}>
+                  {t('discount')}: -{t('currencySymbol')} {appliedCoupon.discountAmount.toFixed(2)} • {t('finalPrice')}: {t('currencySymbol')} {appliedCoupon.finalAmount.toFixed(2)}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
           {plans.map((plan, index) => (
@@ -402,6 +566,23 @@ export default function Plans() {
             <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${themeClasses.text.primary}`}>
               {t('paymentVia')} {paymentMethod === 'PIX' ? t('paymentMethodPix') : t('paymentMethodCrypto')}
             </h2>
+
+            {paymentData && (
+              <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4 mb-4`}>
+                <p className={`text-sm ${themeClasses.text.secondary}`}>{selectedPlan.name}</p>
+                <p className={`${themeClasses.text.primary} text-lg font-semibold`}>
+                  {t('currencySymbol')} {selectedPlan.price.toFixed(2)}
+                </p>
+                {paymentData.discountAmount ? (
+                  <p className={`text-sm ${themeClasses.text.secondary}`}>
+                    {t('discount')}: -{t('currencySymbol')} {paymentData.discountAmount?.toFixed(2)}
+                  </p>
+                ) : null}
+                <p className="text-sm text-green-400 font-semibold">
+                  {t('finalPrice')}: {t('currencySymbol')} {(paymentData.finalAmount ?? selectedPlan.price).toFixed(2)}
+                </p>
+              </div>
+            )}
             
             {paymentMethod === 'PIX' && (loading && !paymentData ? (
               <div className="flex items-center justify-center py-12">
@@ -528,8 +709,13 @@ export default function Plans() {
                         {paymentData.bitcoinAmount?.toFixed(8)} {paymentData.currency || 'BTC'}
                       </p>
                       <p className={`text-sm ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                        ({t('currencySymbol')} {paymentData.originalAmount?.toFixed(2)})
+                        ({t('currencySymbol')} {(paymentData.finalAmount ?? paymentData.originalAmount ?? selectedPlan.price).toFixed(2)})
                       </p>
+                      {paymentData.discountAmount ? (
+                        <p className={`text-xs ${theme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
+                          {t('discount')}: -{t('currencySymbol')} {paymentData.discountAmount.toFixed(2)}
+                        </p>
+                      ) : null}
                     </div>
                     
                     <div>

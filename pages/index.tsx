@@ -67,7 +67,7 @@ export default function Home() {
     { name: 'Camila', planKey: 'planMonthly', price: 'R$ 12,50', emoji: '🚀' },
     { name: 'Rafael', planKey: 'planDaily', price: 'R$ 5,00', emoji: '💥' },
     { name: 'Ana', planKey: 'planLifetime', price: 'R$ 20,00', emoji: '💎' }
-  ]), [])
+  ]), [locale])
 
   const [currentPopup, setCurrentPopup] = useState<PlanPopup>(planPopups[0])
   const [popupVisible, setPopupVisible] = useState(true)

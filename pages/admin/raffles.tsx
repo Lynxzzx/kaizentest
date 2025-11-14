@@ -153,7 +153,7 @@ export default function AdminRaffles() {
   }
 
   return (
-    <div className={`min-h-screen ${themeClasses.bg} py-12 px-4 sm:px-6 lg:px-8`}>
+    <div className={`admin-shell min-h-screen ${themeClasses.bg} py-12 px-4 sm:px-6 lg:px-8`}>
       <div className="max-w-7xl mx-auto">
         <div className="mb-8 flex justify-between items-center">
           <div>

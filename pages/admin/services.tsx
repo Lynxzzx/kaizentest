@@ -143,7 +143,7 @@ export default function AdminServices() {
   }
 
   if (status === 'loading') {
-    return <div className="text-center py-12">Carregando...</div>
+    return <div className="admin-shell text-center py-12">Carregando...</div>
   }
 
   if (session?.user?.role !== 'OWNER') {
@@ -151,7 +151,7 @@ export default function AdminServices() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="admin-shell max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <h1 className="text-3xl font-bold">Gerenciamento de Serviços</h1>
         <button
