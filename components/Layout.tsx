@@ -77,12 +77,12 @@ export default function Layout({ children }: LayoutProps) {
       <nav className="sticky top-0 z-50">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
           <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 backdrop-blur-2xl shadow-[0_25px_60px_rgba(15,23,42,0.45)] px-4 sm:px-6 lg:px-8">
-            <div className="flex h-16 md:h-20 items-center justify-between">
-              <div className="flex items-center gap-4 md:gap-8">
+            <div className="flex flex-wrap items-center justify-between gap-3 min-h-[4rem]">
+              <div className="flex items-center gap-4 md:gap-6 flex-wrap">
                 <Logo size="md" showText={false} />
                 {session && (
                   <>
-                    <div className="hidden lg:flex items-center gap-2">
+                    <div className="hidden md:flex flex-wrap items-center gap-2">
                       {navigationLinks.map((item) => (
                         <Link key={item.href} href={item.href} className={navLinkClasses(item.href)}>
                           <span>{item.icon}</span>
