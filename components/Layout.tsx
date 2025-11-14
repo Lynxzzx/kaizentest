@@ -114,7 +114,7 @@ export default function Layout({ children }: LayoutProps) {
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <div className="flex items-center gap-1 rounded-2xl border border-white/10 bg-white/5 p-1">
                   <button
                     onClick={() => changeLanguage('pt-BR')}
