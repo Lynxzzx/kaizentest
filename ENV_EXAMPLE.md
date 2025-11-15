@@ -20,6 +20,14 @@ ASAAS_API_KEY=$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmNjNTFl
 # Binance (Pagamentos via Criptomoedas)
 BINANCE_API_KEY=luweSTLeGMHiod5NAcGPTcVdLZ5LKNa4UjSqiHmHlXIJXHhCvJwifviwoaRSo3D5
 BINANCE_SECRET_KEY=rohR1jojKsv1eFELP6D4ajPouTAeHoSDiGQ6FFZX6FExQVDT5VwHSjGfJpUkQXAS
+
+# SMTP (Envio de Emails)
+SMTP_HOST=smtp.seuprovedor.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=usuario@seuprovedor.com
+SMTP_PASS=sua-senha
+SMTP_FROM="Kaizen Gens <no-reply@seuprovedor.com>"
 ```
 
 ## Como obter:
@@ -30,3 +38,4 @@ BINANCE_SECRET_KEY=rohR1jojKsv1eFELP6D4ajPouTAeHoSDiGQ6FFZX6FExQVDT5VwHSjGfJpUkQ
 4. **ASAAS_API_KEY**: Sua chave de API do Asaas (disponível no painel do Asaas)
 5. **BINANCE_API_KEY**: Sua chave de API da Binance (disponível no painel da Binance)
 6. **BINANCE_SECRET_KEY**: Sua chave secreta da Binance (disponível no painel da Binance)
+7. **SMTP_HOST/PORT/SECURE/USER/PASS/FROM**: Dados do servidor de email (pode utilizar qualquer SMTP, como Gmail, Zoho ou serviços transacionais)

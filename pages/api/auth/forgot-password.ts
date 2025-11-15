@@ -1,12 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import crypto from 'crypto'
 import { prisma } from '@/lib/prisma'
+import { isEmailConfigured, sendPasswordResetEmail } from '@/lib/email'
 
 const RESET_TOKEN_EXPIRATION_MINUTES = 30
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  if (!isEmailConfigured()) {
+    return res.status(500).json({
+      error: 'Serviço de email não configurado. Defina SMTP_HOST, SMTP_USER, SMTP_PASS, SMTP_FROM e SMTP_PORT/SMTP_SECURE.'
+    })
   }
 
   const { email } = req.body as { email?: string }
@@ -36,11 +43,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
-      const baseUrl = process.env.NEXTAUTH_URL || process.env.VERCEL_URL || 'http://localhost:3000'
+      const baseUrl =
+        process.env.NEXTAUTH_URL ||
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null) ||
+        'http://localhost:3000'
       const resetUrl = `${baseUrl.replace(/\/$/, '')}/reset-password?token=${token}`
 
-      console.log('🔐 Link de redefinição de senha:', resetUrl)
-      console.log('   (Configure um serviço de email para enviar este link ao usuário)')
+      await sendPasswordResetEmail({
+        to: normalizedEmail,
+        username: user.username,
+        resetUrl
+      })
     }
 
     return res.json({
