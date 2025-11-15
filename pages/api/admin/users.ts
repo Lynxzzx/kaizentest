@@ -156,8 +156,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
           }
 
-          if (updateData.password) {
-            setData.password = updateData.password
+          if (typeof newPassword === 'string' && newPassword.trim().length >= 6) {
+            setData.password = await hashPassword(newPassword.trim())
             setData.passwordResetToken = null
             setData.passwordResetExpires = null
           }
