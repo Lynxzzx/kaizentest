@@ -12,6 +12,12 @@ export default function Settings() {
   const router = useRouter()
   const { theme, setTheme, isLoading } = useTheme()
   const [saving, setSaving] = useState(false)
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -28,6 +34,36 @@ export default function Settings() {
       toast.error(error.response?.data?.error || 'Erro ao atualizar tema')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handlePasswordChange = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (passwordData.newPassword.length < 6) {
+      toast.error('A nova senha deve ter pelo menos 6 caracteres')
+      return
+    }
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error('As senhas não conferem')
+      return
+    }
+
+    setPasswordLoading(true)
+    try {
+      await axios.put('/api/users/password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      })
+      toast.success('Senha alterada com sucesso!')
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      })
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao alterar senha')
+    } finally {
+      setPasswordLoading(false)
     }
   }
 
@@ -128,6 +164,54 @@ export default function Settings() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Password */}
+        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 sm:p-8 border border-white/20 shadow-2xl mb-6">
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
+            <span>🔒</span>
+            <span>Segurança</span>
+          </h2>
+          <p className="text-gray-300 mb-6">Atualize sua senha regularmente para manter a conta protegida.</p>
+          <form className="space-y-4" onSubmit={handlePasswordChange}>
+            <div>
+              <label className="block text-sm font-medium text-gray-200 mb-2">Senha atual</label>
+              <input
+                type="password"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/20 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-200 mb-2">Nova senha</label>
+              <input
+                type="password"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/20 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-200 mb-2">Confirmar nova senha</label>
+              <input
+                type="password"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/20 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={passwordLoading}
+              className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 py-3 rounded-lg font-bold hover:from-purple-600 hover:via-pink-600 hover:to-blue-600 transition disabled:opacity-60"
+            >
+              {passwordLoading ? 'Salvando...' : 'Atualizar senha'}
+            </button>
+          </form>
         </div>
 
         {/* Info */}

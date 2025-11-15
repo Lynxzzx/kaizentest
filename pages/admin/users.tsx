@@ -52,7 +52,9 @@ export default function AdminUsers() {
     planExpiresAt: '',
     permanentPlan: false,
     isBanned: false,
-    role: 'USER'
+    role: 'USER',
+    newPassword: '',
+    confirmPassword: ''
   })
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -110,19 +112,33 @@ export default function AdminUsers() {
       planExpiresAt: user.planExpiresAt ? format(new Date(user.planExpiresAt), 'yyyy-MM-dd') : '',
       permanentPlan: !!user.plan && !user.planExpiresAt,
       isBanned: user.isBanned,
-      role: user.role
+      role: user.role,
+      newPassword: '',
+      confirmPassword: ''
     })
   }
 
   const handleSave = async () => {
     if (!editingUser) return
 
+    if (editData.newPassword) {
+      if (editData.newPassword.length < 6) {
+        toast.error('A nova senha deve ter pelo menos 6 caracteres')
+        return
+      }
+      if (editData.newPassword !== editData.confirmPassword) {
+        toast.error('As senhas não conferem')
+        return
+      }
+    }
+
     try {
       await axios.put('/api/admin/users', {
         userId: editingUser.id,
         ...editData,
         planId: editData.planId || null,
-        planExpiresAt: editData.permanentPlan ? null : editData.planExpiresAt || null
+        planExpiresAt: editData.permanentPlan ? null : editData.planExpiresAt || null,
+        newPassword: editData.newPassword || undefined
       })
       
       // Promover usuário se o role mudou
@@ -135,6 +151,7 @@ export default function AdminUsers() {
       
       toast.success('Usuário atualizado com sucesso!')
       setEditingUser(null)
+      setEditData((prev) => ({ ...prev, newPassword: '', confirmPassword: '' }))
       loadUsers(searchTerm)
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao atualizar usuário')
@@ -432,6 +449,28 @@ export default function AdminUsers() {
                     : 'Este plano é vitalício e não expira automaticamente.'}
                 </p>
               )}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Nova senha</label>
+                <input
+                  type="password"
+                  value={editData.newPassword}
+                  onChange={(e) => setEditData({ ...editData, newPassword: e.target.value })}
+                  placeholder="Deixe em branco para não alterar"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Confirmar nova senha</label>
+                <input
+                  type="password"
+                  value={editData.confirmPassword}
+                  onChange={(e) => setEditData({ ...editData, confirmPassword: e.target.value })}
+                  placeholder="Repita a nova senha"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Cargo</label>

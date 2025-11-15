@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { hashPassword } from '@/lib/auth'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -46,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'PUT') {
-    const { userId, planId, planExpiresAt, isBanned } = req.body
+    const { userId, planId, planExpiresAt, isBanned, newPassword } = req.body
 
     if (!userId) {
       return res.status(400).json({ error: 'UserId is required' })
@@ -98,6 +99,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         updateData.planExpiresAt = computedPlanExpiresAt
       }
 
+      if (typeof newPassword === 'string' && newPassword.trim().length > 0) {
+        if (newPassword.length < 6) {
+          return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres' })
+        }
+        updateData.password = await hashPassword(newPassword.trim())
+        updateData.passwordResetToken = null
+        updateData.passwordResetExpires = null
+      }
+
       if (isBanned !== undefined) {
         updateData.isBanned = isBanned
         if (isBanned) {
@@ -144,6 +154,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               setData.bannedAt = null
               setData.bannedBy = null
             }
+          }
+
+          if (updateData.password) {
+            setData.password = updateData.password
+            setData.passwordResetToken = null
+            setData.passwordResetExpires = null
           }
 
           // Usar updateMany como fallback
