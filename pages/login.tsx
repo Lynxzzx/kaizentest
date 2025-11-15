@@ -86,6 +86,11 @@ export default function Login() {
                 required
               />
             </div>
+            <div className="flex justify-end">
+              <Link href="/forgot-password" className="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:underline">
+                Esqueceu sua senha?
+              </Link>
+            </div>
             <button
               type="submit"
               disabled={loading}

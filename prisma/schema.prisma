@@ -35,6 +35,8 @@ model User {
   profilePicture String? // URL da foto de perfil
   deviceFingerprint String? // Hash único do dispositivo para prevenção de múltiplas contas
   theme         String?  @default("dark") // Tema: dark, light, default
+  passwordResetToken String?
+  passwordResetExpires DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   generatedAccounts GeneratedAccount[]

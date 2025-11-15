@@ -50,6 +50,7 @@ export default function AdminUsers() {
   const [editData, setEditData] = useState({
     planId: '',
     planExpiresAt: '',
+    permanentPlan: false,
     isBanned: false,
     role: 'USER'
   })
@@ -107,6 +108,7 @@ export default function AdminUsers() {
     setEditData({
       planId: user.plan?.id || '',
       planExpiresAt: user.planExpiresAt ? format(new Date(user.planExpiresAt), 'yyyy-MM-dd') : '',
+      permanentPlan: !!user.plan && !user.planExpiresAt,
       isBanned: user.isBanned,
       role: user.role
     })
@@ -120,7 +122,7 @@ export default function AdminUsers() {
         userId: editingUser.id,
         ...editData,
         planId: editData.planId || null,
-        planExpiresAt: editData.planExpiresAt || null
+        planExpiresAt: editData.permanentPlan ? null : editData.planExpiresAt || null
       })
       
       // Promover usuário se o role mudou
@@ -180,7 +182,8 @@ export default function AdminUsers() {
       setEditData((prev) => ({
         ...prev,
         planId: '',
-        planExpiresAt: ''
+        planExpiresAt: '',
+        permanentPlan: false
       }))
       return
     }
@@ -195,7 +198,8 @@ export default function AdminUsers() {
     }
 
     let computedExpiration = ''
-    if (selectedPlan.duration > 0) {
+    const isPermanent = selectedPlan.duration <= 0
+    if (!isPermanent) {
       const expiresAt = new Date()
       expiresAt.setDate(expiresAt.getDate() + selectedPlan.duration)
       computedExpiration = format(expiresAt, 'yyyy-MM-dd')
@@ -204,7 +208,8 @@ export default function AdminUsers() {
     setEditData((prev) => ({
       ...prev,
       planId,
-      planExpiresAt: computedExpiration
+      planExpiresAt: computedExpiration,
+      permanentPlan: isPermanent
     }))
   }
 
@@ -267,10 +272,14 @@ export default function AdminUsers() {
           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
             {user.plan?.name || 'Sem plano'}
           </div>
-          {user.planExpiresAt && (
+          {user.planExpiresAt ? (
             <div className="text-xs text-gray-500 dark:text-gray-400">
               Expira: {format(new Date(user.planExpiresAt), "dd/MM/yyyy", { locale: ptBR })}
             </div>
+          ) : (
+            user.plan && (
+              <div className="text-xs text-green-600 dark:text-green-300">Plano permanente</div>
+            )
           )}
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
@@ -391,14 +400,36 @@ export default function AdminUsers() {
               <input
                 type="date"
                 value={editData.planExpiresAt}
-                onChange={(e) => setEditData({ ...editData, planExpiresAt: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                onChange={(e) =>
+                  setEditData((prev) => ({
+                    ...prev,
+                    planExpiresAt: e.target.value,
+                    permanentPlan: e.target.value ? false : prev.permanentPlan
+                  }))
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100"
+                disabled={editData.permanentPlan}
               />
+              <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={editData.permanentPlan}
+                  onChange={(e) =>
+                    setEditData((prev) => ({
+                      ...prev,
+                      permanentPlan: e.target.checked,
+                      planExpiresAt: e.target.checked ? '' : prev.planExpiresAt
+                    }))
+                  }
+                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                Plano permanente (não expira)
+              </label>
               {selectedPlanDetails && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   {selectedPlanDetails.duration > 0
                     ? `Este plano expira automaticamente em ${selectedPlanDetails.duration} dia${selectedPlanDetails.duration > 1 ? 's' : ''} a partir da data de ativação.`
-                    : 'Este plano não possui data de expiração definida.'}
+                    : 'Este plano é vitalício e não expira automaticamente.'}
                 </p>
               )}
             </div>

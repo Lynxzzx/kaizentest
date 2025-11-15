@@ -14,7 +14,19 @@ type PaymentWithPlan = {
 const DEFAULT_PLAN_DURATION_FALLBACK = 30
 
 export async function activateUserPlan(userId: string, planId: string, durationDays: number) {
-  const duration = durationDays && durationDays > 0 ? durationDays : DEFAULT_PLAN_DURATION_FALLBACK
+  if (!durationDays || durationDays <= 0) {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        planId,
+        planExpiresAt: null
+      }
+    })
+    console.log('✅ Plano vitalício ativado para usuário:', userId)
+    return null
+  }
+
+  const duration = durationDays || DEFAULT_PLAN_DURATION_FALLBACK
   const now = new Date()
 
   const currentUser = await prisma.user.findUnique({

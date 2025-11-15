@@ -255,14 +255,14 @@ export default function Dashboard() {
                     <span className="text-2xl">💎</span>
                   </div>
                   <p className={`${textClasses.secondary} mb-4`}>{userPlan.plan.description}</p>
-                  {userPlan.planExpiresAt && (
-                    <div className={`flex items-center justify-between pt-4 border-t ${theme === 'dark' ? 'border-white/20' : 'border-purple-200'}`}>
-                      <span className={`text-sm font-medium ${theme === 'dark' ? 'text-purple-300' : 'text-purple-600'}`}>{t('expiresIn')}:</span>
-                      <span className={`text-sm font-bold ${theme === 'dark' ? 'text-purple-200' : 'text-purple-900'}`}>
-                        {format(new Date(userPlan.planExpiresAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
-                      </span>
-                    </div>
-                  )}
+                  <div className={`flex items-center justify-between pt-4 border-t ${theme === 'dark' ? 'border-white/20' : 'border-purple-200'}`}>
+                    <span className={`text-sm font-medium ${theme === 'dark' ? 'text-purple-300' : 'text-purple-600'}`}>{t('expiresIn')}:</span>
+                    <span className={`text-sm font-bold ${theme === 'dark' ? 'text-purple-200' : 'text-purple-900'}`}>
+                      {userPlan.planExpiresAt
+                        ? format(new Date(userPlan.planExpiresAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })
+                        : t('noExpiration')}
+                    </span>
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200'} rounded-lg p-3`}>
