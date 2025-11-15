@@ -58,35 +58,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const updateData: any = {}
 
-      // Atualizar plano usando a sintaxe de relação do Prisma
       if (planId !== undefined) {
-        if (planId) {
-          updateData.plan = {
-            connect: { id: planId }
-          }
+        updateData.planId = planId || null
 
-          const shouldAutoComputeExpiration =
-            planExpiresAt === undefined || planExpiresAt === null || planExpiresAt === ''
+        const shouldAutoComputeExpiration =
+          planExpiresAt === undefined || planExpiresAt === null || planExpiresAt === ''
 
-          if (shouldAutoComputeExpiration) {
-            const plan = await prisma.plan.findUnique({
-              where: { id: planId }
-            })
+        if (shouldAutoComputeExpiration && planId) {
+          const plan = await prisma.plan.findUnique({
+            where: { id: planId }
+          })
 
-            if (plan) {
-              if (plan.duration > 0) {
-                const expiresAt = new Date()
-                expiresAt.setDate(expiresAt.getDate() + plan.duration)
-                computedPlanExpiresAt = expiresAt
-              } else {
-                computedPlanExpiresAt = null
-              }
+          if (plan) {
+            if (plan.duration > 0) {
+              const expiresAt = new Date()
+              expiresAt.setDate(expiresAt.getDate() + plan.duration)
+              computedPlanExpiresAt = expiresAt
+            } else {
+              computedPlanExpiresAt = null
             }
           }
-        } else {
-          updateData.plan = {
-            disconnect: true
-          }
+        }
+
+        if (!planId) {
           computedPlanExpiresAt = null
         }
       }
@@ -130,63 +124,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.json(updatedUser)
     } catch (error: any) {
       console.error('Error updating user:', error)
-      
-      // Se o erro for sobre campos desconhecidos, tentar usar $executeRaw
-      if (error.message && error.message.includes('Unknown argument')) {
-        try {
-          // Construir query MongoDB diretamente
-          const setData: any = {}
-          
-          if (planId !== undefined) {
-            setData.planId = planId ? { $oid: planId } : null
-          }
-          
-          if (computedPlanExpiresAt !== undefined) {
-            setData.planExpiresAt = computedPlanExpiresAt
-          }
-          
-          if (isBanned !== undefined) {
-            setData.isBanned = isBanned
-            if (isBanned) {
-              setData.bannedAt = new Date()
-              setData.bannedBy = { $oid: session.user.id }
-            } else {
-              setData.bannedAt = null
-              setData.bannedBy = null
-            }
-          }
-
-          if (typeof newPassword === 'string' && newPassword.trim().length >= 6) {
-            setData.password = await hashPassword(newPassword.trim())
-            setData.passwordResetToken = null
-            setData.passwordResetExpires = null
-          }
-
-          // Usar updateMany como fallback
-          await prisma.user.updateMany({
-            where: { id: userId },
-            data: setData as any
-          })
-
-          // Buscar usuário atualizado
-          const updatedUser = await prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-              plan: true
-            }
-          })
-
-          return res.json(updatedUser)
-        } catch (fallbackError: any) {
-          console.error('Fallback update also failed:', fallbackError)
-          return res.status(500).json({ 
-            error: 'Internal server error', 
-            details: 'Prisma Client precisa ser regenerado. Execute: npm run db:generate',
-            originalError: error.message 
-          })
-        }
-      }
-      
       return res.status(500).json({ error: 'Internal server error', details: error.message })
     }
   }
