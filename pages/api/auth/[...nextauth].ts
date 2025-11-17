@@ -23,34 +23,47 @@ export const authOptions: NextAuthOptions = {
 
           console.log('🔐 Tentativa de login:', { identifier, isEmail })
 
-          const user = await prisma.user.findFirst({
-            where: isEmail
-              ? {
-                  OR: [
-                    {
-                      username: {
-                        equals: identifier,
-                        mode: 'insensitive'
-                      }
-                    },
-                    {
-                      email: {
-                        equals: normalizedIdentifier,
-                        mode: 'insensitive'
-                      }
-                    }
-                  ]
-                }
-              : {
-                  username: {
-                    equals: identifier,
-                    mode: 'insensitive'
-                  }
-                }
+          // Primeiro tentar busca exata por username
+          let user = await prisma.user.findUnique({
+            where: { username: identifier }
           })
 
+          console.log('🔍 Busca exata por username:', user ? '✅ Encontrado' : '❌ Não encontrado')
+
+          // Se não encontrar, tentar busca case-insensitive
           if (!user) {
-            console.log('❌ Usuário não encontrado')
+            console.log('🔍 Tentando busca case-insensitive...')
+            user = await prisma.user.findFirst({
+              where: isEmail
+                ? {
+                    OR: [
+                      {
+                        username: {
+                          equals: identifier,
+                          mode: 'insensitive'
+                        }
+                      },
+                      {
+                        email: {
+                          equals: normalizedIdentifier,
+                          mode: 'insensitive'
+                        }
+                      }
+                    ]
+                  }
+                : {
+                    username: {
+                      equals: identifier,
+                      mode: 'insensitive'
+                    }
+                  }
+            })
+            console.log('🔍 Busca case-insensitive:', user ? '✅ Encontrado' : '❌ Não encontrado')
+          }
+
+          if (!user) {
+            console.log('❌ Usuário não encontrado após todas as tentativas')
+            console.log('💡 Dica: Verifique se o username no banco está exatamente como:', identifier)
             throw new Error('Invalid credentials')
           }
 
