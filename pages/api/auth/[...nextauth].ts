@@ -21,6 +21,8 @@ export const authOptions: NextAuthOptions = {
           const normalizedIdentifier = identifier.toLowerCase()
           const isEmail = identifier.includes('@')
 
+          console.log('🔐 Tentativa de login:', { identifier, isEmail })
+
           const user = await prisma.user.findFirst({
             where: isEmail
               ? {
@@ -48,14 +50,21 @@ export const authOptions: NextAuthOptions = {
           })
 
           if (!user) {
+            console.log('❌ Usuário não encontrado')
             throw new Error('Invalid credentials')
           }
+
+          console.log('✅ Usuário encontrado:', user.username)
+          console.log('🔐 Verificando senha...')
 
           const isValid = await verifyPassword(credentials.password, user.password)
 
           if (!isValid) {
+            console.log('❌ Senha inválida')
             throw new Error('Invalid credentials')
           }
+
+          console.log('✅ Login bem-sucedido:', user.username)
 
           return {
             id: user.id,
@@ -63,7 +72,7 @@ export const authOptions: NextAuthOptions = {
             role: user.role
           }
         } catch (error: any) {
-          console.error('NextAuth authorize error:', error)
+          console.error('❌ NextAuth authorize error:', error.message)
           // Verificar se é erro de conexão
           if (error.code === 'ECONNREFUSED' || error.message?.includes('connect')) {
             throw new Error('Erro de conexão com o banco de dados')

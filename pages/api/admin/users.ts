@@ -13,10 +13,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'GET') {
     try {
+      console.log('📡 GET /api/admin/users - Iniciando busca de usuários')
       const search =
         typeof req.query.search === 'string'
           ? req.query.search.trim()
           : ''
+
+      console.log('🔍 Parâmetro de busca:', search || 'nenhum')
 
       const users = await prisma.user.findMany({
         where: search
@@ -39,15 +42,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         orderBy: { createdAt: 'desc' }
       })
 
+      console.log('✅ Usuários encontrados:', users.length)
       return res.json(users)
     } catch (error: any) {
-      console.error('Error fetching users:', error)
+      console.error('❌ Error fetching users:', error)
       return res.status(500).json({ error: 'Internal server error', details: error.message })
     }
   }
 
   if (req.method === 'PUT') {
     const { userId, planId, planExpiresAt, isBanned, newPassword } = req.body
+
+    console.log('🔧 PUT /api/admin/users - Atualizando usuário:', { userId, temNovaSenha: !!newPassword })
 
     if (!userId) {
       return res.status(400).json({ error: 'UserId is required' })
@@ -94,10 +100,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       if (typeof newPassword === 'string' && newPassword.trim().length > 0) {
-        if (newPassword.length < 6) {
+        console.log('🔐 Alterando senha do usuário...')
+        if (newPassword.trim().length < 6) {
           return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres' })
         }
-        updateData.password = await hashPassword(newPassword.trim())
+        const hashedPassword = await hashPassword(newPassword.trim())
+        console.log('✅ Senha hasheada com sucesso')
+        updateData.password = hashedPassword
         updateData.passwordResetToken = null
         updateData.passwordResetExpires = null
       }
@@ -113,6 +122,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
+      console.log('💾 Salvando alterações no banco de dados...')
       const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: updateData,
@@ -121,9 +131,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
+      console.log('✅ Usuário atualizado com sucesso:', updatedUser.username)
+      if (updateData.password) {
+        console.log('✅ Nova senha salva no banco de dados')
+      }
+
       return res.json(updatedUser)
     } catch (error: any) {
-      console.error('Error updating user:', error)
+      console.error('❌ Error updating user:', error)
       return res.status(500).json({ error: 'Internal server error', details: error.message })
     }
   }

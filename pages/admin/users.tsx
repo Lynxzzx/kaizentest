@@ -84,6 +84,7 @@ export default function AdminUsers() {
     }
 
     dataInitialized.current = true
+    console.log('🔄 Iniciando carregamento de usuários e planos...')
     loadUsers('')
     loadPlans()
   }, [session?.user, status, router])
@@ -95,19 +96,23 @@ export default function AdminUsers() {
     }
 
     try {
+      console.log('📡 Requisitando usuários da API...')
       const response = await axios.get('/api/admin/users', {
         params: {
           search: search.trim() || undefined
         }
       })
+      console.log('✅ Usuários recebidos:', response.data.length)
       setUsers(response.data)
-    } catch (error) {
-      toast.error('Erro ao carregar usuários')
+    } catch (error: any) {
+      console.error('❌ Erro ao carregar usuários:', error)
+      toast.error('Erro ao carregar usuários: ' + (error.response?.data?.error || error.message))
     } finally {
       if (showTableLoader) {
         setTableLoading(false)
       }
       setLoading(false)
+      console.log('✅ Estado loading atualizado para false')
     }
   }
 
