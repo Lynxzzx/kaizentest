@@ -18,19 +18,34 @@ export const authOptions: NextAuthOptions = {
           }
 
           const identifier = credentials.username.trim()
-          const normalizedEmail = identifier.toLowerCase()
+          const normalizedIdentifier = identifier.toLowerCase()
+          const isEmail = identifier.includes('@')
 
-          let user = await prisma.user.findUnique({
-            where: { username: identifier }
+          const user = await prisma.user.findFirst({
+            where: isEmail
+              ? {
+                  OR: [
+                    {
+                      username: {
+                        equals: identifier,
+                        mode: 'insensitive'
+                      }
+                    },
+                    {
+                      email: {
+                        equals: normalizedIdentifier,
+                        mode: 'insensitive'
+                      }
+                    }
+                  ]
+                }
+              : {
+                  username: {
+                    equals: identifier,
+                    mode: 'insensitive'
+                  }
+                }
           })
-
-          if (!user) {
-            user = await prisma.user.findFirst({
-              where: {
-                email: normalizedEmail
-              }
-            })
-          }
 
           if (!user) {
             throw new Error('Invalid credentials')

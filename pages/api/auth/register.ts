@@ -16,11 +16,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('Register API called:', { username: req.body?.username, affiliateRef: req.body?.affiliateRef })
     const { username, email, password, deviceFingerprint, affiliateRef } = req.body
 
-    if (!username || !password) {
+    const sanitizedUsername = typeof username === 'string' ? username.trim() : ''
+    const normalizedEmail = typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : null
+    const sanitizedDeviceFingerprint = typeof deviceFingerprint === 'string' && deviceFingerprint.trim().length > 0
+      ? deviceFingerprint.trim()
+      : null
+
+    if (!sanitizedUsername || !password) {
       return res.status(400).json({ error: 'Username and password are required' })
     }
 
-    if (username.length < 3) {
+    if (sanitizedUsername.length < 3) {
       return res.status(400).json({ error: 'Username must be at least 3 characters' })
     }
 
@@ -29,13 +35,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // VALIDAÇÃO DE SEGURANÇA: Verificar device fingerprint
-    if (deviceFingerprint) {
+    if (sanitizedDeviceFingerprint) {
       const existingDevice = await prisma.user.findFirst({
-        where: { deviceFingerprint }
+        where: { deviceFingerprint: sanitizedDeviceFingerprint }
       })
 
       if (existingDevice) {
-        console.log('Device already has an account:', deviceFingerprint)
+        console.log('Device already has an account:', sanitizedDeviceFingerprint)
         return res.status(403).json({ 
           error: 'Este dispositivo já possui uma conta. Para sua segurança, cada dispositivo pode criar apenas uma conta.' 
         })
@@ -45,8 +51,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('Checking existing users...')
     
     // Verificar se o username já existe
-    const existingUser = await prisma.user.findUnique({
-      where: { username }
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        username: {
+          equals: sanitizedUsername,
+          mode: 'insensitive'
+        }
+      }
     }).catch((err) => {
       console.error('Error checking username:', err)
       throw err
@@ -58,9 +69,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Verificar se o email já existe (se fornecido)
-    if (email) {
+    if (normalizedEmail) {
       const existingEmail = await prisma.user.findFirst({
-        where: { email }
+        where: {
+          email: {
+            equals: normalizedEmail,
+            mode: 'insensitive'
+          }
+        }
       }).catch((err) => {
         console.error('Error checking email:', err)
         throw err
@@ -101,11 +117,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('Creating user in database...')
     const user = await prisma.user.create({
       data: {
-        username,
-        email: email || null,
+        username: sanitizedUsername,
+        email: normalizedEmail,
         password: hashedPassword,
         role: 'USER',
-        deviceFingerprint: deviceFingerprint || null, // Armazenar device fingerprint
+        deviceFingerprint: sanitizedDeviceFingerprint, // Armazenar device fingerprint
         referredBy: referrerId || null // Armazenar referência se existir
       }
     }).catch((err) => {

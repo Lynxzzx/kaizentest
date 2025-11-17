@@ -53,20 +53,31 @@ export default function AdminDashboard() {
   const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
+    if (status === 'loading') {
+      return
+    }
+
     if (status === 'unauthenticated') {
-      router.push('/login')
-    } else if (session?.user?.role !== 'OWNER') {
-      router.push('/dashboard')
+      router.replace('/login')
+      return
+    }
+
+    if (session?.user?.role !== 'OWNER') {
+      router.replace('/dashboard')
     }
   }, [session, status, router])
 
   useEffect(() => {
+    if (status !== 'authenticated') {
+      return
+    }
+
     if (session?.user?.role === 'OWNER') {
       loadStats()
       const interval = setInterval(loadStats, 30000) // Atualizar a cada 30 segundos
       return () => clearInterval(interval)
     }
-  }, [session])
+  }, [session, status])
 
   const loadStats = async () => {
     try {

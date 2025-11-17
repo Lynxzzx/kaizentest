@@ -59,19 +59,30 @@ export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
+    if (status === 'loading') {
+      return
+    }
+
     if (status === 'unauthenticated') {
-      router.push('/login')
-    } else if (session?.user?.role !== 'OWNER') {
-      router.push('/dashboard')
+      router.replace('/login')
+      return
+    }
+
+    if (session?.user?.role !== 'OWNER') {
+      router.replace('/dashboard')
     }
   }, [session, status, router])
 
   useEffect(() => {
+    if (status !== 'authenticated') {
+      return
+    }
+
     if (session?.user?.role === 'OWNER') {
       loadUsers('')
       loadPlans()
     }
-  }, [session])
+  }, [session, status])
 
   const loadUsers = async (search = '') => {
     const showTableLoader = !loading
