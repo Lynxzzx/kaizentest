@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
@@ -58,6 +58,8 @@ export default function AdminUsers() {
   })
   const [searchTerm, setSearchTerm] = useState('')
 
+  const dataInitialized = useRef(false)
+
   useEffect(() => {
     if (status === 'loading') {
       return
@@ -68,21 +70,23 @@ export default function AdminUsers() {
       return
     }
 
-    if (session?.user?.role !== 'OWNER') {
-      router.replace('/dashboard')
-    }
-  }, [session, status, router])
-
-  useEffect(() => {
-    if (status !== 'authenticated') {
+    if (!session?.user) {
       return
     }
 
-    if (session?.user?.role === 'OWNER') {
-      loadUsers('')
-      loadPlans()
+    if (session.user.role !== 'OWNER') {
+      router.replace('/dashboard')
+      return
     }
-  }, [session, status])
+
+    if (dataInitialized.current) {
+      return
+    }
+
+    dataInitialized.current = true
+    loadUsers('')
+    loadPlans()
+  }, [session?.user, status, router])
 
   const loadUsers = async (search = '') => {
     const showTableLoader = !loading
