@@ -26,14 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Busca dados atualizados do usuário
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: { plan: true },
-      select: {
-        id: true,
-        username: true,
-        planId: true,
-        planExpiresAt: true,
-        plan: true
-      }
+      include: { plan: true }
     })
 
     if (!user) {
