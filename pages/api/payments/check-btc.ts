@@ -4,6 +4,7 @@ import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { checkPaymentStatus } from '@/lib/binance'
 import { registerCouponUsage } from '@/lib/coupon-utils'
+import { activateUserPlan } from '@/lib/payment-utils'
 
 /**
  * API para verificar manualmente o status de um pagamento Bitcoin
@@ -80,17 +81,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
       await registerCouponUsage(payment.couponId)
 
-      // Ativar plano do usuário
-      const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + payment.plan.duration)
-
-      await prisma.user.update({
-        where: { id: payment.userId },
-        data: {
-          planId: payment.planId,
-          planExpiresAt: expiresAt
-        }
-      })
+      // Ativar/renovar plano do usuário usando a função utilitária
+      const expiresAt = await activateUserPlan(
+        payment.userId,
+        payment.planId,
+        payment.plan.duration
+      )
 
       console.log('✅ Pagamento Bitcoin confirmado e plano ativado:', payment.id)
 

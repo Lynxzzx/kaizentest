@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { isUserPlanActive, checkAndCleanUserPlan } from '@/lib/plan-utils'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -73,8 +74,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(404).json({ error: 'Serviço indisponível no momento.' })
   }
 
-  // Verificar se tem plano ativo
-  const hasActivePlan = user.planId && (!user.planExpiresAt || new Date() <= user.planExpiresAt)
+  // Limpar plano expirado automaticamente se necessário
+  await checkAndCleanUserPlan(user.id)
+
+  // Verificar se tem plano ativo usando a função utilitária
+  const hasActivePlan = isUserPlanActive(user.planId, user.planExpiresAt)
   
   // Verificar se tem gerações bonus disponíveis
   const hasBonusGenerations = user.bonusGenerations > 0

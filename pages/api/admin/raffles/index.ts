@@ -105,16 +105,9 @@ async function finalizeExpiredRaffles() {
 
     if (raffle.prizeType === 'PLAN' && raffle.prizePlanId && raffle.prizePlan) {
       const plan = raffle.prizePlan
-      const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + plan.duration)
-
-      await prisma.user.update({
-        where: { id: winner.id },
-        data: {
-          planId: plan.id,
-          planExpiresAt: expiresAt
-        }
-      })
+      // Usar função utilitária para ativar/renovar plano
+      const { activateUserPlan } = await import('@/lib/payment-utils')
+      await activateUserPlan(winner.id, plan.id, plan.duration)
     } else if (raffle.prizeType === 'GENERATIONS') {
       const generations = parseInt(raffle.prize) || 10
       await prisma.user.update({

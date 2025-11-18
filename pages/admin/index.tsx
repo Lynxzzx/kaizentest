@@ -90,6 +90,19 @@ export default function AdminDashboard() {
     }
   }
 
+  const cleanupExpiredPlans = async () => {
+    try {
+      toast.loading('Limpando planos expirados...')
+      const response = await axios.post('/api/admin/cleanup-expired-plans')
+      toast.dismiss()
+      toast.success(`${response.data.cleanedCount} planos expirados foram removidos`)
+      loadStats() // Recarregar estatísticas
+    } catch (error: any) {
+      toast.dismiss()
+      toast.error(error.response?.data?.error || 'Erro ao limpar planos expirados')
+    }
+  }
+
   if (status === 'loading' || loading) {
     return (
       <div className={`min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
@@ -198,6 +211,14 @@ export default function AdminDashboard() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={cleanupExpiredPlans}
+                className="inline-flex items-center rounded-2xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 transition-all"
+                title="Remover planos expirados"
+              >
+                <span className="mr-2">🧹</span>
+                Limpar Planos
+              </button>
               <button
                 onClick={loadStats}
                 className="inline-flex items-center rounded-2xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 transition-all"

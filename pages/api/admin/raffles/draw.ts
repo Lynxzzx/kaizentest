@@ -78,18 +78,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Entregar prêmio ao ganhador
     if (raffle.prizeType === 'PLAN' && raffle.prizePlanId && raffle.prizePlan) {
-      // Ativar plano para o ganhador
+      // Ativar plano para o ganhador usando função utilitária
       const plan = raffle.prizePlan
-      const expiresAt = new Date()
-      expiresAt.setDate(expiresAt.getDate() + plan.duration)
-
-      await prisma.user.update({
-        where: { id: winner.id },
-        data: {
-          planId: plan.id,
-          planExpiresAt: expiresAt
-        }
-      })
+      const { activateUserPlan } = await import('@/lib/payment-utils')
+      await activateUserPlan(winner.id, plan.id, plan.duration)
     } else if (raffle.prizeType === 'GENERATIONS') {
       // Adicionar gerações grátis
       const generations = parseInt(raffle.prize) || 10 // Padrão 10 se não especificado

@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { activateUserPlan } from '@/lib/payment-utils'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -63,17 +64,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   })
 
-  // Update user plan
-  const expiresAt = new Date()
-  expiresAt.setDate(expiresAt.getDate() + keyRecord.plan.duration)
+  // Ativar/renovar plano usando a função utilitária
+  const expiresAt = await activateUserPlan(
+    session.user.id,
+    keyRecord.planId,
+    keyRecord.plan.duration
+  )
 
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: {
-      planId: keyRecord.planId,
-      planExpiresAt: expiresAt
-    }
+  return res.json({ 
+    success: true, 
+    plan: keyRecord.plan,
+    expiresAt 
   })
-
-  return res.json({ success: true, plan: keyRecord.plan })
 }
