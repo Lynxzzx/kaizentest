@@ -337,7 +337,19 @@ export async function createPagSeguroPixPayment(data: {
     
     // Extrair dados do QR code da resposta
     const orderData_response = orderResponse.data
-    const chargeId = orderData_response.charges?.[0]?.id || orderData_response.id
+    
+    // Priorizar Order ID (formato ORD-) porque é mais confiável para consultas
+    // Order ID é o ID principal que pode ser consultado via /orders/{id}
+    const orderId = orderData_response.id
+    const chargeId = orderData_response.charges?.[0]?.id
+    
+    // Usar Order ID como padrão, mas se houver Charge ID no formato correto (CHG-), usá-lo também
+    const paymentId = orderId || chargeId || ''
+    
+    console.log('📋 IDs extraídos da resposta:')
+    console.log('   Order ID:', orderId)
+    console.log('   Charge ID:', chargeId)
+    console.log('   ID que será salvo:', paymentId)
     
     // O QR code PIX deve vir na resposta do /orders dentro de qr_codes
     const qrCodeData = orderData_response.qr_codes?.[0] || 
@@ -374,7 +386,7 @@ export async function createPagSeguroPixPayment(data: {
                       new Date(Date.now() + 30 * 60 * 1000).toISOString()
 
     return {
-      id: chargeId || orderResponse.data.id || '',
+      id: paymentId,
       qrCode: qrCode || '',
       qrCodeImage: qrCodeImage || null,
       expiresAt: expiresAt
@@ -467,9 +479,25 @@ export async function getPagSeguroPayment(paymentId: string) {
     const key = await getPagSeguroKey()
     const apiUrl = await getPagSeguroApiUrl()
 
-    // Tentar buscar como Order primeiro (formato ORD-...)
-    if (paymentId.startsWith('ORD-')) {
+    console.log('🔍 [getPagSeguroPayment] Buscando pagamento:', paymentId)
+
+    // Detectar se é Order ID (formatos: ORD-, ORDE_, ORDER_)
+    const isOrderId = paymentId.startsWith('ORD-') || 
+                      paymentId.startsWith('ORDE_') || 
+                      paymentId.startsWith('ORDER_') ||
+                      paymentId.toUpperCase().includes('ORDER')
+
+    // Detectar se é Charge ID (formato: CHG-, CHAR_)
+    const isChargeId = paymentId.startsWith('CHG-') || 
+                       paymentId.startsWith('CHAR_') ||
+                       paymentId.toUpperCase().includes('CHARGE')
+
+    console.log('🔍 [getPagSeguroPayment] Tipo detectado:', { isOrderId, isChargeId })
+
+    // Tentar buscar como Order primeiro se for identificado como Order
+    if (isOrderId && !isChargeId) {
       try {
+        console.log('📦 [getPagSeguroPayment] Tentando buscar como Order...')
         const response = await axios.get(
           `${apiUrl}/orders/${paymentId}`,
           {
@@ -479,29 +507,44 @@ export async function getPagSeguroPayment(paymentId: string) {
             }
           }
         )
+        console.log('✅ [getPagSeguroPayment] Order encontrada!')
         return response.data
-      } catch (error: any) {
-        // Se falhar, tentar como Charge
-        if (error.response?.status !== 404) {
-          throw error
+      } catch (orderError: any) {
+        console.warn('⚠️ [getPagSeguroPayment] Falha ao buscar como Order:', orderError.response?.data || orderError.message)
+        // Se falhar com 404, tentar como Charge
+        if (orderError.response?.status !== 404 && orderError.response?.status !== 400) {
+          throw orderError
         }
+        console.log('🔄 [getPagSeguroPayment] Tentando como Charge...')
       }
     }
 
-    // Tentar buscar como Charge (formato CHG-...)
-    const response = await axios.get(
-      `${apiUrl}/charges/${paymentId}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${key}`,
-          'App-Token': key
+    // Tentar buscar como Charge
+    try {
+      console.log('📦 [getPagSeguroPayment] Tentando buscar como Charge...')
+      const response = await axios.get(
+        `${apiUrl}/charges/${paymentId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${key}`,
+            'App-Token': key
+          }
         }
+      )
+      console.log('✅ [getPagSeguroPayment] Charge encontrada!')
+      return response.data
+    } catch (chargeError: any) {
+      console.error('❌ [getPagSeguroPayment] Falha ao buscar como Charge:', chargeError.response?.data || chargeError.message)
+      
+      // Se já tentamos Order e Charge e ambos falharam, lançar erro
+      if (isOrderId) {
+        throw new Error(`Pagamento não encontrado no PagSeguro (ID: ${paymentId}). Tentado como Order e Charge.`)
       }
-    )
-
-    return response.data
+      
+      throw chargeError
+    }
   } catch (error: any) {
-    console.error('Erro ao buscar pagamento no PagSeguro:', error.response?.data || error.message)
+    console.error('❌ [getPagSeguroPayment] Erro ao buscar pagamento no PagSeguro:', error.response?.data || error.message)
     throw error
   }
 }

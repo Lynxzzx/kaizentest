@@ -80,6 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       try {
         console.log('🔄 [check-pix] Consultando status no PagSeguro...')
         console.log('   ID:', payment.asaasId)
+        console.log('   Reference ID:', payment.pagSeguroReferenceId)
         
         // Buscar status no PagSeguro
         const pagSeguroOrder = await getPagSeguroPayment(payment.asaasId)
@@ -152,7 +153,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       } catch (error: any) {
         console.error('❌ [check-pix] Erro ao verificar pagamento PagSeguro:', error.message)
+        console.error('   Detalhes:', error.response?.data)
+        console.error('   ID tentado:', payment.asaasId)
+        console.error('   Reference ID:', payment.pagSeguroReferenceId)
         console.error('Stack:', error.stack)
+        
+        // Se o erro for 400/404, significa que o ID não é válido
+        // Retornar como pendente ao invés de erro 500
+        if (error.response?.status === 400 || error.response?.status === 404) {
+          console.warn('⚠️ [check-pix] ID do PagSeguro inválido ou não encontrado. Mantendo como pendente.')
+          console.warn('   💡 Dica: Este pagamento precisará ser verificado manualmente ou pelo webhook.')
+          return res.json({
+            success: true,
+            status: 'PENDING',
+            message: 'Payment ID not found in PagSeguro. Awaiting webhook confirmation.',
+            warning: 'Unable to verify payment status via API. Payment will be activated automatically when webhook arrives.',
+            asaasId: payment.asaasId,
+            referenceId: payment.pagSeguroReferenceId
+          })
+        }
+        
+        // Para outros erros, retornar erro 500
         return res.status(500).json({
           error: 'Error checking payment status',
           details: error.message

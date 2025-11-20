@@ -70,6 +70,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       try {
         console.log(`🔄 [admin-check] Verificando pagamento ${payment.id} (${payment.user.username})...`)
+        console.log(`   ID: ${payment.asaasId}`)
+        console.log(`   Reference ID: ${payment.pagSeguroReferenceId}`)
         
         // Buscar status no PagSeguro
         const pagSeguroOrder = await getPagSeguroPayment(payment.asaasId!)
@@ -130,14 +132,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       } catch (error: any) {
         console.error(`❌ [admin-check] Erro ao verificar pagamento ${payment.id}:`, error.message)
-        results.errors++
-        results.details.push({
-          paymentId: payment.id,
-          userId: payment.userId,
-          username: payment.user.username,
-          status: 'error',
-          error: error.message
-        })
+        console.error(`   ID tentado: ${payment.asaasId}`)
+        console.error(`   Reference ID: ${payment.pagSeguroReferenceId}`)
+        
+        // Se o erro for 400/404, é porque o ID não é válido/encontrado
+        if (error.response?.status === 400 || error.response?.status === 404) {
+          console.warn(`⚠️ [admin-check] ID inválido/não encontrado. Marcando como erro mas aguardando webhook.`)
+          results.stillPending++
+          results.details.push({
+            paymentId: payment.id,
+            userId: payment.userId,
+            username: payment.user.username,
+            status: 'awaiting_webhook',
+            note: 'Payment ID not found in PagSeguro API. Will be activated via webhook.',
+            asaasId: payment.asaasId,
+            referenceId: payment.pagSeguroReferenceId
+          })
+        } else {
+          results.errors++
+          results.details.push({
+            paymentId: payment.id,
+            userId: payment.userId,
+            username: payment.user.username,
+            status: 'error',
+            error: error.message
+          })
+        }
       }
     }
 
