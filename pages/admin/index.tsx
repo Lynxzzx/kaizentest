@@ -103,6 +103,33 @@ export default function AdminDashboard() {
     }
   }
 
+  const checkPendingPayments = async () => {
+    try {
+      toast.loading('Verificando pagamentos pendentes...')
+      const response = await axios.post('/api/admin/check-pending-payments')
+      toast.dismiss()
+      
+      const { results } = response.data
+      
+      if (results.activated > 0) {
+        toast.success(`✅ ${results.activated} pagamento(s) confirmado(s) e plano(s) ativado(s)!`)
+      } else if (results.stillPending > 0) {
+        toast.success(`⏳ ${results.stillPending} pagamento(s) ainda pendente(s)`)
+      } else {
+        toast.success('Nenhum pagamento pendente encontrado')
+      }
+      
+      if (results.errors > 0) {
+        toast.error(`⚠️ ${results.errors} erro(s) ao verificar pagamentos`)
+      }
+      
+      loadStats() // Recarregar estatísticas
+    } catch (error: any) {
+      toast.dismiss()
+      toast.error(error.response?.data?.error || 'Erro ao verificar pagamentos pendentes')
+    }
+  }
+
   if (status === 'loading' || loading) {
     return (
       <div className={`min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
@@ -211,6 +238,14 @@ export default function AdminDashboard() {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={checkPendingPayments}
+                className="inline-flex items-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500/20 transition-all"
+                title="Verificar e ativar pagamentos PIX pendentes do PagSeguro"
+              >
+                <span className="mr-2">💰</span>
+                Verificar PIX
+              </button>
               <button
                 onClick={cleanupExpiredPlans}
                 className="inline-flex items-center rounded-2xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 transition-all"

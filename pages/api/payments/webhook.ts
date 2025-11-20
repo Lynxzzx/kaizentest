@@ -50,10 +50,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         pagSeguroPayload?.referenceId ||
         null
 
+      console.log('🔍 IDs extraídos do webhook:', { orderId, chargeId, referenceId })
+
       const paymentFilters: { asaasId?: string; pagSeguroReferenceId?: string }[] = []
       if (orderId) paymentFilters.push({ asaasId: orderId })
       if (chargeId) paymentFilters.push({ asaasId: chargeId })
       if (referenceId) paymentFilters.push({ pagSeguroReferenceId: referenceId })
+      
+      console.log('🔍 Filtros de busca de pagamento:', paymentFilters)
 
       if (paymentFilters.length === 0) {
         console.warn('⚠️ Webhook PagSeguro sem identificadores suficientes para localizar o pagamento.')
@@ -66,14 +70,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           method: 'PIX'
         },
         include: {
-          plan: true
+          plan: true,
+          user: true
         }
       })
 
       if (!dbPayment) {
         console.warn('⚠️ Pagamento não encontrado no banco.', { orderId, chargeId, referenceId })
+        console.warn('⚠️ Tentando buscar todos os pagamentos pendentes PIX para debug...')
+        
+        const pendingPayments = await prisma.payment.findMany({
+          where: {
+            method: 'PIX',
+            status: 'PENDING'
+          },
+          select: {
+            id: true,
+            asaasId: true,
+            pagSeguroReferenceId: true,
+            createdAt: true
+          },
+          take: 10,
+          orderBy: { createdAt: 'desc' }
+        })
+        
+        console.warn('📊 Últimos 10 pagamentos PIX pendentes:', JSON.stringify(pendingPayments, null, 2))
         return res.status(404).json({ error: 'Payment not found' })
       }
+
+      console.log('✅ Pagamento encontrado no banco:', {
+        id: dbPayment.id,
+        userId: dbPayment.userId,
+        username: dbPayment.user.username,
+        planId: dbPayment.planId,
+        planName: dbPayment.plan.name,
+        currentStatus: dbPayment.status,
+        asaasId: dbPayment.asaasId,
+        pagSeguroReferenceId: dbPayment.pagSeguroReferenceId
+      })
 
       if (dbPayment.status === 'PAID') {
         console.log('✅ Pagamento já estava confirmado:', dbPayment.id)
@@ -85,25 +119,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         charge?.status,
         pagSeguroPayload?.status,
         pagSeguroPayload?.data?.status,
-        pagSeguroPayload?.charges?.[0]?.status
+        pagSeguroPayload?.charges?.[0]?.status,
+        pagSeguroPayload?.event // Alguns webhooks enviam 'PAYMENT_PAID' no campo event
       ]
       const normalizedStatus = statusCandidates
         .filter((status): status is string => typeof status === 'string')
         .map((status) => status.toUpperCase())
 
+      console.log('🔍 Status encontrados no webhook:', normalizedStatus)
+
       let paidAt: Date | undefined = charge?.paid_at ? new Date(charge.paid_at) : undefined
-      let isPaid = normalizedStatus.includes('PAID')
+      // Verificar múltiplas variações de status PAID
+      let isPaid = normalizedStatus.some(status => 
+        status === 'PAID' || 
+        status === 'PAYMENT_PAID' || 
+        status === 'CONFIRMED' ||
+        status === 'APPROVED'
+      )
+      
+      console.log('🔍 Status de pagamento detectado:', { isPaid, normalizedStatus })
 
       if (!isPaid && (chargeId || orderId)) {
+        console.log('🔄 Status não confirmado no webhook, consultando API do PagSeguro...')
         try {
           const remotePayment = await getPagSeguroPayment(chargeId || orderId)
+          console.log('📦 Resposta da API PagSeguro:', JSON.stringify(remotePayment, null, 2))
+          
           const remoteStatus = remotePayment?.status
           const remoteChargeStatus = remotePayment?.charges?.[0]?.status
+          
+          console.log('🔍 Status remoto extraídos:', { remoteStatus, remoteChargeStatus })
+          
           if (
             (typeof remoteStatus === 'string' && remoteStatus.toUpperCase() === 'PAID') ||
             (typeof remoteChargeStatus === 'string' && remoteChargeStatus.toUpperCase() === 'PAID')
           ) {
             isPaid = true
+            console.log('✅ Status PAID confirmado via API PagSeguro!')
+            
             if (remotePayment?.charges?.[0]?.paid_at) {
               paidAt = new Date(remotePayment.charges[0].paid_at)
             }
@@ -115,7 +168,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               null
           }
         } catch (statusError: any) {
-          console.warn('⚠️ Não foi possível consultar status no PagSeguro:', statusError.message)
+          console.error('❌ Erro ao consultar status no PagSeguro:', statusError.message)
+          console.error('Stack:', statusError.stack)
         }
       }
 
@@ -124,13 +178,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.json({ success: true, message: 'Payment not yet paid', status: normalizedStatus[0] || 'PENDING' })
       }
 
-      await settlePaymentAsPaid(dbPayment, {
-        paidAt,
-        pagSeguroReferenceId: referenceId ?? undefined
+      console.log('🚀 Iniciando processo de ativação do plano...')
+      console.log('📊 Dados do pagamento:', {
+        paymentId: dbPayment.id,
+        userId: dbPayment.userId,
+        username: dbPayment.user.username,
+        planId: dbPayment.planId,
+        planName: dbPayment.plan.name,
+        planDuration: dbPayment.plan.duration,
+        amount: dbPayment.amount,
+        paidAt: paidAt?.toISOString()
       })
 
-      console.log('✅ Pagamento PagSeguro confirmado e plano ativado:', dbPayment.id)
-      return res.json({ success: true, message: 'Payment confirmed and plan activated' })
+      try {
+        await settlePaymentAsPaid(dbPayment, {
+          paidAt,
+          pagSeguroReferenceId: referenceId ?? undefined
+        })
+
+        console.log('✅ Pagamento PagSeguro confirmado e plano ativado com sucesso!')
+        console.log('✅ Usuário:', dbPayment.user.username, '| Plano:', dbPayment.plan.name)
+        
+        return res.json({ 
+          success: true, 
+          message: 'Payment confirmed and plan activated',
+          paymentId: dbPayment.id,
+          userId: dbPayment.userId,
+          planId: dbPayment.planId
+        })
+      } catch (activationError: any) {
+        console.error('❌ ERRO CRÍTICO ao ativar plano:', activationError.message)
+        console.error('Stack:', activationError.stack)
+        
+        // Mesmo com erro, retornar 200 para o webhook não reenviar
+        // Mas logamos o erro para investigação
+        return res.json({ 
+          success: false, 
+          error: 'Plan activation failed',
+          details: activationError.message,
+          paymentId: dbPayment.id
+        })
+      }
     }
 
     // ============================================
