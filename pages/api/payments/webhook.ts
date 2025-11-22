@@ -13,6 +13,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  // Log inicial com timestamp
+  const timestamp = new Date().toISOString()
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(`📥 [webhook] WEBHOOK RECEBIDO - ${timestamp}`)
+  console.log(`${'='.repeat(80)}`)
+  console.log('📦 [webhook] Headers:', JSON.stringify(req.headers, null, 2))
+  console.log('📦 [webhook] Body:', JSON.stringify(req.body, null, 2))
+
   try {
     // ============================================
     // WEBHOOK DO PAGSEGURO
@@ -198,6 +206,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         console.log('✅ Pagamento PagSeguro confirmado e plano ativado com sucesso!')
         console.log('✅ Usuário:', dbPayment.user.username, '| Plano:', dbPayment.plan.name)
+        console.log(`${'='.repeat(80)}\n`)
         
         return res.json({ 
           success: true, 
@@ -262,6 +271,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         await settlePaymentAsPaid(dbPayment, { paidAt: new Date() })
         console.log('✅ Pagamento Asaas confirmado:', dbPayment.id)
+        console.log(`${'='.repeat(80)}\n`)
 
         return res.json({ success: true, message: 'Payment confirmed and plan activated' })
       }
@@ -276,7 +286,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Unknown webhook format' })
 
   } catch (error: any) {
-    console.error('❌ Erro ao processar webhook:', error)
+    console.error(`\n${'='.repeat(80)}`)
+    console.error('❌ [webhook] ERRO AO PROCESSAR WEBHOOK')
+    console.error(`${'='.repeat(80)}`)
+    console.error('❌ [webhook] Erro:', error.message)
+    console.error('❌ [webhook] Stack:', error.stack)
+    console.error('❌ [webhook] Body recebido:', JSON.stringify(req.body, null, 2))
+    console.error(`${'='.repeat(80)}\n`)
     return res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 

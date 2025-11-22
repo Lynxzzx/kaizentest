@@ -3,8 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { checkPaymentStatus } from '@/lib/binance'
-import { registerCouponUsage } from '@/lib/coupon-utils'
-import { activateUserPlan } from '@/lib/payment-utils'
+import { settlePaymentAsPaid } from '@/lib/payment-utils'
 
 /**
  * API para verificar manualmente o status de um pagamento Bitcoin
@@ -71,29 +70,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (status.received && status.amount && status.amount >= payment.amount * 0.95) {
       // Pagamento confirmado (aceita 95% do valor devido a taxas)
       
-      // Atualizar status do pagamento
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: 'PAID',
-          paidAt: new Date()
-        }
+      console.log('✅ [check-btc] Pagamento Bitcoin confirmado! Ativando plano...')
+      console.log('📊 [check-btc] Dados:', {
+        paymentId: payment.id,
+        userId: payment.userId,
+        planId: payment.planId,
+        planName: payment.plan.name,
+        planDuration: payment.plan.duration,
+        amountReceived: status.amount,
+        amountExpected: payment.amount
       })
-      await registerCouponUsage(payment.couponId)
+      
+      // Usar função unificada para garantir consistência
+      const expiresAt = await settlePaymentAsPaid(payment, {
+        paidAt: new Date()
+      })
 
-      // Ativar/renovar plano do usuário usando a função utilitária
-      const expiresAt = await activateUserPlan(
-        payment.userId,
-        payment.planId,
-        payment.plan.duration
-      )
-
-      console.log('✅ Pagamento Bitcoin confirmado e plano ativado:', payment.id)
+      console.log('✅ [check-btc] Pagamento Bitcoin confirmado e plano ativado:', payment.id)
+      console.log('✅ [check-btc] Plano expira em:', expiresAt?.toISOString() || 'VITALÍCIO')
 
       return res.json({
         success: true,
         status: 'PAID',
         message: 'Payment confirmed and plan activated',
+        planExpiresAt: expiresAt?.toISOString() || null,
         payment: {
           ...payment,
           status: 'PAID',

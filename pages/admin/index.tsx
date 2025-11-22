@@ -105,7 +105,7 @@ export default function AdminDashboard() {
 
   const checkPendingPayments = async () => {
     try {
-      toast.loading('Verificando pagamentos pendentes...')
+      toast.loading('Verificando todos os pagamentos pendentes...')
       const response = await axios.post('/api/admin/check-pending-payments')
       toast.dismiss()
       
@@ -241,10 +241,10 @@ export default function AdminDashboard() {
               <button
                 onClick={checkPendingPayments}
                 className="inline-flex items-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500/20 transition-all"
-                title="Verificar e ativar pagamentos PIX pendentes do PagSeguro"
+                title="Verificar e ativar pagamentos pendentes (PIX e Bitcoin)"
               >
                 <span className="mr-2">💰</span>
-                Verificar PIX
+                Verificar Pagamentos
               </button>
               <button
                 onClick={cleanupExpiredPlans}
