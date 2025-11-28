@@ -77,7 +77,14 @@ Este documento detalha as melhorias implementadas no sistema de pagamento PIX vi
   - Quantos ainda estão pendentes
   - Erros encontrados
 
-### 5. `pages/admin/index.tsx`
+### 5. `pages/api/cron/check-pix-payments.ts` (NOVO)
+**Funcionalidades:**
+- Endpoint seguro para Vercel Cron (Authorization: `Bearer CRON_SECRET`)
+- Verifica automaticamente pagamentos PIX PagSeguro pendentes (últimas 48h)
+- Usa a mesma lógica de verificação manual para ativar planos
+- Gera relatório com totais, pendentes, pulados e erros
+
+### 6. `pages/admin/index.tsx`
 **O que foi melhorado:**
 - Novo botão **"Verificar PIX"** no header
 - Função `checkPendingPayments()` que chama o novo endpoint
@@ -100,6 +107,14 @@ Se o webhook falhar ou quiser verificar manualmente:
 3. Sistema verifica automaticamente todos os pagamentos pendentes
 4. Ativa os que foram pagos
 5. Exibe relatório com resultados
+
+### 3. **Verificação Automática (Cron)**
+- Configure um cron job (ex: Vercel Cron) chamando `POST /api/cron/check-pix-payments`
+- Envie header `Authorization: Bearer ${CRON_SECRET}`
+- Recomendações:
+  - Intervalo: a cada 5 ou 10 minutos
+  - Defina `CRON_SECRET` nas variáveis de ambiente para segurança
+- Resultado: planos são ativados automaticamente mesmo sem webhook
 
 ### 3. **Verificação Individual (Usuário)**
 O usuário pode verificar seu próprio pagamento:
@@ -195,6 +210,7 @@ Variáveis de ambiente ou configuração no admin:
 3. **Múltiplos IDs**: PagSeguro usa orderId e chargeId, ambos são salvos
 4. **Status variados**: PagSeguro pode enviar diferentes status, todos são tratados
 5. **Verificação das últimas 24h**: Admin check só verifica pagamentos recentes
+6. **Cron opcional**: Configure `/api/cron/check-pix-payments` para garantir ativação automática mesmo sem webhook
 
 ## ✅ Checklist de Testes
 
@@ -202,6 +218,7 @@ Variáveis de ambiente ou configuração no admin:
 - [ ] Verificar logs do webhook quando PagSeguro enviar confirmação
 - [ ] Verificar se plano foi ativado automaticamente
 - [ ] Testar botão "Verificar PIX" no admin
+- [ ] Configurar Vercel Cron chamando `/api/cron/check-pix-payments`
 - [ ] Testar verificação manual em `/api/payments/check-pix`
 - [ ] Verificar logs de ativação completos
 - [ ] Testar com plano vitalício (duration = 0)
