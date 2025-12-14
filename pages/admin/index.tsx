@@ -38,6 +38,8 @@ interface Stats {
     status: string
     method: string
     createdAt: string
+    paidAt?: string | null
+    needsActivation?: boolean
     user: { username: string }
     plan: { name: string }
   }>
@@ -50,6 +52,7 @@ export default function AdminDashboard() {
   const router = useRouter()
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activatingPaymentId, setActivatingPaymentId] = useState<string | null>(null)
   const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
@@ -127,6 +130,19 @@ export default function AdminDashboard() {
     } catch (error: any) {
       toast.dismiss()
       toast.error(error.response?.data?.error || 'Erro ao verificar pagamentos pendentes')
+    }
+  }
+
+  const activatePlanManually = async (paymentId: string) => {
+    try {
+      setActivatingPaymentId(paymentId)
+      const response = await axios.post('/api/admin/payments/activate-plan', { paymentId })
+      toast.success(response.data?.message || t('planActivatedManualSuccess'))
+      loadStats()
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || t('errorActivatingPlan'))
+    } finally {
+      setActivatingPaymentId(null)
     }
   }
 
@@ -377,6 +393,23 @@ export default function AdminDashboard() {
                         >
                           {payment.status === 'PAID' ? t('paid') : payment.status === 'PENDING' ? t('pending') : t('cancelled')}
                         </span>
+                        {payment.status === 'PAID' && payment.needsActivation && (
+                          <div className="mt-2 space-y-1">
+                            <p className={`text-xs ${themeClasses.text.muted}`}>{t('planActivationPending')}</p>
+                            <button
+                              onClick={() => activatePlanManually(payment.id)}
+                              disabled={activatingPaymentId === payment.id}
+                              className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1 text-xs font-semibold transition ${
+                                theme === 'dark'
+                                  ? 'border-amber-400/60 text-amber-200 hover:bg-amber-400/10 disabled:opacity-60'
+                                  : 'border-amber-500 text-amber-700 hover:bg-amber-50 disabled:opacity-60'
+                              }`}
+                            >
+                              <span>⚡</span>
+                              {activatingPaymentId === payment.id ? t('activatingPlan') : t('activatePlanAuto')}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))

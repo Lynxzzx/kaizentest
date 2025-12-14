@@ -75,6 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status: true,
         method: true,
         createdAt: true,
+        paidAt: true,
         userId: true,
         planId: true,
         plan: {
@@ -86,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     // Buscar apenas os userIds únicos e válidos
-    const validUserIds = await prisma.user.findMany({
+    const validUsers = await prisma.user.findMany({
       where: {
         id: {
           in: allRecentPayments.map(p => p.userId)
@@ -94,27 +95,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       select: {
         id: true,
-        username: true
+        username: true,
+        planId: true,
+        planExpiresAt: true
       }
     })
 
-    const userMap = new Map(validUserIds.map(u => [u.id, u]))
+    const userMap = new Map(validUsers.map(u => [u.id, u]))
 
     // Filtrar apenas pagamentos com usuários válidos e formatar
     const recentPayments = allRecentPayments
       .filter(payment => userMap.has(payment.userId))
       .slice(0, 5) // Pegar apenas os 5 primeiros válidos
-      .map(payment => ({
-        id: payment.id,
-        amount: payment.amount,
-        status: payment.status,
-        method: payment.method,
-        createdAt: payment.createdAt,
-        user: {
-          username: userMap.get(payment.userId)!.username
-        },
-        plan: payment.plan
-      }))
+      .map(payment => {
+        const user = userMap.get(payment.userId)!
+        const hasMatchingPlan = user.planId === payment.planId
+        const hasValidExpiration =
+          user.planExpiresAt === null ||
+          !payment.paidAt ||
+          (user.planExpiresAt ? user.planExpiresAt >= payment.paidAt : false)
+
+        const planActivated = hasMatchingPlan && hasValidExpiration
+
+        return {
+          id: payment.id,
+          amount: payment.amount,
+          status: payment.status,
+          method: payment.method,
+          createdAt: payment.createdAt,
+          paidAt: payment.paidAt,
+          user: {
+            username: user.username
+          },
+          plan: payment.plan,
+          needsActivation: payment.status === 'PAID' && !planActivated
+        }
+      })
 
     return res.json({
       overview: {

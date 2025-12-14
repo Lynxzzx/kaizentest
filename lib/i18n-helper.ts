@@ -319,6 +319,11 @@ export const translations: Record<string, Record<string, string>> = {
     'noRecentPayments': 'Nenhum pagamento recente',
     'errorLoadingStats': 'Erro ao carregar estatísticas',
     'loading': 'Carregando...',
+    'activatePlanAuto': 'Ativar plano automático',
+    'activatingPlan': 'Ativando plano...',
+    'planActivationPending': 'Plano ainda não foi ativado automaticamente',
+    'planActivatedManualSuccess': 'Plano ativado com sucesso!',
+    'errorActivatingPlan': 'Erro ao ativar plano',
     // Feedback Page
     'shareYourExperience': 'Compartilhe sua experiência conosco! Seu feedback ajuda a melhorar nossos serviços.',
     'sendFeedback': 'Enviar Feedback',
@@ -663,6 +668,11 @@ export const translations: Record<string, Record<string, string>> = {
     'noRecentPayments': 'No recent payments',
     'errorLoadingStats': 'Error loading statistics',
     'loading': 'Loading...',
+    'activatePlanAuto': 'Activate plan automatically',
+    'activatingPlan': 'Activating plan...',
+    'planActivationPending': 'Plan has not been activated automatically yet',
+    'planActivatedManualSuccess': 'Plan activated successfully!',
+    'errorActivatingPlan': 'Error activating plan',
     // Feedback Page
     'shareYourExperience': 'Share your experience with us! Your feedback helps improve our services.',
     'sendFeedback': 'Send Feedback',
