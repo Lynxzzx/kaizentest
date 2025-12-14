@@ -117,6 +117,42 @@ export async function settlePaymentAsPaid(
   console.log('🎯 [settlePaymentAsPaid] Ativando plano do usuário...')
   const expiresAt = await activateUserPlan(payment.userId, payment.planId, planDuration)
   console.log('✅ [settlePaymentAsPaid] Plano ativado! Expira em:', expiresAt?.toISOString() || 'VITALÍCIO')
+
+  // Garantir que o plano foi realmente aplicado (principalmente para planos vitalícios)
+  const userAfterActivation = await prisma.user.findUnique({
+    where: { id: payment.userId },
+    select: {
+      planId: true,
+      planExpiresAt: true,
+      username: true
+    }
+  })
+
+  const requiresForceUpdate =
+    userAfterActivation?.planId !== payment.planId ||
+    (planDuration > 0 &&
+      !!expiresAt &&
+      (!userAfterActivation?.planExpiresAt ||
+        Math.abs(userAfterActivation.planExpiresAt.getTime() - expiresAt.getTime()) > 1000))
+
+  if (requiresForceUpdate) {
+    console.warn('⚠️ [settlePaymentAsPaid] Plano não aplicado corretamente. Forçando atualização...', {
+      userId: payment.userId,
+      username: userAfterActivation?.username,
+      expectedPlanId: payment.planId,
+      currentPlanId: userAfterActivation?.planId
+    })
+
+    await prisma.user.update({
+      where: { id: payment.userId },
+      data: {
+        planId: payment.planId,
+        planExpiresAt: planDuration > 0 ? expiresAt : null
+      }
+    })
+
+    console.log('✅ [settlePaymentAsPaid] Plano forçado com sucesso!')
+  }
   
   return expiresAt
 }
