@@ -4,9 +4,12 @@ import { getPagSeguroPayment } from '@/lib/pagseguro'
 import { settlePaymentAsPaid } from '@/lib/payment-utils'
 
 /**
- * Cron job para verificar automaticamente pagamentos PIX (PagSeguro)
- * Use Vercel Cron ou serviço externo para chamar este endpoint periodicamente.
- * Necessário enviar header Authorization: Bearer <CRON_SECRET>
+ * Endpoint para verificar automaticamente pagamentos PIX (PagSeguro)
+ * 
+ * NOTA: Cron jobs do Vercel requerem plano Pro.
+ * Este endpoint agora é chamado via polling no frontend ou manualmente pelo admin.
+ * 
+ * Para uso manual, envie header Authorization: Bearer <CRON_SECRET>
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const authHeader = req.headers.authorization

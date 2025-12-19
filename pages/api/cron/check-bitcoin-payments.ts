@@ -4,18 +4,12 @@ import { checkPaymentStatus } from '@/lib/binance'
 import { settlePaymentAsPaid } from '@/lib/payment-utils'
 
 /**
- * Cron job para verificar automaticamente pagamentos Bitcoin pendentes
- * Pode ser configurado no Vercel Cron ou chamado por um serviço externo
+ * Endpoint para verificar automaticamente pagamentos Bitcoin pendentes
  * 
- * Para configurar no Vercel Cron, adicione em vercel.json:
- * {
- *   "crons": [{
- *     "path": "/api/cron/check-bitcoin-payments",
- *     "schedule": "*/5 * * * *"
- *   }]
- * }
+ * NOTA: Cron jobs do Vercel requerem plano Pro.
+ * Este endpoint agora é chamado via polling no frontend ou manualmente pelo admin.
  * 
- * Isso executará a cada 5 minutos
+ * Para uso manual, envie header Authorization: Bearer <CRON_SECRET>
  */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Verificar autorização (token de cron ou API key)
