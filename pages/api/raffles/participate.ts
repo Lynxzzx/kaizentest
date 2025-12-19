@@ -153,7 +153,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           metadata: JSON.stringify({
             action: 'raffle_participate',
             raffleId,
-            raffleName: raffle.name
+            raffleName: raffle.title
           })
         }
       })
