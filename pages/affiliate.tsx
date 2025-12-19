@@ -14,6 +14,9 @@ interface AffiliateStats {
   totalReferrals: number
   totalRewards: number
   bonusGenerations: number
+  affiliateBalance: number
+  totalAffiliateEarnings: number
+  commissionRate: number
   recentReferrals: Array<{
     id: string
     username: string
@@ -27,6 +30,22 @@ interface AffiliateStats {
       username: string
     }
   }>
+  recentCommissions: Array<{
+    id: string
+    amount: number
+    paymentAmount: number
+    buyerUsername: string
+    planName: string
+    paidAt: string
+    createdAt: string
+  }>
+  recentWithdrawals: Array<{
+    id: string
+    amount: number
+    status: string
+    createdAt: string
+    processedAt: string | null
+  }>
 }
 
 export default function Affiliate() {
@@ -38,6 +57,11 @@ export default function Affiliate() {
   const [redeemCode, setRedeemCode] = useState('')
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [withdrawAmount, setWithdrawAmount] = useState('')
+  const [pixKey, setPixKey] = useState('')
+  const [pixKeyType, setPixKeyType] = useState<'CPF' | 'CNPJ' | 'EMAIL' | 'PHONE' | 'RANDOM'>('PIX')
+  const [withdrawing, setWithdrawing] = useState(false)
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
@@ -110,6 +134,55 @@ export default function Affiliate() {
   const getAffiliateLink = (code: string) => {
     if (typeof window === 'undefined') return ''
     return `${window.location.origin}/register?ref=${code}`
+  }
+
+  const handleWithdraw = async () => {
+    const amount = parseFloat(withdrawAmount)
+    if (isNaN(amount) || amount < 10) {
+      toast.error('Valor mínimo de resgate é R$ 10,00')
+      return
+    }
+    if (!pixKey.trim()) {
+      toast.error('Digite sua chave PIX')
+      return
+    }
+    if (amount > (stats?.affiliateBalance || 0)) {
+      toast.error('Saldo insuficiente')
+      return
+    }
+
+    setWithdrawing(true)
+    try {
+      const response = await axios.post('/api/affiliate/withdraw', {
+        amount,
+        pixKey: pixKey.trim(),
+        pixKeyType
+      })
+      toast.success(response.data.message || 'Solicitação enviada!')
+      setShowWithdrawModal(false)
+      setWithdrawAmount('')
+      setPixKey('')
+      loadStats()
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao solicitar resgate')
+    } finally {
+      setWithdrawing(false)
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    const badges: Record<string, { bg: string; text: string; label: string }> = {
+      PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: '⏳ Pendente' },
+      PROCESSING: { bg: 'bg-blue-100', text: 'text-blue-800', label: '🔄 Processando' },
+      COMPLETED: { bg: 'bg-green-100', text: 'text-green-800', label: '✅ Pago' },
+      REJECTED: { bg: 'bg-red-100', text: 'text-red-800', label: '❌ Rejeitado' }
+    }
+    const badge = badges[status] || badges.PENDING
+    return (
+      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${badge.bg} ${badge.text}`}>
+        {badge.label}
+      </span>
+    )
   }
 
   if (status === 'loading') {
@@ -235,7 +308,53 @@ export default function Affiliate() {
           </div>
         </div>
 
-        {/* Estatísticas */}
+        {/* Saldo e Comissões */}
+        {stats && (
+          <div className={`${themeClasses.card} rounded-2xl shadow-xl p-6 mb-8`}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className={`text-2xl font-bold ${themeClasses.text.primary}`}>💰 Suas Comissões</h2>
+              <span className={`text-sm px-3 py-1 rounded-full ${theme === 'dark' ? 'bg-green-500/20 text-green-300' : 'bg-green-100 text-green-700'}`}>
+                {stats.commissionRate}% por venda
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div className={`${theme === 'dark' ? 'bg-gradient-to-br from-green-500/20 to-emerald-500/10 border border-green-500/30' : 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200'} rounded-xl p-6 text-center`}>
+                <div className="text-4xl mb-2">💵</div>
+                <p className={`text-3xl font-bold mb-1 text-green-600`}>R$ {stats.affiliateBalance.toFixed(2)}</p>
+                <p className={themeClasses.text.secondary}>Saldo Disponível</p>
+              </div>
+              <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'} rounded-xl p-6 text-center`}>
+                <div className="text-4xl mb-2">📈</div>
+                <p className={`text-3xl font-bold mb-1 ${themeClasses.text.primary}`}>R$ {stats.totalAffiliateEarnings.toFixed(2)}</p>
+                <p className={themeClasses.text.secondary}>Total Ganho</p>
+              </div>
+              <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'} rounded-xl p-6 text-center`}>
+                <div className="text-4xl mb-2">👥</div>
+                <p className={`text-3xl font-bold mb-1 ${themeClasses.text.primary}`}>{stats.totalReferrals}</p>
+                <p className={themeClasses.text.secondary}>Indicados</p>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowWithdrawModal(true)}
+              disabled={stats.affiliateBalance < 10}
+              className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+                stats.affiliateBalance >= 10
+                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {stats.affiliateBalance >= 10 ? '💸 Solicitar Resgate' : '💸 Mínimo R$ 10,00 para resgatar'}
+            </button>
+
+            <p className={`text-sm text-center mt-3 ${themeClasses.text.muted}`}>
+              Quando alguém que você indicou compra um plano, você ganha {stats.commissionRate}% do valor!
+            </p>
+          </div>
+        )}
+
+        {/* Estatísticas de Gerações */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             <div className={`${themeClasses.card} rounded-2xl shadow-xl p-6 text-center`}>
@@ -252,6 +371,59 @@ export default function Affiliate() {
               <div className="text-4xl mb-3">⚡</div>
               <p className={`text-3xl font-bold mb-1 ${themeClasses.text.primary}`}>{stats.bonusGenerations}</p>
               <p className={themeClasses.text.secondary}>Gerações Grátis</p>
+            </div>
+          </div>
+        )}
+
+        {/* Comissões Recentes */}
+        {stats && stats.recentCommissions && stats.recentCommissions.length > 0 && (
+          <div className={`${themeClasses.card} rounded-2xl shadow-xl p-8 mb-8`}>
+            <h2 className={`text-2xl font-bold mb-6 ${themeClasses.text.primary}`}>💰 Comissões Recentes</h2>
+            <div className="space-y-3">
+              {stats.recentCommissions.map((commission) => (
+                <div
+                  key={commission.id}
+                  className={`flex items-center justify-between p-4 ${theme === 'dark' ? 'bg-green-500/20 border border-green-400/30' : 'bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200'} rounded-lg`}
+                >
+                  <div>
+                    <p className={`font-semibold ${themeClasses.text.primary}`}>
+                      {commission.buyerUsername} comprou {commission.planName}
+                    </p>
+                    <p className={`text-sm ${themeClasses.text.muted}`}>
+                      Valor do plano: R$ {commission.paymentAmount.toFixed(2)}
+                    </p>
+                    <p className={`text-xs ${themeClasses.text.muted}`}>
+                      {format(new Date(commission.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                    </p>
+                  </div>
+                  <div className="text-green-600 font-bold text-lg">+R$ {commission.amount.toFixed(2)}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Resgates Recentes */}
+        {stats && stats.recentWithdrawals && stats.recentWithdrawals.length > 0 && (
+          <div className={`${themeClasses.card} rounded-2xl shadow-xl p-8 mb-8`}>
+            <h2 className={`text-2xl font-bold mb-6 ${themeClasses.text.primary}`}>💸 Seus Resgates</h2>
+            <div className="space-y-3">
+              {stats.recentWithdrawals.map((withdrawal) => (
+                <div
+                  key={withdrawal.id}
+                  className={`flex items-center justify-between p-4 ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'} rounded-lg`}
+                >
+                  <div>
+                    <p className={`font-semibold ${themeClasses.text.primary}`}>
+                      Resgate de R$ {withdrawal.amount.toFixed(2)}
+                    </p>
+                    <p className={`text-xs ${themeClasses.text.muted}`}>
+                      {format(new Date(withdrawal.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                    </p>
+                  </div>
+                  {getStatusBadge(withdrawal.status)}
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -302,6 +474,95 @@ export default function Affiliate() {
           </div>
         )}
       </div>
+
+      {/* Modal de Resgate */}
+      {showWithdrawModal && stats && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${themeClasses.card} rounded-2xl p-6 max-w-md w-full shadow-2xl`}>
+            <h2 className={`text-2xl font-bold mb-4 ${themeClasses.text.primary}`}>💸 Solicitar Resgate</h2>
+            
+            <div className={`${theme === 'dark' ? 'bg-green-500/20 border border-green-400/30' : 'bg-green-50 border border-green-200'} rounded-lg p-4 mb-4`}>
+              <p className={`text-sm ${theme === 'dark' ? 'text-green-300' : 'text-green-700'}`}>
+                Saldo disponível: <strong>R$ {stats.affiliateBalance.toFixed(2)}</strong>
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                  Valor do resgate
+                </label>
+                <input
+                  type="number"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  placeholder="Mínimo R$ 10,00"
+                  min="10"
+                  max={stats.affiliateBalance}
+                  step="0.01"
+                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg`}
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                  Tipo de Chave PIX
+                </label>
+                <select
+                  value={pixKeyType}
+                  onChange={(e) => setPixKeyType(e.target.value as any)}
+                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg`}
+                >
+                  <option value="CPF">CPF</option>
+                  <option value="CNPJ">CNPJ</option>
+                  <option value="EMAIL">E-mail</option>
+                  <option value="PHONE">Telefone</option>
+                  <option value="RANDOM">Chave Aleatória</option>
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                  Chave PIX
+                </label>
+                <input
+                  type="text"
+                  value={pixKey}
+                  onChange={(e) => setPixKey(e.target.value)}
+                  placeholder="Digite sua chave PIX"
+                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg`}
+                />
+              </div>
+
+              <div className={`${theme === 'dark' ? 'bg-yellow-500/20 border border-yellow-400/30' : 'bg-yellow-50 border border-yellow-200'} rounded-lg p-4`}>
+                <p className={`text-sm ${theme === 'dark' ? 'text-yellow-200' : 'text-yellow-800'}`}>
+                  <strong>⚠️ Importante:</strong> Após solicitar, aguarde o processamento. O pagamento será feito manualmente pelo administrador via PIX.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleWithdraw}
+                  disabled={withdrawing}
+                  className="flex-1 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg font-bold hover:from-green-600 hover:to-emerald-700 disabled:opacity-50"
+                >
+                  {withdrawing ? 'Enviando...' : 'Confirmar Resgate'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowWithdrawModal(false)
+                    setWithdrawAmount('')
+                    setPixKey('')
+                  }}
+                  className={`px-6 py-3 rounded-lg font-semibold ${theme === 'dark' ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-gray-100 text-gray-800 hover:bg-gray-200'}`}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

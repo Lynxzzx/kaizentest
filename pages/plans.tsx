@@ -496,6 +496,12 @@ export default function Plans() {
                 >
                   {t('payViaCrypto')}
                 </button>
+                <button
+                  onClick={() => toast('💳 Pagamento via cartão chegando em breve!', { icon: '🔜' })}
+                  className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-lg text-sm sm:text-base font-bold cursor-not-allowed opacity-70 touch-manipulation"
+                >
+                  💳 {t('payViaCard')} (Em breve)
+                </button>
               </div>
             </div>
           ))}

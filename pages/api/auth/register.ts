@@ -16,6 +16,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('Register API called:', { username: req.body?.username, affiliateRef: req.body?.affiliateRef })
     const { username, email, password, deviceFingerprint, affiliateRef } = req.body
 
+    // Capturar IP do usuário
+    const forwarded = req.headers['x-forwarded-for']
+    const clientIp = typeof forwarded === 'string' 
+      ? forwarded.split(',')[0].trim() 
+      : req.socket?.remoteAddress || null
+
     const sanitizedUsername = typeof username === 'string' ? username.trim() : ''
     const normalizedEmail = typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : null
     const sanitizedDeviceFingerprint = typeof deviceFingerprint === 'string' && deviceFingerprint.trim().length > 0
@@ -122,6 +128,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         password: hashedPassword,
         role: 'USER',
         deviceFingerprint: sanitizedDeviceFingerprint, // Armazenar device fingerprint
+        registrationIp: clientIp, // IP do registro
+        lastIp: clientIp, // Último IP usado
+        lastIpAt: new Date(), // Data do último acesso
         referredBy: referrerId || null // Armazenar referência se existir
       }
     }).catch((err) => {

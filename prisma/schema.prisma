@@ -26,6 +26,8 @@ model User {
   referredByUser User?   @relation("Affiliate", fields: [referredBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   referrals     User[]   @relation("Affiliate")
   bonusGenerations Int   @default(0) // Gerações grátis ganhas
+  affiliateBalance Float @default(0) // Saldo de comissões de afiliado (em R$)
+  totalAffiliateEarnings Float @default(0) // Total já ganho como afiliado
   isBanned      Boolean  @default(false) // Usuário banido
   bannedAt      DateTime? // Data do banimento
   bannedBy      String?  @db.ObjectId // Admin que baniu
@@ -34,6 +36,9 @@ model User {
   bio           String? // Biografia do usuário
   profilePicture String? // URL da foto de perfil
   deviceFingerprint String? // Hash único do dispositivo para prevenção de múltiplas contas
+  registrationIp String? // IP usado no registro
+  lastIp        String? // Último IP usado
+  lastIpAt      DateTime? // Data do último acesso com IP
   theme         String?  @default("dark") // Tema: dark, light, default
   passwordResetToken String?
   passwordResetExpires DateTime?
@@ -44,6 +49,8 @@ model User {
   redeemedKeys  RedeemedKey[]
   tickets       Ticket[]
   affiliateRewards AffiliateReward[]
+  affiliateCommissions AffiliateCommission[] @relation("AffiliateCommissionUser")
+  affiliateWithdrawals AffiliateWithdrawal[]
   chatMessages  ChatMessage[]
   broadcasts    BroadcastMessage[]
   ticketReplies TicketReply[]
@@ -54,6 +61,7 @@ model User {
   feedbacks Feedback[]
   feedbacksApproved Feedback[] @relation("FeedbackApprover")
   couponsCreated Coupon[] @relation("CouponCreatedBy")
+  withdrawalsProcessed AffiliateWithdrawal[] @relation("WithdrawalProcessor")
 }
 
 enum UserRole {
@@ -160,6 +168,7 @@ model Payment {
   updatedAt     DateTime     @updatedAt
   couponId      String?      @db.ObjectId
   coupon        Coupon?      @relation(fields: [couponId], references: [id])
+  affiliateCommission AffiliateCommission? // Comissão gerada para afiliado
 }
 
 enum PaymentMethod {
@@ -335,4 +344,54 @@ model Feedback {
   approvedAt  DateTime? // Data de aprovação
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// Comissões de afiliado (quando uma venda é feita através de indicação)
+model AffiliateCommission {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  affiliateId   String   @db.ObjectId // Afiliado que ganha a comissão
+  affiliate     User     @relation("AffiliateCommissionUser", fields: [affiliateId], references: [id])
+  paymentId     String   @db.ObjectId // Pagamento que gerou a comissão
+  payment       Payment  @relation(fields: [paymentId], references: [id])
+  amount        Float    // Valor da comissão (40% do pagamento)
+  paymentAmount Float    // Valor original do pagamento
+  status        CommissionStatus @default(CREDITED) // Status da comissão
+  createdAt     DateTime @default(now())
+}
+
+enum CommissionStatus {
+  CREDITED  // Creditado no saldo do afiliado
+  WITHDRAWN // Já foi sacado
+}
+
+// Solicitações de resgate de saldo de afiliado
+model AffiliateWithdrawal {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId        String   @db.ObjectId
+  user          User     @relation(fields: [userId], references: [id])
+  amount        Float    // Valor solicitado para resgate
+  pixKey        String   // Chave PIX para receber
+  pixKeyType    PixKeyType // Tipo da chave PIX
+  status        WithdrawalStatus @default(PENDING)
+  processedById String?  @db.ObjectId // Admin que processou
+  processedBy   User?    @relation("WithdrawalProcessor", fields: [processedById], references: [id])
+  processedAt   DateTime? // Data do processamento
+  adminNotes    String?  // Observações do admin
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+enum PixKeyType {
+  CPF
+  CNPJ
+  EMAIL
+  PHONE
+  RANDOM // Chave aleatória
+}
+
+enum WithdrawalStatus {
+  PENDING    // Aguardando processamento
+  PROCESSING // Em processamento
+  COMPLETED  // Concluído (pago)
+  REJECTED   // Rejeitado
 }

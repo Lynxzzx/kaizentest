@@ -5,11 +5,15 @@ type PaymentWithPlan = {
   id: string
   userId: string
   planId: string
+  amount?: number
+  finalAmount?: number | null
   couponId?: string | null
   plan?: {
     duration: number
   } | null
 }
+
+const AFFILIATE_COMMISSION_RATE = 0.40 // 40% de comissão
 
 const DEFAULT_PLAN_DURATION_FALLBACK = 30
 
@@ -124,7 +128,8 @@ export async function settlePaymentAsPaid(
     select: {
       planId: true,
       planExpiresAt: true,
-      username: true
+      username: true,
+      referredBy: true
     }
   })
 
@@ -153,8 +158,84 @@ export async function settlePaymentAsPaid(
 
     console.log('✅ [settlePaymentAsPaid] Plano forçado com sucesso!')
   }
+
+  // Dar comissão ao afiliado (40%) se o comprador foi indicado por alguém
+  await giveAffiliateCommission(payment, userAfterActivation?.referredBy)
   
   return expiresAt
+}
+
+/**
+ * Dá comissão de 40% ao afiliado que indicou o comprador
+ */
+async function giveAffiliateCommission(payment: PaymentWithPlan, affiliateId?: string | null) {
+  if (!affiliateId) {
+    console.log('💸 [affiliateCommission] Comprador não foi indicado por ninguém')
+    return
+  }
+
+  try {
+    // Verificar se já existe comissão para este pagamento
+    const existingCommission = await prisma.affiliateCommission.findFirst({
+      where: { paymentId: payment.id }
+    })
+
+    if (existingCommission) {
+      console.log('💸 [affiliateCommission] Comissão já existe para este pagamento')
+      return
+    }
+
+    // Calcular valor da comissão
+    const paymentAmount = payment.finalAmount || payment.amount || 0
+    if (paymentAmount <= 0) {
+      console.log('💸 [affiliateCommission] Valor do pagamento é zero ou negativo')
+      return
+    }
+
+    const commissionAmount = paymentAmount * AFFILIATE_COMMISSION_RATE
+
+    // Buscar afiliado
+    const affiliate = await prisma.user.findUnique({
+      where: { id: affiliateId },
+      select: { id: true, username: true, affiliateBalance: true, totalAffiliateEarnings: true }
+    })
+
+    if (!affiliate) {
+      console.log('💸 [affiliateCommission] Afiliado não encontrado:', affiliateId)
+      return
+    }
+
+    // Criar registro de comissão
+    await prisma.affiliateCommission.create({
+      data: {
+        affiliateId: affiliate.id,
+        paymentId: payment.id,
+        amount: commissionAmount,
+        paymentAmount: paymentAmount,
+        status: 'CREDITED'
+      }
+    })
+
+    // Adicionar ao saldo do afiliado
+    await prisma.user.update({
+      where: { id: affiliate.id },
+      data: {
+        affiliateBalance: {
+          increment: commissionAmount
+        },
+        totalAffiliateEarnings: {
+          increment: commissionAmount
+        }
+      }
+    })
+
+    console.log(`💰 [affiliateCommission] Comissão de R$ ${commissionAmount.toFixed(2)} creditada para ${affiliate.username}`)
+    console.log(`   Pagamento: R$ ${paymentAmount.toFixed(2)} | Taxa: ${AFFILIATE_COMMISSION_RATE * 100}%`)
+
+  } catch (error) {
+    console.error('❌ [affiliateCommission] Erro ao dar comissão:', error)
+    // Não lançar erro para não afetar a confirmação do pagamento
+  }
 }
 
 

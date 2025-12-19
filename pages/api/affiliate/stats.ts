@@ -37,6 +37,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             createdAt: true
           },
           orderBy: { createdAt: 'desc' }
+        },
+        affiliateCommissions: {
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+          include: {
+            payment: {
+              select: {
+                id: true,
+                amount: true,
+                finalAmount: true,
+                paidAt: true,
+                user: {
+                  select: {
+                    username: true
+                  }
+                },
+                plan: {
+                  select: {
+                    name: true
+                  }
+                }
+              }
+            }
+          }
+        },
+        affiliateWithdrawals: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          select: {
+            id: true,
+            amount: true,
+            status: true,
+            createdAt: true,
+            processedAt: true
+          }
         }
       }
     })
@@ -50,8 +85,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       totalReferrals: user.referrals.length,
       totalRewards: user.affiliateRewards.length,
       bonusGenerations: user.bonusGenerations || 0,
+      // Novo sistema de comissões em dinheiro
+      affiliateBalance: user.affiliateBalance || 0,
+      totalAffiliateEarnings: user.totalAffiliateEarnings || 0,
+      commissionRate: 40, // 40% de comissão
       recentReferrals: user.referrals.slice(0, 10),
-      recentRewards: user.affiliateRewards.slice(0, 10)
+      recentRewards: user.affiliateRewards.slice(0, 10),
+      recentCommissions: user.affiliateCommissions.map(c => ({
+        id: c.id,
+        amount: c.amount,
+        paymentAmount: c.paymentAmount,
+        buyerUsername: c.payment.user.username,
+        planName: c.payment.plan.name,
+        paidAt: c.payment.paidAt,
+        createdAt: c.createdAt
+      })),
+      recentWithdrawals: user.affiliateWithdrawals
     }
 
     console.log('Affiliate stats fetched successfully')

@@ -229,6 +229,8 @@ export default function AdminDashboard() {
     { href: '/admin/broadcast', icon: '📢', label: t('broadcast'), gradient: 'from-cyan-500 via-blue-500 to-indigo-600' },
     { href: '/admin/raffles', icon: '🎲', label: t('raffles'), gradient: 'from-indigo-500 via-purple-500 to-pink-500' },
     { href: '/admin/feedback', icon: '💬', label: t('feedbacks'), gradient: 'from-teal-500 via-emerald-500 to-lime-500' },
+    { href: '/admin/withdrawals', icon: '💸', label: 'Resgates', gradient: 'from-green-500 via-emerald-500 to-teal-500' },
+    { href: '/admin/abuse', icon: '🔍', label: 'Abusos', gradient: 'from-red-600 via-red-500 to-orange-500' },
     { href: '/admin/config', icon: '⚙️', label: t('settings'), gradient: 'from-slate-600 via-slate-700 to-slate-900' },
     { href: '/admin/maintenance', icon: '🧰', label: t('maintenance'), gradient: 'from-orange-500 via-amber-500 to-yellow-500' },
     { href: '/admin/christmas', icon: '🎄', label: 'Natal', gradient: 'from-red-500 via-red-600 to-green-600' }
