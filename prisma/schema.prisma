@@ -351,7 +351,7 @@ model AffiliateCommission {
   id            String   @id @default(auto()) @map("_id") @db.ObjectId
   affiliateId   String   @db.ObjectId // Afiliado que ganha a comissão
   affiliate     User     @relation("AffiliateCommissionUser", fields: [affiliateId], references: [id])
-  paymentId     String   @db.ObjectId // Pagamento que gerou a comissão
+  paymentId     String   @unique @db.ObjectId // Pagamento que gerou a comissão (único - cada pagamento gera uma comissão)
   payment       Payment  @relation(fields: [paymentId], references: [id])
   amount        Float    // Valor da comissão (40% do pagamento)
   paymentAmount Float    // Valor original do pagamento
