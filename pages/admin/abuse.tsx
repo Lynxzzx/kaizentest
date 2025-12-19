@@ -62,7 +62,7 @@ export default function AdminAbuse() {
       router.push('/login')
       return
     }
-    if (status === 'authenticated' && session?.user?.role !== 'ADMIN' && session?.user?.role !== 'OWNER') {
+    if (status === 'authenticated' && !['OWNER', 'CO_OWNER', 'ADMIN'].includes(session?.user?.role || '')) {
       router.push('/')
       return
     }
@@ -87,9 +87,9 @@ export default function AdminAbuse() {
     if (!confirm(`Tem certeza que deseja banir o usuário ${username}?`)) return
 
     try {
-      await axios.post('/api/admin/users', {
-        action: 'ban',
-        userId
+      await axios.put('/api/admin/users', {
+        userId,
+        isBanned: true
       })
       toast.success(`Usuário ${username} banido!`)
       loadData()
