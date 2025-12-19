@@ -285,25 +285,29 @@ export default function AdminUsers() {
           {user.email || '-'}
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
-          <span
-            className={`px-2 py-1 rounded-full text-xs font-bold ${
-              user.role === 'OWNER'
-                ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
-                : user.role === 'ADMIN'
-                ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                : user.role === 'MODERATOR'
-                ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-            }`}
-          >
-            {user.role === 'OWNER'
-              ? '👑 Owner'
-              : user.role === 'ADMIN'
-              ? '🔧 Admin'
-              : user.role === 'MODERATOR'
-              ? '🛡️ Moderador'
-              : '👤 Usuário'}
-          </span>
+<span
+                            className={`px-2 py-1 rounded-full text-xs font-bold ${
+                              user.role === 'OWNER'
+                                ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+                                : user.role === 'CO_OWNER'
+                                ? 'bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200'
+                                : user.role === 'ADMIN'
+                                ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                                : user.role === 'MODERATOR'
+                                ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                            }`}
+                          >
+                            {user.role === 'OWNER'
+                              ? '👑 Owner'
+                              : user.role === 'CO_OWNER'
+                              ? '💎 Co-Owner'
+                              : user.role === 'ADMIN'
+                              ? '🔧 Admin'
+                              : user.role === 'MODERATOR'
+                              ? '🛡️ Moderador'
+                              : '👤 Usuário'}
+                          </span>
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -507,6 +511,7 @@ export default function AdminUsers() {
                 <option value="USER" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>👤 Usuário</option>
                 <option value="MODERATOR" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>🛡️ Moderador</option>
                 <option value="ADMIN" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>🔧 Administrador</option>
+                <option value="CO_OWNER" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>💎 Co-Owner</option>
                 <option value="OWNER" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>👑 Owner</option>
               </select>
             </div>
