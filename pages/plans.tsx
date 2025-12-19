@@ -462,7 +462,7 @@ export default function Plans() {
               <span>{t('joinTelegram')}</span>
             </a>
             <a
-              href="https://discord.gg/jMYhZWGPcE"
+              href="https://discord.gg/KWZ5fctz3b"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-lg font-semibold hover:from-indigo-600 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
@@ -600,11 +600,11 @@ export default function Plans() {
                   {t('payViaCrypto')}
                 </button>
                 <button
-                  onClick={() => handlePayment(plan, 'CARD')}
-                  disabled={loading}
-                  className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-lg text-sm sm:text-base font-bold hover:from-green-700 hover:to-emerald-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 touch-manipulation"
+                  onClick={() => toast('💳 Pagamento via cartão em breve!', { icon: '🔜' })}
+                  disabled={true}
+                  className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-lg text-sm sm:text-base font-bold cursor-not-allowed opacity-60 touch-manipulation"
                 >
-                  💳 {t('payViaCard')}
+                  💳 {t('payViaCard')} ({t('comingSoon')})
                 </button>
               </div>
             </div>
