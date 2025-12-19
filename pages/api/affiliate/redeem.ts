@@ -138,12 +138,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Verificar se o referrer já referenciou muitos usuários do mesmo device
     if (currentUser.deviceFingerprint) {
+      // Buscar usuários com mesmo deviceFingerprint
+      const sameDeviceUsers = await prisma.user.findMany({
+        where: {
+          deviceFingerprint: currentUser.deviceFingerprint
+        },
+        select: { id: true }
+      })
+      
+      const sameDeviceUserIds = sameDeviceUsers.map(u => u.id)
+      
       const suspiciousReferrals = await prisma.affiliateReward.count({
         where: {
           userId: referrer.id,
-          referredUser: {
-            deviceFingerprint: currentUser.deviceFingerprint
-          }
+          referredUserId: { in: sameDeviceUserIds }
         }
       })
 
