@@ -12,6 +12,7 @@ import {
   getCooldownRemaining,
   GENERATION_PROTECTION
 } from '@/lib/generation-protection'
+import { verifyRecaptchaV2 } from '@/lib/security'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // ===========================================
@@ -29,10 +30,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const userId = session.user.id
-  const { serviceId } = req.body
+  const { serviceId, recaptchaToken } = req.body
 
   if (!serviceId) {
     return res.status(400).json({ error: 'ServiceId is required' })
+  }
+
+  // ===========================================
+  // 🛡️ VERIFICAR CAPTCHA
+  // ===========================================
+  
+  // Verificar se reCAPTCHA está configurado
+  const recaptchaSecretKey = process.env.RECAPTCHA_V2_SECRET_KEY || process.env.RECAPTCHA_SECRET_KEY
+  
+  if (recaptchaSecretKey) {
+    if (!recaptchaToken) {
+      return res.status(400).json({ error: 'Complete a verificação de segurança (CAPTCHA)' })
+    }
+
+    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
+               req.headers['x-real-ip']?.toString() ||
+               req.socket?.remoteAddress || 'unknown'
+
+    const captchaValid = await verifyRecaptchaV2(recaptchaToken, ip)
+    
+    if (!captchaValid) {
+      // Registrar tentativa suspeita
+      try {
+        await prisma.securityLog.create({
+          data: {
+            type: 'bot_detected',
+            ip,
+            username: userId,
+            success: false,
+            reason: 'CAPTCHA inválido na geração',
+            metadata: JSON.stringify({
+              action: 'generation_captcha_fail'
+            })
+          }
+        })
+      } catch (e) {}
+      
+      return res.status(400).json({ error: 'Verificação de segurança falhou. Tente novamente.' })
+    }
   }
 
   // ===========================================

@@ -19,27 +19,45 @@ export const GENERATION_PROTECTION = {
   // Cooldown entre gerações (em segundos)
   COOLDOWN_SECONDS: 120, // 2 minutos
   
-  // Rate limiting
-  MAX_GENERATIONS_PER_HOUR: 30, // Máximo por hora
-  MAX_GENERATIONS_PER_MINUTE: 2, // Máximo por minuto
+  // Rate limiting - MAIS RIGOROSO
+  MAX_GENERATIONS_PER_HOUR: 20, // Máximo por hora (reduzido)
+  MAX_GENERATIONS_PER_MINUTE: 1, // Máximo por minuto (apenas 1)
+  MAX_GENERATIONS_PER_DAY: 100, // Máximo por dia
   
-  // Detecção de automação
-  MIN_TIME_BETWEEN_REQUESTS_MS: 500, // Tempo mínimo entre requisições (500ms)
-  SUSPICIOUS_SPEED_THRESHOLD_MS: 1000, // Requisições mais rápidas que 1s são suspeitas
+  // Detecção de automação - MAIS SENSÍVEL
+  MIN_TIME_BETWEEN_REQUESTS_MS: 1000, // Tempo mínimo entre requisições (1 segundo)
+  SUSPICIOUS_SPEED_THRESHOLD_MS: 2000, // Requisições mais rápidas que 2s são suspeitas
   
-  // Bloqueio
-  MAX_SUSPICIOUS_ACTIONS: 5, // Após X ações suspeitas, bloquear
-  BLOCK_DURATION_MINUTES: 60, // Tempo de bloqueio
+  // Bloqueio - MAIS SEVERO
+  MAX_SUSPICIOUS_ACTIONS: 3, // Após 3 ações suspeitas, bloquear (reduzido)
+  BLOCK_DURATION_MINUTES: 120, // Tempo de bloqueio de 2 horas
   
   // Headers obrigatórios de navegador real
-  REQUIRED_HEADERS: ['user-agent', 'accept', 'accept-language'],
+  REQUIRED_HEADERS: ['user-agent', 'accept', 'accept-language', 'accept-encoding'],
   
-  // User agents bloqueados (extensões, scripts)
+  // User agents bloqueados (extensões, scripts, automação)
   BLOCKED_USER_AGENTS: [
-    'python', 'curl', 'wget', 'httpie', 'postman', 'insomnia',
-    'axios', 'node-fetch', 'got', 'request', 'superagent',
-    'puppeteer', 'playwright', 'selenium', 'webdriver',
-    'phantomjs', 'headless', 'electron'
+    // Linguagens de programação
+    'python', 'java/', 'perl', 'ruby', 'php', 'go-http', 'dart',
+    // Ferramentas de linha de comando
+    'curl', 'wget', 'httpie', 'lynx', 'links',
+    // Clientes HTTP
+    'postman', 'insomnia', 'httpx', 'requests',
+    'axios', 'node-fetch', 'got', 'request', 'superagent', 'fetch',
+    'aiohttp', 'urllib', 'http.client', 'libwww',
+    // Automação de navegador
+    'puppeteer', 'playwright', 'selenium', 'webdriver', 'chromedriver',
+    'geckodriver', 'phantomjs', 'headless', 'chrome-lighthouse',
+    // Outros
+    'electron', 'bot', 'spider', 'crawler', 'scraper', 'scanner'
+  ],
+  
+  // Padrões suspeitos em User-Agent
+  SUSPICIOUS_UA_PATTERNS: [
+    /^Mozilla\/5\.0$/i, // User agent muito curto
+    /HeadlessChrome/i,
+    /Electron/i,
+    /PhantomJS/i
   ]
 }
 
@@ -51,13 +69,16 @@ interface UserGenerationState {
   lastGeneration: number
   generationsThisMinute: number
   generationsThisHour: number
+  generationsThisDay: number
   minuteStart: number
   hourStart: number
+  dayStart: number
   suspiciousActions: number
   blockedUntil?: number
   lastRequestTime: number
   requestCount: number
   isProcessing: boolean // Flag para bloquear requisições simultâneas
+  consecutiveRequests: number // Requisições consecutivas sem intervalo adequado
 }
 
 const userGenerationState: Map<string, UserGenerationState> = new Map()
@@ -103,11 +124,31 @@ function getUserAgent(req: NextApiRequest): string {
  * Verificar se User-Agent é suspeito
  */
 function isSuspiciousUserAgent(userAgent: string): boolean {
+  // Verificar palavras bloqueadas
   for (const blocked of GENERATION_PROTECTION.BLOCKED_USER_AGENTS) {
     if (userAgent.includes(blocked)) {
       return true
     }
   }
+  
+  // Verificar padrões suspeitos via regex
+  for (const pattern of GENERATION_PROTECTION.SUSPICIOUS_UA_PATTERNS) {
+    if (pattern.test(userAgent)) {
+      return true
+    }
+  }
+  
+  // User agent muito curto é suspeito
+  if (userAgent.length < 30) {
+    return true
+  }
+  
+  // User agent sem informação de navegador é suspeito
+  const hasBrowserInfo = /chrome|firefox|safari|edge|opera|msie|trident/i.test(userAgent)
+  if (!hasBrowserInfo) {
+    return true
+  }
+  
   return false
 }
 
@@ -135,12 +176,15 @@ function getUserState(userId: string): UserGenerationState {
       lastGeneration: 0,
       generationsThisMinute: 0,
       generationsThisHour: 0,
+      generationsThisDay: 0,
       minuteStart: now,
       hourStart: now,
+      dayStart: now,
       suspiciousActions: 0,
       lastRequestTime: now,
       requestCount: 0,
-      isProcessing: false
+      isProcessing: false,
+      consecutiveRequests: 0
     }
     userGenerationState.set(userId, state)
   }
@@ -149,12 +193,20 @@ function getUserState(userId: string): UserGenerationState {
   if (now - state.minuteStart > 60 * 1000) {
     state.generationsThisMinute = 0
     state.minuteStart = now
+    state.consecutiveRequests = 0 // Resetar requisições consecutivas
   }
   
   if (now - state.hourStart > 60 * 60 * 1000) {
     state.generationsThisHour = 0
     state.hourStart = now
     state.suspiciousActions = Math.max(0, state.suspiciousActions - 2) // Reduzir suspeitas com o tempo
+  }
+  
+  // Resetar contador diário
+  if (now - state.dayStart > 24 * 60 * 60 * 1000) {
+    state.generationsThisDay = 0
+    state.dayStart = now
+    state.suspiciousActions = 0 // Resetar suspeitas no dia
   }
   
   return state
@@ -331,6 +383,17 @@ export async function checkGenerationAllowed(
   }
   
   // ===========================================
+  // 10.5. VERIFICAR RATE LIMITING DIÁRIO
+  // ===========================================
+  if (state.generationsThisDay >= GENERATION_PROTECTION.MAX_GENERATIONS_PER_DAY) {
+    return {
+      allowed: false,
+      reason: 'Limite de gerações diárias atingido. Aguarde até amanhã.',
+      suspiciousLevel: 10
+    }
+  }
+  
+  // ===========================================
   // 11. VERIFICAR AÇÕES SUSPEITAS ACUMULADAS
   // ===========================================
   if (state.suspiciousActions >= GENERATION_PROTECTION.MAX_SUSPICIOUS_ACTIONS) {
@@ -374,6 +437,8 @@ export function completeGeneration(userId: string): void {
   state.lastGeneration = now
   state.generationsThisMinute++
   state.generationsThisHour++
+  state.generationsThisDay++
+  state.consecutiveRequests = 0 // Resetar após geração bem-sucedida
   
   // Reduzir nível de suspeita com gerações bem-sucedidas
   if (state.suspiciousActions > 0) {
