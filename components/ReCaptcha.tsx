@@ -8,16 +8,7 @@
 import { useEffect, useCallback, useState } from 'react'
 import Script from 'next/script'
 
-// Estender Window para incluir grecaptcha
-declare global {
-  interface Window {
-    grecaptcha: {
-      ready: (callback: () => void) => void
-      execute: (siteKey: string, options: { action: string }) => Promise<string>
-    }
-    onRecaptchaLoad?: () => void
-  }
-}
+// Tipos importados de types/grecaptcha.d.ts
 
 interface ReCaptchaProps {
   onVerify?: (token: string) => void
