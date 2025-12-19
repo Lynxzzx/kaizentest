@@ -36,7 +36,8 @@ export default function Layout({ children }: LayoutProps) {
         { href: '/admin/users', label: t('users'), icon: '👥' },
         { href: '/tickets', label: t('tickets'), icon: '🎟️' },
         { href: '/admin/coupons', label: t('coupons'), icon: '💸' },
-        { href: '/admin/maintenance', label: t('maintenance'), icon: '🧰' }
+        { href: '/admin/maintenance', label: t('maintenance'), icon: '🧰' },
+        { href: '/admin/christmas', label: 'Natal', icon: '🎄' }
       ]
     }
     return [

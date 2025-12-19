@@ -6,6 +6,8 @@ import { Toaster } from 'react-hot-toast'
 import { useEffect } from 'react'
 import { initOwner } from '@/lib/init-owner'
 import { ThemeProvider } from '@/contexts/ThemeContext'
+import { ChristmasProvider } from '@/contexts/ChristmasContext'
+import ChristmasEffects from '@/components/ChristmasEffects'
 
 function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   useEffect(() => {
@@ -38,10 +40,13 @@ function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   return (
     <SessionProvider session={session}>
       <ThemeProvider>
-        <Layout>
-          <Component {...pageProps} />
-          <Toaster position="top-right" />
-        </Layout>
+        <ChristmasProvider>
+          <Layout>
+            <Component {...pageProps} />
+            <Toaster position="top-right" />
+          </Layout>
+          <ChristmasEffects />
+        </ChristmasProvider>
       </ThemeProvider>
     </SessionProvider>
   )
