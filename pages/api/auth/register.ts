@@ -1,6 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/auth'
+import {
+  validateRegisterRequest,
+  getClientIp,
+  getUserAgent,
+  logSecurityEvent
+} from '@/lib/security'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -12,48 +18,118 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     res.status(408).json({ error: 'Request timeout - O servidor demorou muito para responder' })
   })
 
-  try {
-    console.log('Register API called:', { username: req.body?.username, affiliateRef: req.body?.affiliateRef })
-    const { username, email, password, deviceFingerprint, affiliateRef } = req.body
+  const ip = getClientIp(req)
+  const userAgent = getUserAgent(req)
 
-    // Capturar IP do usuário
-    const forwarded = req.headers['x-forwarded-for']
-    const clientIp = typeof forwarded === 'string' 
-      ? forwarded.split(',')[0].trim() 
-      : req.socket?.remoteAddress || null
+  try {
+    console.log('Register API called:', { 
+      username: req.body?.username, 
+      affiliateRef: req.body?.affiliateRef,
+      ip 
+    })
+
+    const { 
+      username, 
+      email, 
+      password, 
+      deviceFingerprint, 
+      affiliateRef,
+      recaptchaToken,
+      honeypot,
+      formStartTime
+    } = req.body
 
     const sanitizedUsername = typeof username === 'string' ? username.trim() : ''
+
+    // ================================================
+    // 🛡️ VALIDAÇÃO DE SEGURANÇA COMPLETA
+    // ================================================
+    const securityCheck = await validateRegisterRequest(req, {
+      username: sanitizedUsername,
+      recaptchaToken,
+      honeypot,
+      formStartTime
+    })
+
+    if (!securityCheck.allowed) {
+      console.log('🚫 Security check failed:', securityCheck.reason)
+      return res.status(403).json({ 
+        error: securityCheck.reason || 'Verificação de segurança falhou',
+        securityBlock: true
+      })
+    }
+
+    if (securityCheck.warnings.length > 0) {
+      console.log('⚠️ Security warnings:', securityCheck.warnings)
+    }
+
+    // ================================================
+    // 📋 VALIDAÇÕES BÁSICAS
+    // ================================================
     const normalizedEmail = typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : null
     const sanitizedDeviceFingerprint = typeof deviceFingerprint === 'string' && deviceFingerprint.trim().length > 0
       ? deviceFingerprint.trim()
       : null
 
     if (!sanitizedUsername || !password) {
-      return res.status(400).json({ error: 'Username and password are required' })
+      return res.status(400).json({ error: 'Username e senha são obrigatórios' })
     }
 
     if (sanitizedUsername.length < 3) {
-      return res.status(400).json({ error: 'Username must be at least 3 characters' })
+      return res.status(400).json({ error: 'Username deve ter pelo menos 3 caracteres' })
+    }
+
+    if (sanitizedUsername.length > 30) {
+      return res.status(400).json({ error: 'Username deve ter no máximo 30 caracteres' })
+    }
+
+    // Validar caracteres do username
+    if (!/^[a-zA-Z0-9_]+$/.test(sanitizedUsername)) {
+      return res.status(400).json({ error: 'Username só pode conter letras, números e underscore' })
     }
 
     if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' })
+      return res.status(400).json({ error: 'Senha deve ter pelo menos 6 caracteres' })
     }
 
-    // VALIDAÇÃO DE SEGURANÇA: Verificar device fingerprint
+    if (password.length > 100) {
+      return res.status(400).json({ error: 'Senha muito longa' })
+    }
+
+    // Validar email se fornecido
+    if (normalizedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      return res.status(400).json({ error: 'Email inválido' })
+    }
+
+    // ================================================
+    // 🔒 VALIDAÇÃO DE DEVICE FINGERPRINT
+    // ================================================
     if (sanitizedDeviceFingerprint) {
       const existingDevice = await prisma.user.findFirst({
         where: { deviceFingerprint: sanitizedDeviceFingerprint }
       })
 
       if (existingDevice) {
-        console.log('Device already has an account:', sanitizedDeviceFingerprint)
+        console.log('🚫 Device already has an account:', sanitizedDeviceFingerprint)
+        
+        await logSecurityEvent({
+          type: 'register_attempt',
+          ip,
+          userAgent,
+          username: sanitizedUsername,
+          success: false,
+          reason: 'Device fingerprint já existe'
+        })
+
         return res.status(403).json({ 
           error: 'Este dispositivo já possui uma conta. Para sua segurança, cada dispositivo pode criar apenas uma conta.' 
         })
       }
     }
 
+    // ================================================
+    // 🔍 VERIFICAR USUÁRIOS EXISTENTES
+    // ================================================
     console.log('Checking existing users...')
     
     // Verificar se o username já existe
@@ -71,7 +147,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (existingUser) {
       console.log('Username already exists')
-      return res.status(400).json({ error: 'Username already exists' })
+      return res.status(400).json({ error: 'Username já existe' })
     }
 
     // Verificar se o email já existe (se fornecido)
@@ -90,13 +166,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (existingEmail) {
         console.log('Email already exists')
-        return res.status(400).json({ error: 'Email already exists' })
+        return res.status(400).json({ error: 'Email já existe' })
       }
     }
 
+    // ================================================
+    // 🔗 PROCESSAR REFERÊNCIA DE AFILIADO
+    // ================================================
     console.log('User does not exist, creating...')
 
-    // Processar referência de afiliado se fornecida
     let referrerId: string | null = null
     if (affiliateRef) {
       console.log('Processing affiliate reference:', affiliateRef)
@@ -105,9 +183,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
 
       if (referrer) {
-        // VALIDAÇÃO: Não permitir auto-referência (mesmo usuário)
-        // Mas não podemos verificar isso aqui porque o usuário ainda não existe
-        // Verificaremos após criar o usuário
         referrerId = referrer.id
         console.log('Referrer found:', referrer.id)
       } else {
@@ -115,11 +190,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Hash da senha
+    // ================================================
+    // 🔐 CRIAR USUÁRIO
+    // ================================================
     console.log('Hashing password...')
     const hashedPassword = await hashPassword(password)
 
-    // Criar usuário
     console.log('Creating user in database...')
     const user = await prisma.user.create({
       data: {
@@ -127,23 +203,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         email: normalizedEmail,
         password: hashedPassword,
         role: 'USER',
-        deviceFingerprint: sanitizedDeviceFingerprint, // Armazenar device fingerprint
-        registrationIp: clientIp, // IP do registro
-        lastIp: clientIp, // Último IP usado
-        lastIpAt: new Date(), // Data do último acesso
-        referredBy: referrerId || null // Armazenar referência se existir
+        deviceFingerprint: sanitizedDeviceFingerprint,
+        registrationIp: ip,
+        lastIp: ip,
+        lastIpAt: new Date(),
+        referredBy: referrerId || null
       }
     }).catch((err) => {
       console.error('Error creating user:', err)
       throw err
     })
 
-    console.log('User created successfully:', user.id)
+    console.log('✅ User created successfully:', user.id)
 
-    // Processar recompensas de afiliado se houver referência
+    // Log de sucesso
+    await logSecurityEvent({
+      type: 'register_attempt',
+      ip,
+      userAgent,
+      username: sanitizedUsername,
+      success: true,
+      metadata: {
+        userId: user.id,
+        botScore: securityCheck.botScore,
+        recaptchaScore: securityCheck.recaptchaScore
+      }
+    })
+
+    // ================================================
+    // 🎁 PROCESSAR RECOMPENSAS DE AFILIADO
+    // ================================================
     if (referrerId && user.id !== referrerId) {
       try {
-        // Verificar validações de segurança (device fingerprint)
         const referrer = await prisma.user.findUnique({
           where: { id: referrerId }
         })
@@ -153,7 +244,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (user.deviceFingerprint && referrer.deviceFingerprint) {
             if (user.deviceFingerprint === referrer.deviceFingerprint) {
               console.log('Same device detected, skipping affiliate reward')
-              // Remover referência se for do mesmo dispositivo
               await prisma.user.update({
                 where: { id: user.id },
                 data: { referredBy: null }
@@ -178,7 +268,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
               })
 
-              // Adicionar 2 gerações grátis ao novo usuário (vindas do afiliado)
+              // Adicionar 2 gerações grátis ao novo usuário
               await prisma.user.update({
                 where: { id: user.id },
                 data: {
@@ -236,6 +326,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   } catch (error: any) {
     console.error('Error creating user:', error)
+    
+    // Log de erro
+    await logSecurityEvent({
+      type: 'register_attempt',
+      ip,
+      userAgent,
+      username: req.body?.username,
+      success: false,
+      reason: error.message
+    })
     
     // Verificar se é erro de conexão com banco
     if (error.code === 'ECONNREFUSED' || error.message?.includes('connect')) {

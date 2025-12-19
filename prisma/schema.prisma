@@ -461,3 +461,21 @@ enum AdminAction {
   // Outros
   OTHER              // Outras ações
 }
+
+// Logs de segurança (tentativas de login, registros, ataques, etc)
+model SecurityLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  type        String   // register_attempt, login_attempt, bot_detected, rate_limit, blocked
+  ip          String
+  userAgent   String?
+  username    String?
+  success     Boolean
+  reason      String?
+  metadata    String?  // JSON string com dados adicionais
+  createdAt   DateTime @default(now())
+  
+  @@index([ip])
+  @@index([username])
+  @@index([type])
+  @@index([createdAt])
+}

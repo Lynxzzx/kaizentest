@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
@@ -8,6 +8,7 @@ import Link from 'next/link'
 import axios from 'axios'
 import { getStoredDeviceFingerprint } from '@/lib/device-fingerprint'
 import toast from 'react-hot-toast'
+import ReCaptchaCheckbox, { useReCaptchaV2 } from '@/components/ReCaptchaCheckbox'
 
 export default function Register() {
   const { t } = useTranslation()
@@ -21,6 +22,20 @@ export default function Register() {
   const [affiliateRef, setAffiliateRef] = useState<string | null>(null)
   const themeClasses = getThemeClasses(theme)
 
+  // 🛡️ SEGURANÇA: Estado para proteções anti-bot
+  const [honeypot, setHoneypot] = useState('') // Campo invisível
+  const formStartTimeRef = useRef<number>(Date.now()) // Tempo de início
+
+  // 🤖 reCAPTCHA v2 - Checkbox "Não sou um robô"
+  const {
+    token: recaptchaToken,
+    isVerified: recaptchaVerified,
+    handleVerify: handleRecaptchaVerify,
+    handleExpire: handleRecaptchaExpire,
+    handleError: handleRecaptchaError,
+    reset: resetRecaptcha
+  } = useReCaptchaV2()
+
   // Capturar parâmetro ref da URL
   useEffect(() => {
     if (router.query.ref && typeof router.query.ref === 'string') {
@@ -28,8 +43,20 @@ export default function Register() {
     }
   }, [router.query.ref])
 
+  // Resetar tempo quando o componente monta
+  useEffect(() => {
+    formStartTimeRef.current = Date.now()
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // 🛡️ SEGURANÇA: Verificar honeypot (deve estar vazio)
+    if (honeypot) {
+      console.log('🚫 Honeypot triggered')
+      toast.error('Verificação de segurança falhou. Por favor, tente novamente.')
+      return
+    }
 
     if (password !== confirmPassword) {
       toast.error(t('passwordsDontMatch'))
@@ -38,6 +65,23 @@ export default function Register() {
 
     if (password.length < 6) {
       toast.error(t('passwordMinLength'))
+      return
+    }
+
+    // Validar username
+    if (username.length < 3) {
+      toast.error('Username deve ter pelo menos 3 caracteres')
+      return
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      toast.error('Username só pode conter letras, números e underscore')
+      return
+    }
+
+    // 🤖 Verificar reCAPTCHA v2
+    if (!recaptchaVerified) {
+      toast.error('Por favor, marque a caixa "Não sou um robô"')
       return
     }
 
@@ -55,7 +99,11 @@ export default function Register() {
         email,
         password,
         deviceFingerprint,
-        affiliateRef: affiliateRef || null // Enviar referência de afiliado se existir
+        affiliateRef: affiliateRef || null,
+        // 🛡️ Dados de segurança
+        recaptchaToken,
+        honeypot,
+        formStartTime: formStartTimeRef.current
       }, {
         signal: controller.signal,
         timeout: 30000
@@ -80,11 +128,17 @@ export default function Register() {
       }
     } catch (error: any) {
       console.error('Register error:', error)
+      resetRecaptcha()
+      // Forçar reload do captcha
+      window.location.reload()
       
       let errorMessage = t('errorCreatingAccount')
       
       if (error.code === 'ECONNABORTED' || error.message === 'canceled') {
         errorMessage = 'Timeout: A requisição demorou muito. Verifique sua conexão com o banco de dados.'
+      } else if (error.response?.data?.securityBlock) {
+        // Erro de segurança - mostrar mensagem específica
+        errorMessage = error.response.data.error
       } else if (error.response?.data?.error) {
         errorMessage = error.response.data.error
       } else if (error.message) {
@@ -123,7 +177,31 @@ export default function Register() {
               </div>
             )}
           </div>
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* 🛡️ HONEYPOT - Campo invisível para bots */}
+            <div 
+              style={{ 
+                position: 'absolute', 
+                left: '-9999px', 
+                opacity: 0, 
+                height: 0, 
+                overflow: 'hidden',
+                pointerEvents: 'none'
+              }}
+              aria-hidden="true"
+            >
+              <label htmlFor="website">Website</label>
+              <input
+                type="text"
+                id="website"
+                name="website"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            </div>
+
             <div>
               <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
                 {t('username')}
@@ -131,12 +209,18 @@ export default function Register() {
               <input
                 type="text"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
                 className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
                 placeholder={t('enterUsername')}
                 required
                 minLength={3}
+                maxLength={30}
+                pattern="[a-zA-Z0-9_]+"
+                autoComplete="username"
               />
+              <p className={`text-xs mt-1 ${themeClasses.text.muted}`}>
+                Apenas letras, números e underscore
+              </p>
             </div>
             <div>
               <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
@@ -148,6 +232,7 @@ export default function Register() {
                 onChange={(e) => setEmail(e.target.value)}
                 className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
                 placeholder={t('enterEmail')}
+                autoComplete="email"
               />
             </div>
             <div>
@@ -162,6 +247,8 @@ export default function Register() {
                 placeholder={t('enterPassword')}
                 required
                 minLength={6}
+                maxLength={100}
+                autoComplete="new-password"
               />
             </div>
             <div>
@@ -176,11 +263,32 @@ export default function Register() {
                 placeholder={t('enterConfirmPassword')}
                 required
                 minLength={6}
+                maxLength={100}
+                autoComplete="new-password"
               />
             </div>
+
+            {/* 🤖 reCAPTCHA v2 - Checkbox "Não sou um robô" */}
+            <div className="flex justify-center py-2">
+              <ReCaptchaCheckbox
+                onVerify={handleRecaptchaVerify}
+                onExpire={handleRecaptchaExpire}
+                onError={handleRecaptchaError}
+                theme={theme === 'dark' ? 'dark' : 'light'}
+              />
+            </div>
+
+            {/* 🛡️ Indicador de segurança */}
+            <div className={`flex items-center justify-center gap-2 text-xs ${themeClasses.text.muted}`}>
+              <svg className="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+              <span>Conexão segura e protegida</span>
+            </div>
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !recaptchaVerified}
               className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (
