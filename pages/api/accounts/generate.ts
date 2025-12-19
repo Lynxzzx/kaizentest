@@ -52,7 +52,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                req.headers['x-real-ip']?.toString() ||
                req.socket?.remoteAddress || 'unknown'
 
-    const captchaValid = await verifyRecaptchaV2(recaptchaToken, ip)
+    const captchaResult = await verifyRecaptchaV2(recaptchaToken)
+    const captchaValid = captchaResult.success
     
     if (!captchaValid) {
       // Registrar tentativa suspeita
