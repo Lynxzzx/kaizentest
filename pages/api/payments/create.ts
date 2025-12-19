@@ -597,8 +597,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           })
         }
       }
-    }
-
     } else if (method === 'CARD') {
       // Pagamento via cartão de crédito usando PagSeguro
       try {
