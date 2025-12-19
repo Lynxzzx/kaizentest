@@ -49,7 +49,7 @@ export default function Plans() {
   const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'CRYPTO' | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'CRYPTO' | 'CARD' | null>(null)
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null)
   const [loading, setLoading] = useState(false)
   const [qrCodeImageError, setQrCodeImageError] = useState(false)
@@ -61,6 +61,15 @@ export default function Plans() {
   const [couponPlanId, setCouponPlanId] = useState<string>('')
   const [couponApplying, setCouponApplying] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
+  const [showCardModal, setShowCardModal] = useState(false)
+  const [pendingCardPayment, setPendingCardPayment] = useState<Plan | null>(null)
+  const [cardNumber, setCardNumber] = useState('')
+  const [cardExpMonth, setCardExpMonth] = useState('')
+  const [cardExpYear, setCardExpYear] = useState('')
+  const [cardCvv, setCardCvv] = useState('')
+  const [cardHolderName, setCardHolderName] = useState('')
+  const [cardEmail, setCardEmail] = useState('')
+  const [processingCard, setProcessingCard] = useState(false)
   const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
@@ -170,7 +179,7 @@ export default function Plans() {
     }
   }
 
-  const handlePayment = async (plan: Plan, method: 'PIX' | 'CRYPTO') => {
+  const handlePayment = async (plan: Plan, method: 'PIX' | 'CRYPTO' | 'CARD') => {
     if (!session) {
       toast.error(t('loginToContinue'))
       router.push('/login')
@@ -192,6 +201,13 @@ export default function Plans() {
       // Isso garante que o email seja válido e diferente do email do vendedor
       setPendingPayment({ plan, method })
       setShowEmailModal(true)
+      return
+    }
+
+    // Para cartão, mostrar modal para coletar dados do cartão
+    if (method === 'CARD') {
+      setPendingCardPayment(plan)
+      setShowCardModal(true)
       return
     }
 
@@ -334,6 +350,93 @@ export default function Plans() {
     if (pendingPayment && pendingPayment.method === 'PIX') {
       createPixPayment(pendingPayment.plan, customerEmail)
     }
+  }
+
+  const formatCardNumber = (value: string) => {
+    const numbers = value.replace(/\D/g, '')
+    const formatted = numbers.replace(/(\d{4})(?=\d)/g, '$1 ')
+    return formatted.substring(0, 19) // Máximo 16 dígitos + 3 espaços
+  }
+
+  const createCardPayment = async () => {
+    if (!pendingCardPayment) return
+
+    // Validar dados do cartão
+    const cleanCardNumber = cardNumber.replace(/\D/g, '')
+    if (cleanCardNumber.length < 13 || cleanCardNumber.length > 19) {
+      toast.error(t('invalidCardNumber'))
+      return
+    }
+    if (!cardExpMonth || parseInt(cardExpMonth) < 1 || parseInt(cardExpMonth) > 12) {
+      toast.error(t('invalidExpMonth'))
+      return
+    }
+    if (!cardExpYear || cardExpYear.length !== 4) {
+      toast.error(t('invalidExpYear'))
+      return
+    }
+    if (!cardCvv || cardCvv.length < 3 || cardCvv.length > 4) {
+      toast.error(t('invalidCvv'))
+      return
+    }
+    if (!cardHolderName || cardHolderName.length < 3) {
+      toast.error(t('invalidCardHolderName'))
+      return
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!cardEmail || !emailRegex.test(cardEmail)) {
+      toast.error(t('errorInvalidEmail'))
+      return
+    }
+
+    setProcessingCard(true)
+    const normalizedCoupon = couponCode.trim().toUpperCase()
+
+    try {
+      const response = await axios.post('/api/payments/create', {
+        planId: pendingCardPayment.id,
+        method: 'CARD',
+        cardNumber: cleanCardNumber,
+        cardExpMonth,
+        cardExpYear,
+        cardCvv,
+        cardHolderName,
+        customerEmail: cardEmail,
+        couponCode: normalizedCoupon || undefined
+      })
+
+      if (response.data.paid) {
+        // Pagamento aprovado imediatamente
+        toast.success(t('cardPaymentApproved'))
+        setShowCardModal(false)
+        resetCardForm()
+        // Recarregar a página após 2 segundos para atualizar o plano do usuário
+        setTimeout(() => {
+          window.location.reload()
+        }, 2000)
+      } else {
+        // Pagamento pendente ou em análise
+        toast.success(response.data.message || t('cardPaymentPending'))
+        setShowCardModal(false)
+        resetCardForm()
+      }
+    } catch (error: any) {
+      console.error('Erro ao processar pagamento via cartão:', error)
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || t('cardPaymentError')
+      toast.error(errorMessage)
+    } finally {
+      setProcessingCard(false)
+    }
+  }
+
+  const resetCardForm = () => {
+    setCardNumber('')
+    setCardExpMonth('')
+    setCardExpYear('')
+    setCardCvv('')
+    setCardHolderName('')
+    setCardEmail('')
+    setPendingCardPayment(null)
   }
 
   return (
@@ -497,10 +600,11 @@ export default function Plans() {
                   {t('payViaCrypto')}
                 </button>
                 <button
-                  onClick={() => toast('💳 Pagamento via cartão chegando em breve!', { icon: '🔜' })}
-                  className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-lg text-sm sm:text-base font-bold cursor-not-allowed opacity-70 touch-manipulation"
+                  onClick={() => handlePayment(plan, 'CARD')}
+                  disabled={loading}
+                  className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-lg text-sm sm:text-base font-bold hover:from-green-700 hover:to-emerald-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 touch-manipulation"
                 >
-                  💳 {t('payViaCard')} (Em breve)
+                  💳 {t('payViaCard')}
                 </button>
               </div>
             </div>
@@ -568,12 +672,175 @@ export default function Plans() {
         </div>
       )}
 
+      {/* Card Payment Modal */}
+      {showCardModal && pendingCardPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className={`${themeClasses.card} rounded-xl sm:rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl my-4`}>
+            <h2 className={`text-xl sm:text-2xl font-bold mb-2 ${themeClasses.text.primary}`}>
+              💳 {t('payViaCard')}
+            </h2>
+            <p className={`text-sm mb-6 ${themeClasses.text.secondary}`}>
+              {t('cardPaymentDescription')}
+            </p>
+
+            {/* Plan info */}
+            <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4 mb-6`}>
+              <p className={`text-sm ${themeClasses.text.secondary}`}>{pendingCardPayment.name}</p>
+              <p className={`${themeClasses.text.primary} text-lg font-semibold`}>
+                {t('currencySymbol')} {pendingCardPayment.price.toFixed(2)}
+              </p>
+              {appliedCoupon && appliedCoupon.planId === pendingCardPayment.id && (
+                <>
+                  <p className={`text-sm ${themeClasses.text.secondary}`}>
+                    {t('discount')}: -{t('currencySymbol')} {appliedCoupon.discountAmount.toFixed(2)}
+                  </p>
+                  <p className="text-sm text-green-400 font-semibold">
+                    {t('finalPrice')}: {t('currencySymbol')} {appliedCoupon.finalAmount.toFixed(2)}
+                  </p>
+                </>
+              )}
+            </div>
+            
+            <div className="space-y-4">
+              {/* Card Number */}
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                  {t('cardNumber')}
+                </label>
+                <input
+                  type="text"
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                  placeholder="0000 0000 0000 0000"
+                  maxLength={19}
+                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 font-mono`}
+                />
+              </div>
+
+              {/* Expiration and CVV */}
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                    {t('expMonth')}
+                  </label>
+                  <input
+                    type="text"
+                    value={cardExpMonth}
+                    onChange={(e) => setCardExpMonth(e.target.value.replace(/\D/g, '').substring(0, 2))}
+                    placeholder="MM"
+                    maxLength={2}
+                    className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-center font-mono`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                    {t('expYear')}
+                  </label>
+                  <input
+                    type="text"
+                    value={cardExpYear}
+                    onChange={(e) => setCardExpYear(e.target.value.replace(/\D/g, '').substring(0, 4))}
+                    placeholder="AAAA"
+                    maxLength={4}
+                    className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-center font-mono`}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                    CVV
+                  </label>
+                  <input
+                    type="text"
+                    value={cardCvv}
+                    onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').substring(0, 4))}
+                    placeholder="***"
+                    maxLength={4}
+                    className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-center font-mono`}
+                  />
+                </div>
+              </div>
+
+              {/* Card Holder Name */}
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                  {t('cardHolderName')}
+                </label>
+                <input
+                  type="text"
+                  value={cardHolderName}
+                  onChange={(e) => setCardHolderName(e.target.value.toUpperCase())}
+                  placeholder={t('cardHolderNamePlaceholder')}
+                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 uppercase`}
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                  {t('emailLabel')}
+                </label>
+                <input
+                  type="email"
+                  value={cardEmail}
+                  onChange={(e) => setCardEmail(e.target.value)}
+                  placeholder={t('emailPlaceholder')}
+                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                />
+              </div>
+
+              {/* Security Notice */}
+              <div className={`${theme === 'dark' ? 'bg-green-500/20 border border-green-400/30' : 'bg-green-50 border border-green-200'} rounded-lg p-3`}>
+                <p className={`text-xs flex items-center gap-2 ${theme === 'dark' ? 'text-green-200' : 'text-green-800'}`}>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  {t('cardSecurityNotice')}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={createCardPayment}
+                disabled={processingCard}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-lg font-semibold hover:from-green-700 hover:to-emerald-800 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {processingCard ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    {t('processing')}
+                  </>
+                ) : (
+                  <>
+                    💳 {t('payNow')}
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setShowCardModal(false)
+                  resetCardForm()
+                }}
+                disabled={processingCard}
+                className={`px-4 py-3 rounded-lg font-semibold transition-colors ${
+                  theme === 'dark' 
+                    ? 'bg-white/10 text-white hover:bg-white/20' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                } disabled:opacity-50`}
+              >
+                {t('cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Payment Modal */}
       {(paymentData || (paymentMethod && loading)) && selectedPlan && paymentMethod && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className={`${themeClasses.card} rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 max-w-md w-full mx-4 shadow-2xl my-4`}>
             <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${themeClasses.text.primary}`}>
-              {t('paymentVia')} {paymentMethod === 'PIX' ? t('paymentMethodPix') : t('paymentMethodCrypto')}
+              {t('paymentVia')} {paymentMethod === 'PIX' ? t('paymentMethodPix') : paymentMethod === 'CARD' ? t('paymentMethodCard') : t('paymentMethodCrypto')}
             </h2>
 
             {paymentData && (

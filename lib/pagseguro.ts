@@ -576,3 +576,263 @@ export async function getPagSeguroPixQrCode(chargeId: string) {
   }
 }
 
+// Interface para dados do cartão de crédito
+interface CardData {
+  number: string       // Número do cartão (apenas números)
+  exp_month: string    // Mês de expiração (2 dígitos)
+  exp_year: string     // Ano de expiração (4 dígitos)
+  security_code: string // CVV (3-4 dígitos)
+  holder: {
+    name: string       // Nome impresso no cartão
+  }
+}
+
+// Interface para pagamento com cartão
+interface CreateCardPaymentData {
+  reference_id: string
+  customer: {
+    name: string
+    email: string
+    tax_id: string
+    phones?: Array<{
+      country: string
+      area: string
+      number: string
+      type: string
+    }>
+  }
+  amount: number // Valor em reais
+  description: string
+  card: CardData
+  installments?: number // Número de parcelas (1 = à vista)
+}
+
+// Criar pagamento com cartão de crédito no PagSeguro
+export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
+  let key: string = ''
+  let apiUrl: string = ''
+  
+  try {
+    key = await getPagSeguroKey()
+    apiUrl = await getPagSeguroApiUrl()
+
+    // Converter valor de reais para centavos
+    const valueInCents = Math.round(data.amount * 100)
+
+    // Obter email do vendedor (se configurado)
+    const sellerEmail = await getPagSeguroSellerEmail()
+    
+    // Preparar dados do cliente
+    const customerData: any = {
+      name: data.customer.name,
+      email: data.customer.email.trim(),
+      tax_id: data.customer.tax_id.replace(/\D/g, '') // Remover formatação do CPF/CNPJ
+    }
+    
+    // Validar email do cliente
+    if (!data.customer.email || data.customer.email.trim().length === 0) {
+      throw new Error('Email do cliente é obrigatório para pagamentos via cartão')
+    }
+    
+    // Verificar se o email do cliente é diferente do email do vendedor
+    if (sellerEmail && data.customer.email.trim().toLowerCase() === sellerEmail.toLowerCase()) {
+      throw new Error('O email do cliente não pode ser igual ao email do vendedor.')
+    }
+
+    // Preparar dados do cartão encriptado
+    // Nota: Em produção, o número do cartão deve ser tokenizado no frontend usando PagSeguro.js
+    const cardData = {
+      number: data.card.number.replace(/\D/g, ''), // Apenas números
+      exp_month: data.card.exp_month.padStart(2, '0'),
+      exp_year: data.card.exp_year,
+      security_code: data.card.security_code,
+      holder: {
+        name: data.card.holder.name.toUpperCase()
+      }
+    }
+
+    // Validar dados do cartão
+    if (cardData.number.length < 13 || cardData.number.length > 19) {
+      throw new Error('Número do cartão inválido')
+    }
+    if (cardData.security_code.length < 3 || cardData.security_code.length > 4) {
+      throw new Error('CVV inválido')
+    }
+
+    // Estrutura para pagamento via cartão usando /charges
+    const chargeData: any = {
+      reference_id: data.reference_id,
+      description: data.description,
+      amount: {
+        value: valueInCents,
+        currency: 'BRL'
+      },
+      payment_method: {
+        type: 'CREDIT_CARD',
+        installments: data.installments || 1,
+        capture: true, // Captura imediata
+        card: cardData
+      }
+    }
+    
+    // Headers para a requisição
+    const headers: any = {
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/json'
+    }
+    
+    // Adicionar email do vendedor se configurado
+    if (sellerEmail) {
+      headers['X-Seller-Email'] = sellerEmail
+    }
+    
+    // ============================================
+    // LOG COMPLETO DO REQUEST - CARTÃO
+    // ============================================
+    console.log('='.repeat(80))
+    console.log('📤 REQUEST - PagSeguro CARTÃO')
+    console.log('='.repeat(80))
+    console.log('📡 Método: POST')
+    console.log('📡 URL:', `${apiUrl}/charges`)
+    console.log('🌐 Ambiente:', apiUrl.includes('sandbox') ? 'SANDBOX' : 'PRODUÇÃO')
+    console.log('📋 Headers:')
+    console.log(JSON.stringify({ ...headers, 'Authorization': 'Bearer ***' }, null, 2))
+    // Não logar número completo do cartão por segurança
+    const safeChargeData = {
+      ...chargeData,
+      payment_method: {
+        ...chargeData.payment_method,
+        card: {
+          ...chargeData.payment_method.card,
+          number: `****${cardData.number.slice(-4)}`,
+          security_code: '***'
+        }
+      }
+    }
+    console.log('📦 Body (dados sensíveis ocultados):')
+    console.log(JSON.stringify(safeChargeData, null, 2))
+    console.log('='.repeat(80))
+    
+    const response = await axios.post(
+      `${apiUrl}/charges`,
+      chargeData,
+      { headers }
+    )
+
+    // ============================================
+    // LOG COMPLETO DO RESPONSE - CARTÃO
+    // ============================================
+    console.log('='.repeat(80))
+    console.log('📥 RESPONSE - PagSeguro CARTÃO')
+    console.log('='.repeat(80))
+    console.log('📊 Status Code:', response.status)
+    console.log('📦 Response:')
+    console.log(JSON.stringify(response.data, null, 2))
+    console.log('='.repeat(80))
+    
+    const chargeResponse = response.data
+    
+    // Verificar status do pagamento
+    const paymentStatus = chargeResponse.status
+    const chargeId = chargeResponse.id
+    
+    console.log('✅ Cobrança via cartão criada:', chargeId)
+    console.log('📊 Status:', paymentStatus)
+
+    return {
+      id: chargeId,
+      status: paymentStatus,
+      paid: paymentStatus === 'PAID' || paymentStatus === 'AUTHORIZED',
+      message: getCardPaymentStatusMessage(paymentStatus),
+      paymentMethod: chargeResponse.payment_method,
+      createdAt: chargeResponse.created_at
+    }
+  } catch (error: any) {
+    const errorData = error.response?.data || error.message
+    
+    // ============================================
+    // LOG COMPLETO DO ERRO - CARTÃO
+    // ============================================
+    console.error('='.repeat(80))
+    console.error('❌ ERRO - PagSeguro CARTÃO')
+    console.error('='.repeat(80))
+    console.error('📡 URL:', `${apiUrl}/charges`)
+    console.error('🌐 Ambiente:', apiUrl.includes('sandbox') ? 'SANDBOX' : 'PRODUÇÃO')
+    
+    if (error.response) {
+      console.error('📊 Status Code:', error.response.status)
+      console.error('📦 Response:')
+      console.error(JSON.stringify(error.response.data, null, 2))
+    } else {
+      console.error('❌ Erro de Rede:', error.message)
+    }
+    console.error('='.repeat(80))
+
+    // Verificar se é erro de rede/API fora do ar
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' ||
+        error.message?.includes('timeout') || error.message?.includes('ECONNREFUSED') ||
+        error.response?.status === 503 || error.response?.status === 502 || error.response?.status === 504) {
+      const networkError = new Error('A API do PagSeguro está temporariamente indisponível. Tente novamente em alguns minutos.')
+      networkError.name = 'PagSeguroServiceUnavailableError'
+      throw networkError
+    }
+
+    // Verificar se é erro de autenticação
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      const authError = new Error('Token do PagSeguro inválido ou expirado.')
+      authError.name = 'PagSeguroAuthenticationError'
+      throw authError
+    }
+
+    // Erros específicos do cartão
+    if (error.response?.status === 400 || error.response?.status === 422) {
+      const errorMessages = errorData?.error_messages || []
+      const firstError = errorMessages[0]
+      
+      if (firstError) {
+        const errorCode = firstError.code || ''
+        const errorDescription = firstError.description || 'Erro ao processar pagamento'
+        
+        // Mapear erros comuns do cartão
+        const cardError = new Error(mapCardErrorMessage(errorCode, errorDescription))
+        cardError.name = 'PagSeguroCardError'
+        throw cardError
+      }
+    }
+
+    throw error
+  }
+}
+
+// Mapear mensagens de erro do cartão para mensagens amigáveis
+function mapCardErrorMessage(code: string, description: string): string {
+  const errorMap: Record<string, string> = {
+    'INVALID_CARD_NUMBER': 'Número do cartão inválido. Verifique e tente novamente.',
+    'EXPIRED_CARD': 'Cartão expirado. Use outro cartão.',
+    'INVALID_CVV': 'CVV inválido. Verifique o código de segurança.',
+    'INSUFFICIENT_FUNDS': 'Saldo insuficiente. Use outro cartão ou forma de pagamento.',
+    'CARD_DECLINED': 'Cartão recusado. Entre em contato com o banco emissor.',
+    'INVALID_EXPIRATION_DATE': 'Data de validade inválida.',
+    'CARD_BLOCKED': 'Cartão bloqueado. Entre em contato com o banco emissor.',
+    'CARD_NOT_SUPPORTED': 'Bandeira do cartão não suportada.',
+    'FRAUD_DETECTED': 'Transação não autorizada por medidas de segurança.',
+    'INVALID_HOLDER_NAME': 'Nome do titular inválido.'
+  }
+  
+  return errorMap[code] || description || 'Erro ao processar o cartão. Tente novamente.'
+}
+
+// Obter mensagem de status do pagamento
+function getCardPaymentStatusMessage(status: string): string {
+  const statusMap: Record<string, string> = {
+    'PAID': 'Pagamento aprovado com sucesso!',
+    'AUTHORIZED': 'Pagamento autorizado com sucesso!',
+    'DECLINED': 'Pagamento recusado. Tente outro cartão.',
+    'CANCELED': 'Pagamento cancelado.',
+    'IN_ANALYSIS': 'Pagamento em análise. Aguarde confirmação.',
+    'WAITING': 'Aguardando processamento...'
+  }
+  
+  return statusMap[status] || 'Processando pagamento...'
+}
+

@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { createAsaasCustomer, getAsaasCustomerByEmail, updateAsaasCustomer, createAsaasPayment, getAsaasPixQrCode } from '@/lib/asaas'
-import { createPagSeguroPixPayment } from '@/lib/pagseguro'
+import { createPagSeguroPixPayment, createPagSeguroCardPayment } from '@/lib/pagseguro'
 import { createPaymentAddress, convertBrlToCrypto } from '@/lib/binance'
 import { generateCPF, cleanCpfCnpj } from '@/lib/utils'
 
@@ -596,6 +596,215 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             details: finalError.message || error.message
           })
         }
+      }
+    }
+
+    } else if (method === 'CARD') {
+      // Pagamento via cartão de crédito usando PagSeguro
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: session.user.id }
+        })
+
+        if (!user) {
+          return res.status(404).json({ error: 'User not found' })
+        }
+
+        // Obter dados do cartão do request
+        const { cardNumber, cardExpMonth, cardExpYear, cardCvv, cardHolderName, customerEmail } = req.body
+
+        // Validar dados obrigatórios
+        if (!cardNumber || !cardExpMonth || !cardExpYear || !cardCvv || !cardHolderName) {
+          return res.status(400).json({ 
+            error: 'Dados do cartão incompletos. Preencha todos os campos.' 
+          })
+        }
+
+        // Garantir que o usuário tenha CPF/CNPJ (obrigatório para pagamentos)
+        let cpfCnpj = user.cpfCnpj
+        if (!cpfCnpj) {
+          cpfCnpj = generateCPF()
+          console.log('⚠️ Usuário não possui CPF/CNPJ, gerando CPF fictício para teste:', cpfCnpj)
+          try {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { cpfCnpj } as any
+            })
+          } catch (dbError: any) {
+            console.warn('⚠️ Não foi possível salvar CPF no banco:', dbError.message)
+          }
+        }
+
+        // Verificar se PagSeguro está configurado
+        const PAGSEGURO_APP_KEY = process.env.PAGSEGURO_APP_KEY
+        const PAGSEGURO_TOKEN = process.env.PAGSEGURO_TOKEN
+        let usePagSeguro = !!(PAGSEGURO_APP_KEY || PAGSEGURO_TOKEN)
+        
+        // Verificar no banco de dados se não encontrar nas variáveis de ambiente
+        if (!usePagSeguro) {
+          try {
+            const pagSeguroAppKey = await prisma.systemConfig.findUnique({
+              where: { key: 'PAGSEGURO_APP_KEY' }
+            })
+            const pagSeguroToken = await prisma.systemConfig.findUnique({
+              where: { key: 'PAGSEGURO_TOKEN' }
+            })
+            usePagSeguro = !!(pagSeguroAppKey?.value || pagSeguroToken?.value)
+          } catch (error: any) {
+            console.warn('⚠️ Erro ao verificar PagSeguro no banco de dados:', error.message)
+          }
+        }
+
+        if (!usePagSeguro) {
+          return res.status(400).json({ 
+            error: 'Pagamento via cartão não disponível. PagSeguro não está configurado.' 
+          })
+        }
+
+        const email = customerEmail || user.email || ''
+        if (!email || email.trim().length === 0) {
+          return res.status(400).json({ 
+            error: 'Email do cliente é obrigatório para pagamentos via cartão.' 
+          })
+        }
+
+        const referenceId = `card_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
+        
+        console.log('💳 Criando pagamento via cartão...')
+        
+        const pagSeguroPayment = await createPagSeguroCardPayment({
+          reference_id: referenceId,
+          customer: {
+            name: user.username,
+            email: email.trim(),
+            tax_id: cleanCpfCnpj(cpfCnpj)
+          },
+          amount: finalAmount,
+          description: `Plano ${plan.name} - Kaizen Gens`,
+          card: {
+            number: cardNumber,
+            exp_month: cardExpMonth,
+            exp_year: cardExpYear,
+            security_code: cardCvv,
+            holder: {
+              name: cardHolderName
+            }
+          },
+          installments: 1 // Sempre à vista por enquanto
+        })
+
+        // Determinar status do pagamento
+        const isPaid = pagSeguroPayment.paid
+        const paymentStatus = isPaid ? 'PAID' : 'PENDING'
+
+        // Criar pagamento no banco de dados
+        const payment = await prisma.payment.create({
+          data: {
+            userId: user.id,
+            planId: plan.id,
+            amount: plan.price,
+            finalAmount,
+            discountValue: discountAmount,
+            couponId: appliedCoupon?.id,
+            method: 'CARD',
+            status: paymentStatus,
+            asaasId: pagSeguroPayment.id, // Usando asaasId para armazenar o ID do PagSeguro
+            pagSeguroReferenceId: referenceId,
+            paidAt: isPaid ? new Date() : null
+          }
+        })
+
+        // Se o pagamento foi aprovado, ativar o plano
+        if (isPaid) {
+          // Calcular data de expiração
+          const expiresAt = new Date()
+          expiresAt.setDate(expiresAt.getDate() + plan.duration)
+          
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              planId: plan.id,
+              planExpiresAt: expiresAt
+            }
+          })
+
+          // Atualizar cupom se usado
+          if (appliedCoupon) {
+            await prisma.coupon.update({
+              where: { id: appliedCoupon.id },
+              data: { usedCount: { increment: 1 } }
+            })
+          }
+
+          // Processar comissão de afiliado se houver referência
+          const userWithReferrer = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { referredBy: true }
+          })
+
+          if (userWithReferrer?.referredBy) {
+            const commissionAmount = finalAmount * 0.4 // 40% de comissão
+            
+            await prisma.affiliateCommission.create({
+              data: {
+                affiliateId: userWithReferrer.referredBy,
+                paymentId: payment.id,
+                amount: commissionAmount,
+                paymentAmount: finalAmount
+              }
+            })
+
+            await prisma.user.update({
+              where: { id: userWithReferrer.referredBy },
+              data: {
+                affiliateBalance: { increment: commissionAmount },
+                totalAffiliateEarnings: { increment: commissionAmount }
+              }
+            })
+          }
+
+          console.log('✅ Pagamento via cartão aprovado e plano ativado!')
+        }
+
+        return res.status(200).json({
+          id: payment.id,
+          paymentId: payment.id,
+          status: paymentStatus,
+          paid: isPaid,
+          message: pagSeguroPayment.message,
+          originalAmount: plan.price,
+          finalAmount,
+          discountAmount
+        })
+      } catch (error: any) {
+        console.error('❌ Erro ao criar pagamento via cartão:', error)
+        
+        // Verificar tipo de erro
+        if (error.name === 'PagSeguroServiceUnavailableError') {
+          return res.status(503).json({
+            error: 'Serviço temporariamente indisponível',
+            message: error.message
+          })
+        }
+        
+        if (error.name === 'PagSeguroAuthenticationError') {
+          return res.status(401).json({
+            error: 'Erro de autenticação',
+            message: error.message
+          })
+        }
+
+        if (error.name === 'PagSeguroCardError') {
+          return res.status(400).json({
+            error: 'Erro no cartão',
+            message: error.message
+          })
+        }
+        
+        return res.status(500).json({
+          error: 'Erro ao processar pagamento via cartão',
+          message: error.message || 'Erro desconhecido'
+        })
       }
     }
 
