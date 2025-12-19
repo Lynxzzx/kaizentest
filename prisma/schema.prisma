@@ -63,6 +63,7 @@ model User {
   couponsCreated Coupon[] @relation("CouponCreatedBy")
   withdrawalsProcessed AffiliateWithdrawal[] @relation("WithdrawalProcessor")
   adminLogs     AdminLog[] @relation("AdminLogUser")
+  bannedIps     BannedIp[] @relation("BannedIpAdmin")
 }
 
 enum UserRole {
@@ -478,4 +479,18 @@ model SecurityLog {
   @@index([username])
   @@index([type])
   @@index([createdAt])
+}
+
+// IPs banidos permanentemente
+model BannedIp {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  ip          String   @unique
+  reason      String   // Motivo do banimento
+  bannedById  String?  @db.ObjectId // Admin que baniu
+  bannedBy    User?    @relation("BannedIpAdmin", fields: [bannedById], references: [id])
+  expiresAt   DateTime? // Se null, banimento permanente
+  createdAt   DateTime @default(now())
+  
+  @@index([ip])
+  @@index([expiresAt])
 }

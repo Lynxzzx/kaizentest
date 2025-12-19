@@ -621,6 +621,26 @@ export async function validateRegisterRequest(
   const ip = getClientIp(req)
   const userAgent = getUserAgent(req)
   
+  // 0. Verificar se IP está banido permanentemente
+  const ipBanCheck = await isIpBanned(ip)
+  if (ipBanCheck.banned) {
+    await logSecurityEvent({
+      type: 'blocked',
+      ip,
+      userAgent,
+      username: data.username,
+      success: false,
+      reason: `IP banido: ${ipBanCheck.reason}`
+    })
+    
+    return {
+      allowed: false,
+      reason: `Seu IP foi banido. Motivo: ${ipBanCheck.reason}`,
+      warnings: [],
+      botScore: 100
+    }
+  }
+  
   // 1. Rate Limiting
   const rateLimit = checkRegisterRateLimit(ip)
   if (!rateLimit.allowed) {
@@ -781,6 +801,26 @@ export async function validateLoginRequest(
   const ip = getClientIp(req)
   const userAgent = getUserAgent(req)
   
+  // 0. Verificar se IP está banido permanentemente
+  const ipBanCheck = await isIpBanned(ip)
+  if (ipBanCheck.banned) {
+    await logSecurityEvent({
+      type: 'blocked',
+      ip,
+      userAgent,
+      username: data.username,
+      success: false,
+      reason: `IP banido: ${ipBanCheck.reason}`
+    })
+    
+    return {
+      allowed: false,
+      reason: `Seu IP foi banido. Motivo: ${ipBanCheck.reason}`,
+      warnings: [],
+      botScore: 100
+    }
+  }
+  
   // 1. Rate Limiting
   const rateLimit = checkLoginRateLimit(ip, data.username)
   if (!rateLimit.allowed) {
@@ -879,6 +919,98 @@ export async function validateLoginRequest(
     warnings,
     botScore: botCheck.score,
     recaptchaScore
+  }
+}
+
+// ===========================================
+// 🚫 VERIFICAÇÃO DE IP BANIDO
+// ===========================================
+
+/**
+ * Verificar se um IP está banido permanentemente
+ */
+export async function isIpBanned(ip: string): Promise<{ banned: boolean; reason?: string; expiresAt?: Date }> {
+  try {
+    const bannedIp = await prisma.bannedIp.findUnique({
+      where: { ip }
+    })
+    
+    if (!bannedIp) {
+      return { banned: false }
+    }
+    
+    // Verificar se o banimento expirou
+    if (bannedIp.expiresAt && bannedIp.expiresAt < new Date()) {
+      // Banimento expirou, remover
+      await prisma.bannedIp.delete({
+        where: { ip }
+      }).catch(() => {})
+      
+      return { banned: false }
+    }
+    
+    return {
+      banned: true,
+      reason: bannedIp.reason,
+      expiresAt: bannedIp.expiresAt || undefined
+    }
+  } catch (error) {
+    console.error('Erro ao verificar IP banido:', error)
+    return { banned: false }
+  }
+}
+
+/**
+ * Banir um IP
+ */
+export async function banIp(
+  ip: string, 
+  reason: string, 
+  bannedById?: string,
+  durationHours?: number
+): Promise<boolean> {
+  try {
+    let expiresAt: Date | null = null
+    if (durationHours && durationHours > 0) {
+      expiresAt = new Date()
+      expiresAt.setHours(expiresAt.getHours() + durationHours)
+    }
+    
+    await prisma.bannedIp.create({
+      data: {
+        ip,
+        reason,
+        bannedById: bannedById || null,
+        expiresAt
+      }
+    })
+    
+    // Também limpar do cache de rate limiting
+    clearBlockedIp(ip)
+    
+    return true
+  } catch (error) {
+    console.error('Erro ao banir IP:', error)
+    return false
+  }
+}
+
+/**
+ * Desbanir um IP
+ */
+export async function unbanIp(ip: string): Promise<boolean> {
+  try {
+    await prisma.bannedIp.delete({
+      where: { ip }
+    })
+    
+    // Também limpar do cache de rate limiting
+    clearBlockedIp(ip)
+    
+    return true
+  } catch (error) {
+    console.error('Erro ao desbanir IP:', error)
+    return false
   }
 }
 
