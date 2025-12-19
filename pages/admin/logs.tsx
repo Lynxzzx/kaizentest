@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
+import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getThemeClasses } from '@/lib/theme-utils'
 import axios from 'axios'
 import toast from 'react-hot-toast'
-import AdminLayout from '@/components/AdminLayout'
 
 interface AdminLog {
   id: string
@@ -186,17 +186,24 @@ export default function AdminLogs() {
 
   if (status === 'loading' || loading) {
     return (
-      <AdminLayout>
-        <div className="flex items-center justify-center min-h-[60vh]">
+      <div className={`min-h-screen ${themeClasses.bg} py-8 px-4 sm:px-6 lg:px-8`}>
+        <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[60vh]">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
-      </AdminLayout>
+      </div>
     )
   }
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className={`min-h-screen ${themeClasses.bg} py-8 px-4 sm:px-6 lg:px-8`}>
+      <div className="max-w-7xl mx-auto space-y-6">
+        {/* Back Button */}
+        <Link
+          href="/admin"
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg ${themeClasses.card} ${themeClasses.text.secondary} hover:${themeClasses.text.primary} transition-colors`}
+        >
+          ← Voltar ao Painel
+        </Link>
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
@@ -406,9 +413,8 @@ export default function AdminLogs() {
             </div>
           )}
         </div>
-      </div>
 
-      {/* Modal de Detalhes */}
+        {/* Modal de Detalhes */}
       {selectedLog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className={`${themeClasses.card} rounded-xl p-6 max-w-lg w-full max-h-[80vh] overflow-auto`}>
@@ -475,7 +481,8 @@ export default function AdminLogs() {
           </div>
         </div>
       )}
-    </AdminLayout>
+      </div>
+    </div>
   )
 }
 
