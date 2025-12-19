@@ -250,10 +250,6 @@ export default function Dashboard() {
       // 🛡️ INICIAR COOLDOWN APÓS GERAÇÃO BEM-SUCEDIDA
       if (response.data.cooldown?.seconds) {
         startCooldownTimer(response.data.cooldown.seconds)
-        toast.success(`Próxima geração disponível em ${formatCooldown(response.data.cooldown.seconds)}`, {
-          duration: 4000,
-          icon: '⏱️'
-        })
       } else {
         // Se não receber do backend, usar valor padrão
         startCooldownTimer(COOLDOWN_SECONDS)
@@ -444,17 +440,9 @@ export default function Dashboard() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="text-3xl animate-pulse">⏳</div>
-                      <div>
-                        <p className={`font-semibold ${theme === 'dark' ? 'text-orange-200' : 'text-orange-800'}`}>
-                          Aguarde para gerar novamente
-                        </p>
-                        <p className={`text-sm ${theme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`}>
-                          Proteção anti-automação ativa
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`text-3xl font-mono font-bold ${theme === 'dark' ? 'text-orange-200' : 'text-orange-800'}`}>
-                      {formatCooldown(cooldownRemaining)}
+                      <p className={`font-semibold ${theme === 'dark' ? 'text-orange-200' : 'text-orange-800'}`}>
+                        Aguarde {formatCooldown(cooldownRemaining)}
+                      </p>
                     </div>
                   </div>
                   {/* Progress bar */}
@@ -503,13 +491,6 @@ export default function Dashboard() {
                   </p>
                 </div>
               )}
-              
-              {/* 🛡️ AVISO DE SEGURANÇA */}
-              <div className={`${theme === 'dark' ? 'bg-blue-500/10 border border-blue-400/20' : 'bg-blue-50 border border-blue-200'} rounded-lg p-3 mt-2`}>
-                <p className={`text-xs ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                  <span className="font-semibold">🛡️ Proteção ativa:</span> Cada geração possui um intervalo mínimo de 2 minutos para proteger nosso estoque.
-                </p>
-              </div>
             </div>
           </div>
         </div>
