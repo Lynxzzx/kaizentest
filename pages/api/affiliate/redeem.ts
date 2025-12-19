@@ -125,27 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // VALIDAÇÃO: Verificar mesmo IP
     const ip = getClientIp(req)
-    if (referrer.lastLoginIp === ip) {
-      await prisma.securityLog.create({
-        data: {
-          type: 'bot_detected',
-          ip,
-          username: session.user.id,
-          success: false,
-          reason: 'Mesmo IP detectado em afiliado',
-          metadata: JSON.stringify({
-            action: 'affiliate_same_ip',
-            referrerId: referrer.id
-          })
-        }
-      }).catch(() => {})
-      
-      return res.status(403).json({ 
-        error: 'Não é permitido resgatar código de afiliado do mesmo IP por questões de segurança.' 
-      })
-    }
 
     // Verificar se já existe recompensa para este usuário
     const existingReward = await prisma.affiliateReward.findFirst({
@@ -156,38 +136,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Você já foi referenciado anteriormente' })
     }
 
-    // Verificar se o referrer já referenciou muitos usuários do mesmo IP/device
-    const suspiciousReferrals = await prisma.affiliateReward.count({
-      where: {
-        userId: referrer.id,
-        referredUser: {
-          OR: [
-            { lastLoginIp: ip },
-            currentUser.deviceFingerprint ? { deviceFingerprint: currentUser.deviceFingerprint } : {}
-          ]
+    // Verificar se o referrer já referenciou muitos usuários do mesmo device
+    if (currentUser.deviceFingerprint) {
+      const suspiciousReferrals = await prisma.affiliateReward.count({
+        where: {
+          userId: referrer.id,
+          referredUser: {
+            deviceFingerprint: currentUser.deviceFingerprint
+          }
         }
-      }
-    })
-
-    if (suspiciousReferrals >= 2) {
-      await prisma.securityLog.create({
-        data: {
-          type: 'bot_detected',
-          ip,
-          username: session.user.id,
-          success: false,
-          reason: 'Muitos referrals suspeitos',
-          metadata: JSON.stringify({
-            action: 'affiliate_suspicious_pattern',
-            referrerId: referrer.id,
-            suspiciousCount: suspiciousReferrals
-          })
-        }
-      }).catch(() => {})
-      
-      return res.status(403).json({ 
-        error: 'Atividade suspeita detectada. Contate o suporte.' 
       })
+
+      if (suspiciousReferrals >= 2) {
+        await prisma.securityLog.create({
+          data: {
+            type: 'bot_detected',
+            ip,
+            username: session.user.id,
+            success: false,
+            reason: 'Muitos referrals suspeitos',
+            metadata: JSON.stringify({
+              action: 'affiliate_suspicious_pattern',
+              referrerId: referrer.id,
+              suspiciousCount: suspiciousReferrals
+            })
+          }
+        }).catch(() => {})
+        
+        return res.status(403).json({ 
+          error: 'Atividade suspeita detectada. Contate o suporte.' 
+        })
+      }
     }
 
     // Criar recompensa
