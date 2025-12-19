@@ -59,7 +59,7 @@ export default function Affiliate() {
   const [generating, setGenerating] = useState(false)
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [pixKey, setPixKey] = useState('')
-  const [pixKeyType, setPixKeyType] = useState<'CPF' | 'CNPJ' | 'EMAIL' | 'PHONE' | 'RANDOM'>('PIX')
+  const [pixKeyType, setPixKeyType] = useState<'CPF' | 'CNPJ' | 'EMAIL' | 'PHONE' | 'RANDOM'>('CPF')
   const [withdrawing, setWithdrawing] = useState(false)
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const themeClasses = getThemeClasses(theme)
