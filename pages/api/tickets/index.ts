@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { simpleRateLimit, getClientIp } from '@/lib/api-protection'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -62,6 +63,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'POST') {
+    // 🛡️ RATE LIMITING: Máximo 5 tickets por hora
+    const rateCheck = await simpleRateLimit(req, 5, 60)
+    if (!rateCheck.allowed) {
+      return res.status(429).json({ error: rateCheck.error })
+    }
+
     try {
       // Criar novo ticket
       const { subject, message, priority } = req.body
@@ -70,15 +77,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Subject and message are required' })
       }
 
+      // 🛡️ Validar tamanhos
+      if (subject.length < 3 || subject.length > 200) {
+        return res.status(400).json({ error: 'Assunto deve ter entre 3 e 200 caracteres' })
+      }
+
+      if (message.length < 10 || message.length > 5000) {
+        return res.status(400).json({ error: 'Mensagem deve ter entre 10 e 5000 caracteres' })
+      }
+
+      // 🛡️ Sanitizar inputs
+      const sanitizedSubject = subject.replace(/<[^>]*>/g, '').trim()
+      const sanitizedMessage = message.replace(/<[^>]*>/g, '').trim()
+
       // Validar prioridade
       const validPriorities = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
       const ticketPriority = validPriorities.includes(priority) ? priority : 'MEDIUM'
 
+      // 🛡️ Verificar se usuário tem muitos tickets abertos
+      const openTicketsCount = await prisma.ticket.count({
+        where: {
+          userId: session.user.id,
+          status: { in: ['OPEN', 'IN_PROGRESS'] }
+        }
+      })
+
+      if (openTicketsCount >= 5) {
+        return res.status(429).json({ 
+          error: 'Você tem muitos tickets abertos. Aguarde a resolução antes de abrir novos.' 
+        })
+      }
+
       const ticket = await prisma.ticket.create({
         data: {
           userId: session.user.id,
-          subject: subject.trim(),
-          message: message.trim(),
+          subject: sanitizedSubject,
+          message: sanitizedMessage,
           priority: ticketPriority as any
         },
         include: {
@@ -90,6 +124,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
       })
+
+      // Log ticket criado
+      try {
+        await prisma.securityLog.create({
+          data: {
+            type: 'register_attempt',
+            ip: getClientIp(req),
+            username: session.user.id,
+            success: true,
+            reason: 'Ticket criado',
+            metadata: JSON.stringify({
+              action: 'ticket_create',
+              ticketId: ticket.id
+            })
+          }
+        })
+      } catch (e) {}
 
       return res.status(201).json(ticket)
     } catch (error: any) {

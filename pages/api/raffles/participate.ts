@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { simpleRateLimit, getClientIp } from '@/lib/api-protection'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -14,10 +15,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
+  // 🛡️ RATE LIMITING: Máximo 10 participações por hora
+  const rateCheck = await simpleRateLimit(req, 10, 60)
+  if (!rateCheck.allowed) {
+    return res.status(429).json({ error: rateCheck.error })
+  }
+
   const { raffleId } = req.body
 
   if (!raffleId) {
     return res.status(400).json({ error: 'RaffleId is required' })
+  }
+
+  // 🛡️ Validar formato do ID
+  if (typeof raffleId !== 'string' || raffleId.length < 10) {
+    return res.status(400).json({ error: 'Invalid raffleId format' })
   }
 
   try {
@@ -53,6 +65,57 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Você já está participando deste sorteio' })
     }
 
+    // 🛡️ Verificar se usuário está banido
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { isBanned: true }
+    })
+
+    if (user?.isBanned) {
+      return res.status(403).json({ error: 'Usuários banidos não podem participar de sorteios.' })
+    }
+
+    // 🛡️ Verificar participações por device fingerprint (anti multi-conta)
+    const currentUserFull = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { deviceFingerprint: true }
+    })
+
+    if (currentUserFull?.deviceFingerprint) {
+      const sameDeviceParticipants = await prisma.raffleParticipant.findMany({
+        where: {
+          raffleId,
+          user: {
+            deviceFingerprint: currentUserFull.deviceFingerprint
+          }
+        }
+      })
+
+      if (sameDeviceParticipants.length >= 2) {
+        // Log tentativa suspeita
+        try {
+          await prisma.securityLog.create({
+            data: {
+              type: 'bot_detected',
+              ip: getClientIp(req),
+              username: session.user.id,
+              success: false,
+              reason: 'Múltiplas participações em sorteio do mesmo dispositivo',
+              metadata: JSON.stringify({
+                action: 'raffle_multi_account',
+                raffleId,
+                existingParticipants: sameDeviceParticipants.length
+              })
+            }
+          })
+        } catch (e) {}
+
+        return res.status(403).json({ 
+          error: 'Detectamos múltiplas contas do mesmo dispositivo. Contate o suporte.' 
+        })
+      }
+    }
+
     // Adicionar participante
     const participant = await prisma.raffleParticipant.create({
       data: {
@@ -78,6 +141,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
+    // Log participação
+    try {
+      await prisma.securityLog.create({
+        data: {
+          type: 'register_attempt',
+          ip: getClientIp(req),
+          username: session.user.id,
+          success: true,
+          reason: 'Participação em sorteio',
+          metadata: JSON.stringify({
+            action: 'raffle_participate',
+            raffleId,
+            raffleName: raffle.name
+          })
+        }
+      })
+    } catch (e) {}
+
     return res.status(200).json({
       message: 'Você entrou no sorteio com sucesso!',
       participant,
@@ -91,4 +172,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: 'Error participating in raffle', details: error.message })
   }
 }
-

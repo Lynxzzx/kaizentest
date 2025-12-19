@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { checkRateLimit, recordSuccess, getClientIp } from '@/lib/api-protection'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -14,6 +15,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
+  // 🛡️ PROTEÇÃO CONTRA ABUSO
+  const rateCheck = await checkRateLimit(req, 'affiliate_redeem', session.user.id)
+  
+  if (!rateCheck.allowed) {
+    return res.status(429).json({ 
+      error: rateCheck.reason,
+      retryAfter: rateCheck.retryAfter
+    })
+  }
+
   const { code } = req.body
 
   if (!code || !code.trim()) {
@@ -21,15 +32,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log('Redeeming affiliate code:', code)
+    const normalizedCode = code.trim().toUpperCase()
+    
+    // Validar formato do código
+    if (normalizedCode.length < 3 || normalizedCode.length > 20) {
+      return res.status(400).json({ error: 'Formato de código inválido' })
+    }
     
     // Buscar usuário que possui o código
     const referrer = await prisma.user.findFirst({
-      where: { affiliateCode: code.trim().toUpperCase() }
+      where: { affiliateCode: normalizedCode }
     })
 
     if (!referrer) {
-      console.log('Affiliate code not found:', code)
+      // Log tentativa inválida
+      try {
+        await prisma.securityLog.create({
+          data: {
+            type: 'login_attempt',
+            ip: getClientIp(req),
+            username: session.user.id,
+            success: false,
+            reason: 'Código de afiliado inválido',
+            metadata: JSON.stringify({
+              action: 'affiliate_redeem',
+              codeAttempt: normalizedCode
+            })
+          }
+        })
+      } catch (e) {}
+      
       return res.status(404).json({ error: 'Código de afiliado inválido' })
     }
 
@@ -42,42 +74,77 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'User not found' })
     }
 
+    // Verificar se usuário está banido
+    if (currentUser.isBanned) {
+      return res.status(403).json({ error: 'Usuário banido.' })
+    }
+
     if (currentUser.referredBy) {
-      console.log('User already referred by:', currentUser.referredBy)
       return res.status(400).json({ error: 'Você já utilizou um código de afiliado' })
     }
 
     // VALIDAÇÃO DE SEGURANÇA: Prevenir auto-resgate
     if (currentUser.id === referrer.id) {
-      console.log('User trying to use own code')
+      await prisma.securityLog.create({
+        data: {
+          type: 'bot_detected',
+          ip: getClientIp(req),
+          username: session.user.id,
+          success: false,
+          reason: 'Tentativa de auto-resgate de afiliado',
+          metadata: JSON.stringify({
+            action: 'affiliate_self_redeem',
+            code: normalizedCode
+          })
+        }
+      }).catch(() => {})
+      
       return res.status(400).json({ error: 'Você não pode usar seu próprio código' })
     }
 
-    // VALIDAÇÃO ADICIONAL: Verificar se são do mesmo dispositivo
+    // VALIDAÇÃO: Verificar se são do mesmo dispositivo
     if (currentUser.deviceFingerprint && referrer.deviceFingerprint) {
       if (currentUser.deviceFingerprint === referrer.deviceFingerprint) {
-        console.log('User trying to use code from same device')
+        await prisma.securityLog.create({
+          data: {
+            type: 'bot_detected',
+            ip: getClientIp(req),
+            username: session.user.id,
+            success: false,
+            reason: 'Mesmo dispositivo detectado em afiliado',
+            metadata: JSON.stringify({
+              action: 'affiliate_same_device',
+              referrerId: referrer.id
+            })
+          }
+        }).catch(() => {})
+        
         return res.status(403).json({ 
           error: 'Não é permitido resgatar código de afiliado do mesmo dispositivo por questões de segurança.' 
         })
       }
     }
 
-    // Verificar se o referrer tem o mesmo device fingerprint (mesmo dispositivo tentando resgatar seu próprio código)
-    if (currentUser.deviceFingerprint) {
-      const sameDeviceReferrer = await prisma.user.findFirst({
-        where: {
-          deviceFingerprint: currentUser.deviceFingerprint,
-          id: referrer.id
+    // VALIDAÇÃO: Verificar mesmo IP
+    const ip = getClientIp(req)
+    if (referrer.lastLoginIp === ip) {
+      await prisma.securityLog.create({
+        data: {
+          type: 'bot_detected',
+          ip,
+          username: session.user.id,
+          success: false,
+          reason: 'Mesmo IP detectado em afiliado',
+          metadata: JSON.stringify({
+            action: 'affiliate_same_ip',
+            referrerId: referrer.id
+          })
         }
-      })
+      }).catch(() => {})
       
-      if (sameDeviceReferrer) {
-        console.log('User trying to use code from same device (device fingerprint match)')
-        return res.status(403).json({ 
-          error: 'Não é permitido resgatar código de afiliado do mesmo dispositivo por questões de segurança.' 
-        })
-      }
+      return res.status(403).json({ 
+        error: 'Não é permitido resgatar código de afiliado do mesmo IP por questões de segurança.' 
+      })
     }
 
     // Verificar se já existe recompensa para este usuário
@@ -86,12 +153,44 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     if (existingReward) {
-      console.log('Reward already exists for user:', currentUser.id)
       return res.status(400).json({ error: 'Você já foi referenciado anteriormente' })
     }
 
+    // Verificar se o referrer já referenciou muitos usuários do mesmo IP/device
+    const suspiciousReferrals = await prisma.affiliateReward.count({
+      where: {
+        userId: referrer.id,
+        referredUser: {
+          OR: [
+            { lastLoginIp: ip },
+            currentUser.deviceFingerprint ? { deviceFingerprint: currentUser.deviceFingerprint } : {}
+          ]
+        }
+      }
+    })
+
+    if (suspiciousReferrals >= 2) {
+      await prisma.securityLog.create({
+        data: {
+          type: 'bot_detected',
+          ip,
+          username: session.user.id,
+          success: false,
+          reason: 'Muitos referrals suspeitos',
+          metadata: JSON.stringify({
+            action: 'affiliate_suspicious_pattern',
+            referrerId: referrer.id,
+            suspiciousCount: suspiciousReferrals
+          })
+        }
+      }).catch(() => {})
+      
+      return res.status(403).json({ 
+        error: 'Atividade suspeita detectada. Contate o suporte.' 
+      })
+    }
+
     // Criar recompensa
-    console.log('Creating affiliate reward...')
     await prisma.affiliateReward.create({
       data: {
         userId: referrer.id,
@@ -116,7 +215,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     })
 
-    console.log('Affiliate reward created successfully')
+    // Registrar sucesso
+    recordSuccess('affiliate_redeem', session.user.id)
+
+    // Log sucesso
+    await prisma.securityLog.create({
+      data: {
+        type: 'login_attempt',
+        ip,
+        username: session.user.id,
+        success: true,
+        reason: 'Código de afiliado resgatado',
+        metadata: JSON.stringify({
+          action: 'affiliate_redeem',
+          referrerId: referrer.id
+        })
+      }
+    }).catch(() => {})
+
     return res.json({ 
       success: true,
       message: 'Código de afiliado resgatado! Você ganhou 2 gerações grátis.',
@@ -124,11 +240,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   } catch (error: any) {
     console.error('Error redeeming affiliate code:', error)
-    console.error('Error details:', {
-      message: error.message,
-      code: error.code,
-      stack: error.stack
-    })
     return res.status(500).json({ 
       error: 'Internal server error',
       details: error.message 

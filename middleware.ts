@@ -22,11 +22,24 @@ const SECURITY_HEADERS = {
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
 }
 
-// Lista de User-Agents suspeitos
+// Lista de User-Agents suspeitos (ferramentas de hacking e automação)
 const BLOCKED_USER_AGENTS = [
+  // Ferramentas de hacking
   'sqlmap', 'nikto', 'nessus', 'nmap',
   'masscan', 'zmap', 'gobuster', 'dirbuster',
-  'wpscan', 'nuclei', 'hydra', 'medusa'
+  'wpscan', 'nuclei', 'hydra', 'medusa',
+  'metasploit', 'burp', 'owasp', 'acunetix',
+  'netsparker', 'appscan', 'webinspect',
+  
+  // Automação/Scrapers
+  'puppeteer', 'playwright', 'selenium', 'webdriver',
+  'phantomjs', 'headless', 'chrome-lighthouse',
+  'scrapy', 'httpclient', 'java/', 'libwww',
+  
+  // Bibliotecas de HTTP conhecidas usadas em bots
+  'python-requests', 'python-urllib', 'aiohttp',
+  'node-fetch', 'axios/', 'got/', 'superagent',
+  'httpie', 'curl/', 'wget/',
 ]
 
 // Paths que não precisam de validação extra
@@ -37,10 +50,70 @@ const SKIP_PATHS = [
   '/logo.png'
 ]
 
+// 🛡️ APIs sensíveis que precisam de proteção extra
+const SENSITIVE_API_PATHS = [
+  '/api/accounts/generate',
+  '/api/keys/redeem',
+  '/api/affiliate/redeem',
+  '/api/coupons/validate',
+  '/api/auth/register',
+  '/api/auth/forgot-password'
+]
+
+// Cache simples para rate limiting no Edge (por IP)
+const ipRequestCounts = new Map<string, { count: number; resetAt: number }>()
+
+// Limpar cache periodicamente (a cada minuto no Edge)
+const RATE_LIMIT_WINDOW_MS = 60 * 1000 // 1 minuto
+const MAX_REQUESTS_PER_MINUTE = 120 // Máximo de requisições por minuto por IP
+
+function getClientIp(request: NextRequest): string {
+  // Cloudflare
+  const cfIp = request.headers.get('cf-connecting-ip')
+  if (cfIp) return cfIp
+  
+  // Vercel
+  const xRealIp = request.headers.get('x-real-ip')
+  if (xRealIp) return xRealIp
+  
+  // Standard
+  const forwarded = request.headers.get('x-forwarded-for')
+  if (forwarded) return forwarded.split(',')[0].trim()
+  
+  return 'unknown'
+}
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const record = ipRequestCounts.get(ip)
+  
+  // Limpar registros antigos
+  if (ipRequestCounts.size > 10000) {
+    for (const [key, value] of ipRequestCounts.entries()) {
+      if (now > value.resetAt) {
+        ipRequestCounts.delete(key)
+      }
+    }
+  }
+  
+  if (!record || now > record.resetAt) {
+    ipRequestCounts.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
+    return true
+  }
+  
+  record.count++
+  
+  if (record.count > MAX_REQUESTS_PER_MINUTE) {
+    return false
+  }
+  
+  return true
+}
+
 export function middleware(request: NextRequest) {
-  const response = NextResponse.next()
   const userAgent = request.headers.get('user-agent')?.toLowerCase() || ''
   const pathname = request.nextUrl.pathname
+  const ip = getClientIp(request)
   
   // Pular paths que não precisam de validação
   const shouldSkip = SKIP_PATHS.some(path => pathname.startsWith(path))
@@ -49,11 +122,62 @@ export function middleware(request: NextRequest) {
   if (!shouldSkip) {
     for (const blocked of BLOCKED_USER_AGENTS) {
       if (userAgent.includes(blocked)) {
-        console.log(`🚫 Blocked suspicious user agent: ${userAgent}`)
-        return new NextResponse('Forbidden', { status: 403 })
+        console.log(`🚫 Blocked suspicious user agent from ${ip}: ${userAgent.substring(0, 100)}`)
+        return new NextResponse(JSON.stringify({ error: 'Forbidden' }), { 
+          status: 403,
+          headers: { 'Content-Type': 'application/json' }
+        })
       }
     }
   }
+  
+  // 🛡️ Rate limiting global no Edge (proteção básica)
+  if (pathname.startsWith('/api/')) {
+    if (!checkRateLimit(ip)) {
+      console.log(`🚫 Rate limit exceeded for IP: ${ip}`)
+      return new NextResponse(JSON.stringify({ 
+        error: 'Too many requests. Please slow down.',
+        retryAfter: 60
+      }), { 
+        status: 429,
+        headers: { 
+          'Content-Type': 'application/json',
+          'Retry-After': '60'
+        }
+      })
+    }
+  }
+  
+  // 🛡️ Verificação extra para APIs sensíveis
+  const isSensitiveApi = SENSITIVE_API_PATHS.some(path => pathname.startsWith(path))
+  
+  if (isSensitiveApi) {
+    // Verificar se tem User-Agent (bots simples geralmente não têm)
+    if (!userAgent || userAgent.length < 10) {
+      console.log(`🚫 Blocked request without proper user-agent to ${pathname}`)
+      return new NextResponse(JSON.stringify({ error: 'Invalid request' }), { 
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+    
+    // Verificar headers básicos de navegador
+    const acceptLanguage = request.headers.get('accept-language')
+    const accept = request.headers.get('accept')
+    
+    // POST requests para APIs sensíveis devem ter headers típicos de navegador
+    if (request.method === 'POST') {
+      if (!acceptLanguage && !accept) {
+        console.log(`🚫 Blocked suspicious POST request to ${pathname} from ${ip}`)
+        return new NextResponse(JSON.stringify({ error: 'Invalid request headers' }), { 
+          status: 400,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
+    }
+  }
+  
+  const response = NextResponse.next()
   
   // 🛡️ Adicionar headers de segurança em todas as respostas
   for (const [header, value] of Object.entries(SECURITY_HEADERS)) {
@@ -61,7 +185,6 @@ export function middleware(request: NextRequest) {
   }
   
   // 🛡️ CSP (Content Security Policy) - Mais restritivo
-  // Ajustar conforme necessário para sua aplicação
   const cspValue = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com https://www.gstatic.com",
@@ -79,9 +202,12 @@ export function middleware(request: NextRequest) {
   
   response.headers.set('Content-Security-Policy', cspValue)
   
-  // 🛡️ Adicionar identificador único para rastreamento (sem expor dados sensíveis)
+  // 🛡️ Adicionar identificador único para rastreamento
   const requestId = crypto.randomUUID()
   response.headers.set('X-Request-ID', requestId)
+  
+  // 🛡️ Adicionar header indicando proteção ativa
+  response.headers.set('X-Protected-By', 'Kaizen-Security')
   
   return response
 }
@@ -90,7 +216,6 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes) - handled separately
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)

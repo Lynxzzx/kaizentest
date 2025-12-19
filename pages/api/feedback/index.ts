@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { simpleRateLimit, getClientIp } from '@/lib/api-protection'
 
 // GET - Listar feedbacks aprovados (público)
 // POST - Criar feedback
@@ -39,6 +40,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'POST') {
+    // 🛡️ RATE LIMITING: Máximo 3 feedbacks por hora por IP
+    const rateCheck = await simpleRateLimit(req, 3, 60)
+    if (!rateCheck.allowed) {
+      return res.status(429).json({ error: rateCheck.error })
+    }
+
     try {
       const { name, message, rating } = req.body
 
@@ -59,22 +66,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'Avaliação deve ser entre 1 e 5' })
       }
 
+      // 🛡️ Filtrar caracteres suspeitos / XSS básico
+      const sanitizedName = name.replace(/<[^>]*>/g, '').trim()
+      const sanitizedMessage = message.replace(/<[^>]*>/g, '').trim()
+
       // Verificar se há sessão (opcional - feedback pode ser anônimo)
       const session = await getServerSession(req, res, authOptions)
       const userId = session?.user?.id || null
 
       // Se o usuário está logado, usar o username dele como nome padrão
-      const feedbackName = session?.user?.username || name
+      const feedbackName = session?.user?.username || sanitizedName
+
+      // 🛡️ Verificar se usuário logado já enviou feedback recentemente
+      if (userId) {
+        const recentFeedback = await prisma.feedback.findFirst({
+          where: {
+            userId,
+            createdAt: {
+              gte: new Date(Date.now() - 60 * 60 * 1000) // última hora
+            }
+          }
+        })
+
+        if (recentFeedback) {
+          return res.status(429).json({ 
+            error: 'Você já enviou um feedback recentemente. Aguarde 1 hora.' 
+          })
+        }
+      }
 
       const feedback = await prisma.feedback.create({
         data: {
           userId,
           name: feedbackName,
-          message,
+          message: sanitizedMessage,
           rating: rating ? parseInt(rating) : null,
           isApproved: false // Por padrão, precisa ser aprovado
         }
       })
+
+      // Log feedback criado
+      try {
+        await prisma.securityLog.create({
+          data: {
+            type: 'register_attempt',
+            ip: getClientIp(req),
+            username: userId || 'anonymous',
+            success: true,
+            reason: 'Feedback enviado',
+            metadata: JSON.stringify({
+              action: 'feedback_create',
+              feedbackId: feedback.id
+            })
+          }
+        })
+      } catch (e) {}
 
       return res.status(201).json({
         message: 'Feedback enviado com sucesso! Aguarde aprovação do administrador.',
@@ -88,5 +134,3 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   return res.status(405).json({ error: 'Method not allowed' })
 }
-
-

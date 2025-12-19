@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
@@ -45,6 +45,9 @@ interface UserPlan {
   affiliateCode: string | null
 }
 
+// 🛡️ COOLDOWN TOTAL EM SEGUNDOS (deve corresponder ao backend)
+const COOLDOWN_SECONDS = 120
+
 export default function Dashboard() {
   const { t } = useTranslation()
   const { data: session, status } = useSession()
@@ -55,6 +58,10 @@ export default function Dashboard() {
   const [selectedService, setSelectedService] = useState<string>('')
   const [generatedAccount, setGeneratedAccount] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  
+  // 🛡️ COOLDOWN STATE
+  const [cooldownRemaining, setCooldownRemaining] = useState(0)
+  const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Classes de tema para o dashboard
   const getDashboardThemeClasses = () => {
@@ -111,19 +118,67 @@ export default function Dashboard() {
     return service.allowedPlans?.some((access) => access.planId === userPlan.plan!.id) ?? false
   }
 
+  // 🛡️ FORMATAR TEMPO DE COOLDOWN
+  const formatCooldown = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // 🛡️ INICIAR TIMER DE COOLDOWN
+  const startCooldownTimer = useCallback((seconds: number) => {
+    // Limpar timer anterior se existir
+    if (cooldownIntervalRef.current) {
+      clearInterval(cooldownIntervalRef.current)
+    }
+
+    setCooldownRemaining(seconds)
+
+    cooldownIntervalRef.current = setInterval(() => {
+      setCooldownRemaining(prev => {
+        if (prev <= 1) {
+          if (cooldownIntervalRef.current) {
+            clearInterval(cooldownIntervalRef.current)
+          }
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }, [])
+
+  // 🛡️ VERIFICAR COOLDOWN AO CARREGAR
+  const checkCooldown = useCallback(async () => {
+    try {
+      const response = await axios.get('/api/accounts/cooldown')
+      if (response.data.cooldownRemaining > 0) {
+        startCooldownTimer(response.data.cooldownRemaining)
+      }
+    } catch (error) {
+      // Ignorar erro (API pode não existir ainda)
+    }
+  }, [startCooldownTimer])
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login')
     }
-    // Removido bloqueio de OWNER - agora pode usar dashboard normalmente
   }, [session, status, router])
 
   useEffect(() => {
     if (session) {
       loadServices()
       loadUserPlan()
+      checkCooldown()
     }
-  }, [session])
+    
+    // Limpar timer ao desmontar
+    return () => {
+      if (cooldownIntervalRef.current) {
+        clearInterval(cooldownIntervalRef.current)
+      }
+    }
+  }, [session, checkCooldown])
 
   const loadServices = async () => {
     try {
@@ -164,6 +219,12 @@ export default function Dashboard() {
       return
     }
 
+    // 🛡️ VERIFICAR COOLDOWN NO FRONTEND
+    if (cooldownRemaining > 0) {
+      toast.error(`Aguarde ${formatCooldown(cooldownRemaining)} antes de gerar novamente.`)
+      return
+    }
+
     const service = services.find((item) => item.id === selectedService)
     if (!service) {
       toast.error(t('errorLoadingServices'))
@@ -181,11 +242,31 @@ export default function Dashboard() {
       const response = await axios.post('/api/accounts/generate', {
         serviceId: selectedService
       })
+      
       setGeneratedAccount(response.data)
       toast.success(t('accountGeneratedSuccess'))
-      loadUserPlan() // Recarregar plano para atualizar contagens
+      loadUserPlan()
+      
+      // 🛡️ INICIAR COOLDOWN APÓS GERAÇÃO BEM-SUCEDIDA
+      if (response.data.cooldown?.seconds) {
+        startCooldownTimer(response.data.cooldown.seconds)
+        toast.success(`Próxima geração disponível em ${formatCooldown(response.data.cooldown.seconds)}`, {
+          duration: 4000,
+          icon: '⏱️'
+        })
+      } else {
+        // Se não receber do backend, usar valor padrão
+        startCooldownTimer(COOLDOWN_SECONDS)
+      }
     } catch (error: any) {
-      toast.error(error.response?.data?.error || t('errorGeneratingAccount'))
+      const errorData = error.response?.data
+      
+      // 🛡️ SE RECEBER COOLDOWN NA RESPOSTA DE ERRO
+      if (errorData?.cooldownRemaining) {
+        startCooldownTimer(errorData.cooldownRemaining)
+      }
+      
+      toast.error(errorData?.error || t('errorGeneratingAccount'))
     } finally {
       setLoading(false)
     }
@@ -356,10 +437,44 @@ export default function Dashboard() {
                   )
                 })()}
               </div>
+              
+              {/* 🛡️ COOLDOWN DISPLAY */}
+              {cooldownRemaining > 0 && (
+                <div className={`${theme === 'dark' ? 'bg-orange-500/20 border border-orange-400/30' : 'bg-orange-50 border border-orange-200'} rounded-xl p-4`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="text-3xl animate-pulse">⏳</div>
+                      <div>
+                        <p className={`font-semibold ${theme === 'dark' ? 'text-orange-200' : 'text-orange-800'}`}>
+                          Aguarde para gerar novamente
+                        </p>
+                        <p className={`text-sm ${theme === 'dark' ? 'text-orange-300' : 'text-orange-700'}`}>
+                          Proteção anti-automação ativa
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`text-3xl font-mono font-bold ${theme === 'dark' ? 'text-orange-200' : 'text-orange-800'}`}>
+                      {formatCooldown(cooldownRemaining)}
+                    </div>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="mt-3 h-2 bg-orange-200/30 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-1000"
+                      style={{ width: `${((COOLDOWN_SECONDS - cooldownRemaining) / COOLDOWN_SECONDS) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              
               <button
                 onClick={handleGenerateAccount}
-                disabled={loading || !selectedService}
-                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 sm:py-4 rounded-lg text-sm sm:text-base font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none touch-manipulation"
+                disabled={loading || !selectedService || cooldownRemaining > 0}
+                className={`w-full py-3 sm:py-4 rounded-lg text-sm sm:text-base font-bold transition-all shadow-lg transform touch-manipulation ${
+                  cooldownRemaining > 0 
+                    ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-60'
+                    : 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
+                }`}
               >
                 {loading ? (
                   <span className="flex items-center justify-center">
@@ -368,6 +483,11 @@ export default function Dashboard() {
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     {t('generating')}
+                  </span>
+                ) : cooldownRemaining > 0 ? (
+                  <span className="flex items-center justify-center">
+                    <span className="mr-2">⏳</span>
+                    Aguarde {formatCooldown(cooldownRemaining)}
                   </span>
                 ) : (
                   t('generateAccount')
@@ -383,6 +503,13 @@ export default function Dashboard() {
                   </p>
                 </div>
               )}
+              
+              {/* 🛡️ AVISO DE SEGURANÇA */}
+              <div className={`${theme === 'dark' ? 'bg-blue-500/10 border border-blue-400/20' : 'bg-blue-50 border border-blue-200'} rounded-lg p-3 mt-2`}>
+                <p className={`text-xs ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
+                  <span className="font-semibold">🛡️ Proteção ativa:</span> Cada geração possui um intervalo mínimo de 2 minutos para proteger nosso estoque.
+                </p>
+              </div>
             </div>
           </div>
         </div>
