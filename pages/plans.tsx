@@ -81,21 +81,24 @@ export default function Plans() {
     setAppliedCoupon(null)
   }, [couponPlanId])
 
-  // Verificar status do pagamento PIX periodicamente
+  // Verificar status do pagamento (PIX e Bitcoin) periodicamente
+  // Isso substitui a necessidade de cron jobs no Vercel
   useEffect(() => {
-    if (!paymentData?.id || paymentMethod !== 'PIX' || checkingPayment) {
+    if (!paymentData?.id || !paymentMethod || checkingPayment) {
       return
     }
 
-    // Verificar a cada 5 segundos se o pagamento foi confirmado
+    // Verificar a cada 5 segundos para PIX, 10 segundos para Bitcoin
+    const intervalTime = paymentMethod === 'PIX' ? 5000 : 10000
+    
     const interval = setInterval(async () => {
       if (!paymentData?.id) return
 
       try {
         setCheckingPayment(true)
-        const response = await axios.post('/api/payments/check-pix', {
-          paymentId: paymentData.id
-        })
+        
+        // Usar a nova API unificada de verificação de status
+        const response = await axios.get(`/api/payments/check-status?paymentId=${paymentData.id}`)
 
         if (response.data.status === 'PAID') {
           clearInterval(interval)
@@ -111,7 +114,7 @@ export default function Plans() {
       } finally {
         setCheckingPayment(false)
       }
-    }, 5000) // Verificar a cada 5 segundos
+    }, intervalTime)
 
     // Limpar intervalo quando o componente desmontar ou o pagamento mudar
     return () => clearInterval(interval)
@@ -684,6 +687,14 @@ export default function Plans() {
 
             {paymentMethod === 'CRYPTO' && paymentData && (
               <div className="space-y-4">
+                {checkingPayment && (
+                  <div className={`mb-4 p-3 rounded-lg ${theme === 'dark' ? 'bg-orange-500/20 border border-orange-400/30' : 'bg-orange-50 border border-orange-200'}`}>
+                    <p className={`text-sm flex items-center gap-2 ${theme === 'dark' ? 'text-orange-200' : 'text-orange-800'}`}>
+                      <span className="animate-spin">⏳</span>
+                      {t('checkingPayment')}
+                    </p>
+                  </div>
+                )}
                 {paymentData.fallback ? (
                   <div className={`${theme === 'dark' ? 'bg-yellow-500/20 border border-yellow-400/30' : 'bg-yellow-50 border border-yellow-200'} rounded-lg p-4`}>
                     <p className={`text-sm mb-4 ${theme === 'dark' ? 'text-yellow-200' : 'text-yellow-800'}`}>
