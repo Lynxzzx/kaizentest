@@ -3,11 +3,14 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { hashPassword } from '@/lib/auth'
+import { logAdminAction, getIpFromRequest } from '@/lib/admin-log'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
 
-  if (!session || session.user.role !== 'OWNER') {
+  // OWNER e CO_OWNER podem acessar
+  const allowedRoles = ['OWNER', 'CO_OWNER', 'ADMIN']
+  if (!session || !allowedRoles.includes(session.user.role)) {
     return res.status(403).json({ error: 'Unauthorized' })
   }
 
@@ -51,12 +54,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'PUT') {
-    const { userId, planId, planExpiresAt, isBanned, newPassword } = req.body
+    const { userId, planId, planExpiresAt, isBanned, newPassword, role } = req.body
 
     console.log('🔧 PUT /api/admin/users - Atualizando usuário:', { userId, temNovaSenha: !!newPassword })
 
     if (!userId) {
       return res.status(400).json({ error: 'UserId is required' })
+    }
+
+    // CO_OWNER não pode alterar cargos de admin (OWNER, CO_OWNER, ADMIN)
+    if (role !== undefined && session.user.role === 'CO_OWNER') {
+      return res.status(403).json({ error: 'Co-Owner não pode alterar cargos de usuários' })
+    }
+
+    // Apenas OWNER pode definir cargos de OWNER, CO_OWNER ou ADMIN
+    if (role !== undefined && ['OWNER', 'CO_OWNER', 'ADMIN'].includes(role) && session.user.role !== 'OWNER') {
+      return res.status(403).json({ error: 'Apenas o Owner pode definir cargos administrativos' })
+    }
+
+    // Buscar usuário alvo para o log
+    const targetUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { username: true, role: true }
+    })
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'Usuário não encontrado' })
     }
 
     let computedPlanExpiresAt: Date | null | undefined
@@ -122,6 +145,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
 
+      // Adicionar role se definido (apenas OWNER pode)
+      if (role !== undefined && session.user.role === 'OWNER') {
+        updateData.role = role
+      }
+
       console.log('💾 Salvando alterações no banco de dados...')
       const updatedUser = await prisma.user.update({
         where: { id: userId },
@@ -134,6 +162,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log('✅ Usuário atualizado com sucesso:', updatedUser.username)
       if (updateData.password) {
         console.log('✅ Nova senha salva no banco de dados')
+      }
+
+      // Registrar log da ação
+      const ipAddress = getIpFromRequest(req)
+      const logDetails: any = {}
+
+      if (planId !== undefined) {
+        logDetails.planId = planId
+        logDetails.planExpiresAt = computedPlanExpiresAt
+        await logAdminAction({
+          userId: session.user.id,
+          action: 'USER_SET_PLAN',
+          targetType: 'User',
+          targetId: userId,
+          targetName: targetUser.username,
+          details: logDetails,
+          ipAddress
+        })
+      }
+
+      if (isBanned !== undefined) {
+        await logAdminAction({
+          userId: session.user.id,
+          action: isBanned ? 'USER_BAN' : 'USER_UNBAN',
+          targetType: 'User',
+          targetId: userId,
+          targetName: targetUser.username,
+          ipAddress
+        })
+      }
+
+      if (role !== undefined) {
+        await logAdminAction({
+          userId: session.user.id,
+          action: 'USER_SET_ROLE',
+          targetType: 'User',
+          targetId: userId,
+          targetName: targetUser.username,
+          details: { oldRole: targetUser.role, newRole: role },
+          ipAddress
+        })
+      }
+
+      if (updateData.password) {
+        await logAdminAction({
+          userId: session.user.id,
+          action: 'USER_EDIT',
+          targetType: 'User',
+          targetId: userId,
+          targetName: targetUser.username,
+          details: { passwordChanged: true },
+          ipAddress
+        })
       }
 
       return res.json(updatedUser)

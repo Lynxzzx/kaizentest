@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { logAdminAction, getIpFromRequest } from '@/lib/admin-log'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -15,8 +16,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     select: { role: true }
   })
 
+  // Apenas OWNER pode promover/rebaixar usuários
+  // CO_OWNER NÃO pode dar cargos de admin
   if (!currentUser || currentUser.role !== 'OWNER') {
-    return res.status(403).json({ error: 'Only owners can promote users' })
+    return res.status(403).json({ error: 'Apenas o Owner pode alterar cargos de usuários' })
   }
 
   if (req.method !== 'PUT') {
@@ -30,7 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'UserId and role are required' })
     }
 
-    const validRoles = ['OWNER', 'ADMIN', 'MODERATOR', 'USER']
+    // Incluir CO_OWNER na lista de cargos válidos
+    const validRoles = ['OWNER', 'CO_OWNER', 'ADMIN', 'MODERATOR', 'USER']
     if (!validRoles.includes(role)) {
       return res.status(400).json({ error: 'Invalid role' })
     }
@@ -60,6 +64,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         profilePicture: true,
         createdAt: true
       }
+    })
+
+    // Registrar log da alteração de cargo
+    await logAdminAction({
+      userId: session.user.id,
+      action: 'USER_SET_ROLE',
+      targetType: 'User',
+      targetId: userId,
+      targetName: targetUser.username,
+      details: {
+        oldRole: targetUser.role,
+        newRole: role
+      },
+      ipAddress: getIpFromRequest(req)
     })
 
     return res.json({ user: updatedUser })

@@ -10,8 +10,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  // Apenas OWNER pode ver estatísticas de lucro
+  // CO_OWNER, ADMIN e MODERATOR não podem ver lucros
   if (!session || session.user.role !== 'OWNER') {
-    return res.status(401).json({ error: 'Unauthorized' })
+    return res.status(401).json({ error: 'Apenas o Owner pode visualizar estatísticas financeiras' })
   }
 
   try {

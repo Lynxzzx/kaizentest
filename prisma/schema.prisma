@@ -62,10 +62,12 @@ model User {
   feedbacksApproved Feedback[] @relation("FeedbackApprover")
   couponsCreated Coupon[] @relation("CouponCreatedBy")
   withdrawalsProcessed AffiliateWithdrawal[] @relation("WithdrawalProcessor")
+  adminLogs     AdminLog[] @relation("AdminLogUser")
 }
 
 enum UserRole {
   OWNER
+  CO_OWNER
   ADMIN
   MODERATOR
   USER
@@ -395,4 +397,67 @@ enum WithdrawalStatus {
   PROCESSING // Em processamento
   COMPLETED  // Concluído (pago)
   REJECTED   // Rejeitado
+}
+
+// Logs de ações administrativas (apenas OWNER pode visualizar)
+model AdminLog {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId // Admin que executou a ação
+  user        User     @relation("AdminLogUser", fields: [userId], references: [id])
+  action      AdminAction // Tipo de ação
+  targetType  String?  // Tipo do alvo (User, Plan, Service, etc)
+  targetId    String?  // ID do alvo
+  targetName  String?  // Nome/identificador do alvo para facilitar visualização
+  details     String?  // Detalhes adicionais em JSON
+  ipAddress   String?  // IP do admin
+  createdAt   DateTime @default(now())
+}
+
+enum AdminAction {
+  // Usuários
+  USER_BAN           // Banir usuário
+  USER_UNBAN         // Desbanir usuário
+  USER_SET_PLAN      // Definir plano do usuário
+  USER_SET_ROLE      // Alterar cargo do usuário
+  USER_DELETE        // Deletar usuário
+  USER_EDIT          // Editar usuário
+  
+  // Planos
+  PLAN_CREATE        // Criar plano
+  PLAN_EDIT          // Editar plano
+  PLAN_DELETE        // Deletar plano
+  
+  // Serviços
+  SERVICE_CREATE     // Criar serviço
+  SERVICE_EDIT       // Editar serviço
+  SERVICE_DELETE     // Deletar serviço
+  
+  // Estoque
+  STOCK_ADD          // Adicionar estoque
+  STOCK_DELETE       // Deletar estoque
+  
+  // Chaves
+  KEY_CREATE         // Criar chave
+  KEY_DELETE         // Deletar chave
+  
+  // Cupons
+  COUPON_CREATE      // Criar cupom
+  COUPON_EDIT        // Editar cupom
+  COUPON_DELETE      // Deletar cupom
+  
+  // Sorteios
+  RAFFLE_CREATE      // Criar sorteio
+  RAFFLE_EDIT        // Editar sorteio
+  RAFFLE_DELETE      // Deletar sorteio
+  RAFFLE_DRAW        // Sortear vencedor
+  
+  // Saques
+  WITHDRAWAL_APPROVE // Aprovar saque
+  WITHDRAWAL_REJECT  // Rejeitar saque
+  
+  // Configurações
+  CONFIG_UPDATE      // Atualizar configuração do sistema
+  
+  // Outros
+  OTHER              // Outras ações
 }
