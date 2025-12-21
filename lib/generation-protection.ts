@@ -174,7 +174,7 @@ function getUserState(userId: string): UserGenerationState {
       hourStart: now,
       dayStart: now,
       suspiciousActions: 0,
-      lastRequestTime: now,
+      lastRequestTime: 0, // Inicializar como 0 para permitir primeira requisição
       requestCount: 0,
       isProcessing: false,
       consecutiveRequests: 0
@@ -307,9 +307,12 @@ export async function checkGenerationAllowed(
   // ===========================================
   // 7. VERIFICAR VELOCIDADE SUSPEITA
   // ===========================================
-  const timeSinceLastRequest = now - state.lastRequestTime
+  // Se lastRequestTime é 0, é a primeira requisição - sempre permitir
+  const isFirstRequest = state.lastRequestTime === 0 || state.requestCount === 0
+  const timeSinceLastRequest = isFirstRequest ? Infinity : (now - state.lastRequestTime)
   
-  if (timeSinceLastRequest < GENERATION_PROTECTION.MIN_TIME_BETWEEN_REQUESTS_MS) {
+  // Só verificar velocidade se já houve uma requisição anterior (não é a primeira)
+  if (!isFirstRequest && timeSinceLastRequest < GENERATION_PROTECTION.MIN_TIME_BETWEEN_REQUESTS_MS) {
     state.suspiciousActions += 2
     await logSuspiciousActivity(userId, ip, 'too_fast', `${timeSinceLastRequest}ms`)
     
@@ -331,8 +334,8 @@ export async function checkGenerationAllowed(
     }
   }
   
-  // Marcar como suspeito se muito rápido (mas não bloquear)
-  if (timeSinceLastRequest < GENERATION_PROTECTION.SUSPICIOUS_SPEED_THRESHOLD_MS) {
+  // Marcar como suspeito se muito rápido (mas não bloquear) - apenas se não for primeira requisição
+  if (!isFirstRequest && timeSinceLastRequest < GENERATION_PROTECTION.SUSPICIOUS_SPEED_THRESHOLD_MS) {
     state.suspiciousActions++
   }
   

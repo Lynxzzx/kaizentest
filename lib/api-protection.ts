@@ -225,7 +225,7 @@ export async function checkRateLimit(
       attempts: 0,
       windowStart: now,
       suspiciousScore: 0,
-      lastRequest: now
+      lastRequest: 0 // Inicializar como 0 para permitir primeira requisição
     }
     rateLimitCache.set(key, entry)
   }
@@ -255,17 +255,19 @@ export async function checkRateLimit(
   // ===========================================
   // 6. VERIFICAR VELOCIDADE SUSPEITA (MENOS AGRESSIVO)
   // ===========================================
-  const timeSinceLastRequest = now - entry.lastRequest
+  // Se lastRequest é 0, é a primeira requisição - não verificar velocidade
+  const isFirstRequest = entry.lastRequest === 0
+  const timeSinceLastRequest = isFirstRequest ? Infinity : (now - entry.lastRequest)
   
-  // Menos de 50ms é muito suspeito (claramente automação)
-  if (timeSinceLastRequest < 50) {
+  // Menos de 50ms é muito suspeito (claramente automação) - apenas se não for primeira requisição
+  if (!isFirstRequest && timeSinceLastRequest < 50) {
     entry.suspiciousScore += 2
     await logSuspiciousActivity(ip, type, 'too_fast', `${timeSinceLastRequest}ms`)
-  } else if (timeSinceLastRequest < 150) {
+  } else if (!isFirstRequest && timeSinceLastRequest < 150) {
     // Entre 50-150ms pode ser apenas conexão rápida
     entry.suspiciousScore += 0.5
   }
-  // Não penalizar requisições > 150ms
+  // Não penalizar requisições > 150ms ou primeira requisição
   
   entry.lastRequest = now
   
