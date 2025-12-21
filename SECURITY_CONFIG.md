@@ -95,23 +95,28 @@ RECAPTCHA_SECRET_KEY=sua_chave_secreta_aqui
 - Suporta tema claro e escuro
 - **Requer configuração** (ver seção acima)
 
-### 2. Rate Limiting
-- **Registro**: Máximo 3 tentativas por IP por hora
-- **Login**: Máximo 10 tentativas por IP por hora
-- **Por usuário**: Máximo 5 tentativas de login por conta
-- **Bloqueio**: 30 minutos após exceder limite
+### 2. Rate Limiting (Configuração Otimizada)
+- **Registro**: Máximo 10 tentativas por IP por hora
+- **Login**: Máximo 30 tentativas por IP por hora
+- **Por usuário**: Máximo 10 tentativas de login por conta
+- **Bloqueio**: 10 minutos após exceder limite
+- **Geração de contas**: Cooldown de 2 minutos, máximo 60/hora
+
+> **Nota**: Os limites foram otimizados para evitar falsos positivos com usuários legítimos.
 
 ### 3. Honeypot
 Campo invisível que apenas bots preenchem. Se preenchido, a requisição é bloqueada.
 
 ### 4. Tempo de Preenchimento
-Detecta formulários preenchidos muito rapidamente (< 3 segundos), comportamento típico de bots.
+Detecta formulários preenchidos muito rapidamente (< 1 segundo), comportamento típico de bots.
 
-### 5. Detecção de User-Agent
-Bloqueia User-Agents conhecidos de:
-- Ferramentas de hacking (sqlmap, nikto, etc)
-- Bibliotecas HTTP automatizadas (curl, wget, python-requests)
-- Navegadores headless (Selenium, PhantomJS)
+### 5. Detecção de User-Agent (Otimizada)
+Bloqueia apenas User-Agents de ferramentas maliciosas conhecidas:
+- Ferramentas de hacking (sqlmap, nikto, scanner)
+- Navegadores headless (Selenium, PhantomJS, HeadlessChrome)
+- Scrapers conhecidos (scrapy)
+
+> **Nota**: Clientes HTTP comuns (curl, axios, etc) NÃO são mais bloqueados para evitar falsos positivos com apps mobile e clientes legítimos.
 
 ### 6. Device Fingerprint
 Cada dispositivo só pode criar uma conta, prevenindo criação em massa.
@@ -145,11 +150,26 @@ Edite `lib/security.ts`:
 
 ```typescript
 export const SECURITY_CONFIG = {
-  MAX_REGISTER_ATTEMPTS_PER_IP: 3,      // Tentativas de registro/IP/hora
-  MAX_LOGIN_ATTEMPTS_PER_IP: 10,         // Tentativas de login/IP/hora
-  MAX_LOGIN_ATTEMPTS_PER_USER: 5,        // Tentativas de login/usuário
-  BLOCK_DURATION_MINUTES: 30,            // Tempo de bloqueio
-  RECAPTCHA_MIN_SCORE: 0.5,              // Score mínimo do reCAPTCHA
+  MAX_REGISTER_ATTEMPTS_PER_IP: 10,      // Tentativas de registro/IP/hora
+  MAX_LOGIN_ATTEMPTS_PER_IP: 30,         // Tentativas de login/IP/hora
+  MAX_LOGIN_ATTEMPTS_PER_USER: 10,       // Tentativas de login/usuário
+  BLOCK_DURATION_MINUTES: 10,            // Tempo de bloqueio (reduzido)
+  RECAPTCHA_MIN_SCORE: 0.3,              // Score mínimo do reCAPTCHA (mais tolerante)
+  // ...
+}
+```
+
+### Ajustar Limites de Geração
+
+Edite `lib/generation-protection.ts`:
+
+```typescript
+export const GENERATION_PROTECTION = {
+  COOLDOWN_SECONDS: 120,                 // Cooldown entre gerações (2 minutos)
+  MAX_GENERATIONS_PER_HOUR: 60,          // Máximo por hora
+  MAX_GENERATIONS_PER_MINUTE: 5,         // Máximo por minuto
+  MAX_GENERATIONS_PER_DAY: 500,          // Máximo por dia
+  BLOCK_DURATION_MINUTES: 15,            // Tempo de bloqueio
   // ...
 }
 ```

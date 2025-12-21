@@ -16,38 +16,33 @@ import { prisma } from './prisma'
 // ===========================================
 
 export const SECURITY_CONFIG = {
-  // Rate Limiting
-  MAX_REGISTER_ATTEMPTS_PER_IP: 3,       // Máximo de registros por IP por hora
-  MAX_LOGIN_ATTEMPTS_PER_IP: 10,          // Máximo de logins por IP por hora
-  MAX_LOGIN_ATTEMPTS_PER_USER: 5,         // Máximo de tentativas por usuário
-  BLOCK_DURATION_MINUTES: 30,             // Tempo de bloqueio em minutos
+  // Rate Limiting - MAIS PERMISSIVO
+  MAX_REGISTER_ATTEMPTS_PER_IP: 10,       // Máximo de registros por IP por hora (aumentado)
+  MAX_LOGIN_ATTEMPTS_PER_IP: 30,          // Máximo de logins por IP por hora (aumentado)
+  MAX_LOGIN_ATTEMPTS_PER_USER: 10,        // Máximo de tentativas por usuário (aumentado)
+  BLOCK_DURATION_MINUTES: 10,             // Tempo de bloqueio reduzido
   
-  // Tempo mínimo para preencher formulários (segundos)
-  MIN_FORM_FILL_TIME_REGISTER: 3,         // Registro muito rápido = bot
-  MIN_FORM_FILL_TIME_LOGIN: 1,            // Login muito rápido = bot
+  // Tempo mínimo para preencher formulários (segundos) - MENOS RESTRITIVO
+  MIN_FORM_FILL_TIME_REGISTER: 1,         // 1 segundo é suficiente
+  MIN_FORM_FILL_TIME_LOGIN: 0.5,          // 0.5 segundo para login
   
-  // reCAPTCHA
-  RECAPTCHA_MIN_SCORE: 0.5,               // Score mínimo do reCAPTCHA v3 (0-1)
+  // reCAPTCHA - MENOS RESTRITIVO
+  RECAPTCHA_MIN_SCORE: 0.3,               // Score mínimo reduzido (0-1)
   
-  // Padrões de username suspeitos
+  // Padrões de username suspeitos - APENAS OS MAIS ÓBVIOS
   SUSPICIOUS_USERNAME_PATTERNS: [
-    /^user\d+$/i,                          // user123
-    /^test\d*$/i,                          // test, test1
-    /^[a-z]{1,2}\d{5,}$/i,                 // ab12345
-    /^(admin|root|system|bot)/i,           // Nomes reservados
-    /^\d+$/,                               // Só números
-    /^(.)\1{4,}$/,                         // aaaaa (repetição)
+    /^(admin|root|system)$/i,             // Apenas nomes reservados exatos
+    /^(.)\1{6,}$/,                         // aaaaaaa (repetição de 7+)
   ],
   
-  // User Agents bloqueados
+  // User Agents bloqueados - APENAS FERRAMENTAS DE AUTOMAÇÃO ÓBVIAS
   BLOCKED_USER_AGENTS: [
-    'curl', 'wget', 'python', 'go-http', 'java', 'httpclient',
-    'scrapy', 'selenium', 'phantomjs', 'headless', 'bot', 'spider',
-    'crawl', 'slurp', 'mediapartners', 'libwww', 'httpunit',
+    'scrapy', 'selenium', 'phantomjs', 'headlesschrome',
+    'sqlmap', 'nikto', 'scanner',
   ],
   
-  // Headers obrigatórios
-  REQUIRED_HEADERS: ['user-agent', 'accept-language'],
+  // Headers obrigatórios - apenas user-agent
+  REQUIRED_HEADERS: ['user-agent'],
 }
 
 // ===========================================

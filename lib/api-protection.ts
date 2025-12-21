@@ -16,28 +16,28 @@ import { prisma } from './prisma'
 // ===========================================
 
 export const API_PROTECTION_CONFIG = {
-  // Key redemption
-  KEY_REDEEM_MAX_ATTEMPTS: 5, // Máximo de tentativas por hora
-  KEY_REDEEM_BLOCK_MINUTES: 30,
+  // Key redemption - MAIS PERMISSIVO
+  KEY_REDEEM_MAX_ATTEMPTS: 15, // Máximo de tentativas por hora (aumentado)
+  KEY_REDEEM_BLOCK_MINUTES: 10, // Bloqueio reduzido
   
-  // Coupon validation  
-  COUPON_VALIDATE_MAX_ATTEMPTS: 10, // Máximo por hora
-  COUPON_VALIDATE_BLOCK_MINUTES: 15,
+  // Coupon validation - MAIS PERMISSIVO
+  COUPON_VALIDATE_MAX_ATTEMPTS: 30, // Máximo por hora (aumentado)
+  COUPON_VALIDATE_BLOCK_MINUTES: 5, // Bloqueio reduzido
   
-  // Affiliate
-  AFFILIATE_REDEEM_MAX_ATTEMPTS: 3, // Máximo por hora
-  AFFILIATE_REDEEM_BLOCK_MINUTES: 60,
+  // Affiliate - MAIS PERMISSIVO
+  AFFILIATE_REDEEM_MAX_ATTEMPTS: 10, // Máximo por hora (aumentado)
+  AFFILIATE_REDEEM_BLOCK_MINUTES: 15, // Bloqueio reduzido
   
-  // Password reset
-  PASSWORD_RESET_MAX_ATTEMPTS: 3, // Máximo por hora
-  PASSWORD_RESET_BLOCK_MINUTES: 60,
+  // Password reset - manter mais restrito por segurança
+  PASSWORD_RESET_MAX_ATTEMPTS: 5, // Máximo por hora
+  PASSWORD_RESET_BLOCK_MINUTES: 30,
   
-  // Generic API
-  GENERIC_MAX_REQUESTS_PER_MINUTE: 60,
-  GENERIC_BLOCK_MINUTES: 5,
+  // Generic API - MAIS PERMISSIVO
+  GENERIC_MAX_REQUESTS_PER_MINUTE: 200, // Aumentado significativamente
+  GENERIC_BLOCK_MINUTES: 2, // Bloqueio curto
   
-  // Suspicious activity threshold
-  SUSPICIOUS_THRESHOLD: 10, // Ações suspeitas para trigger bloqueio
+  // Suspicious activity threshold - MAIS TOLERANTE
+  SUSPICIOUS_THRESHOLD: 25, // Ações suspeitas para trigger bloqueio (aumentado)
 }
 
 // ===========================================
@@ -253,17 +253,19 @@ export async function checkRateLimit(
   }
   
   // ===========================================
-  // 6. VERIFICAR VELOCIDADE SUSPEITA
+  // 6. VERIFICAR VELOCIDADE SUSPEITA (MENOS AGRESSIVO)
   // ===========================================
   const timeSinceLastRequest = now - entry.lastRequest
   
-  // Menos de 100ms é muito suspeito (automação)
-  if (timeSinceLastRequest < 100) {
-    entry.suspiciousScore += 3
+  // Menos de 50ms é muito suspeito (claramente automação)
+  if (timeSinceLastRequest < 50) {
+    entry.suspiciousScore += 2
     await logSuspiciousActivity(ip, type, 'too_fast', `${timeSinceLastRequest}ms`)
-  } else if (timeSinceLastRequest < 500) {
-    entry.suspiciousScore += 1
+  } else if (timeSinceLastRequest < 150) {
+    // Entre 50-150ms pode ser apenas conexão rápida
+    entry.suspiciousScore += 0.5
   }
+  // Não penalizar requisições > 150ms
   
   entry.lastRequest = now
   
@@ -375,18 +377,26 @@ async function logSuspiciousActivity(
 
 /**
  * Verificação simples para APIs que precisam de proteção básica
+ * NOTA: Valores padrão aumentados para melhor UX
  */
 export async function simpleRateLimit(
   req: NextApiRequest,
-  maxRequests: number = 30,
+  maxRequests: number = 100, // Aumentado de 30
   windowMinutes: number = 1
 ): Promise<{ allowed: boolean; error?: string }> {
   const ip = getClientIp(req)
   const userAgent = getUserAgent(req)
   
-  // Verificar bot
+  // Verificar bot (apenas automação óbvia)
   if (isBot(userAgent)) {
-    return { allowed: false, error: 'Acesso negado.' }
+    // Dar uma chance mesmo para clients HTTP (pode ser app mobile)
+    // Apenas bloquear se realmente parecer bot malicioso
+    const isMaliciousBot = userAgent.includes('scrapy') || 
+                           userAgent.includes('sqlmap') ||
+                           userAgent.includes('scanner')
+    if (isMaliciousBot) {
+      return { allowed: false, error: 'Acesso negado.' }
+    }
   }
   
   const key = `simple:${ip}:${req.url}`

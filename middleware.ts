@@ -22,24 +22,20 @@ const SECURITY_HEADERS = {
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
 }
 
-// Lista de User-Agents suspeitos (ferramentas de hacking e automação)
+// Lista de User-Agents suspeitos (APENAS ferramentas de hacking reais)
+// Removidos clients HTTP comuns para evitar falsos positivos
 const BLOCKED_USER_AGENTS = [
-  // Ferramentas de hacking
+  // Ferramentas de hacking e scanners
   'sqlmap', 'nikto', 'nessus', 'nmap',
   'masscan', 'zmap', 'gobuster', 'dirbuster',
   'wpscan', 'nuclei', 'hydra', 'medusa',
   'metasploit', 'burp', 'owasp', 'acunetix',
   'netsparker', 'appscan', 'webinspect',
   
-  // Automação/Scrapers
+  // Automação óbvia (mantidos apenas os mais óbvios)
   'puppeteer', 'playwright', 'selenium', 'webdriver',
-  'phantomjs', 'headless', 'chrome-lighthouse',
-  'scrapy', 'httpclient', 'java/', 'libwww',
-  
-  // Bibliotecas de HTTP conhecidas usadas em bots
-  'python-requests', 'python-urllib', 'aiohttp',
-  'node-fetch', 'axios/', 'got/', 'superagent',
-  'httpie', 'curl/', 'wget/',
+  'phantomjs', 'headlesschrome',
+  'scrapy',
 ]
 
 // Paths que não precisam de validação extra
@@ -65,7 +61,7 @@ const ipRequestCounts = new Map<string, { count: number; resetAt: number }>()
 
 // Limpar cache periodicamente (a cada minuto no Edge)
 const RATE_LIMIT_WINDOW_MS = 60 * 1000 // 1 minuto
-const MAX_REQUESTS_PER_MINUTE = 120 // Máximo de requisições por minuto por IP
+const MAX_REQUESTS_PER_MINUTE = 500 // Máximo de requisições por minuto por IP (AUMENTADO para suportar uso intensivo)
 
 function getClientIp(request: NextRequest): string {
   // Cloudflare
@@ -148,33 +144,20 @@ export function middleware(request: NextRequest) {
     }
   }
   
-  // 🛡️ Verificação extra para APIs sensíveis
+  // 🛡️ Verificação extra para APIs sensíveis (MENOS RESTRITIVA)
   const isSensitiveApi = SENSITIVE_API_PATHS.some(path => pathname.startsWith(path))
   
   if (isSensitiveApi) {
-    // Verificar se tem User-Agent (bots simples geralmente não têm)
-    if (!userAgent || userAgent.length < 10) {
-      console.log(`🚫 Blocked request without proper user-agent to ${pathname}`)
+    // Verificar se tem User-Agent (apenas bloquear se completamente vazio)
+    if (!userAgent) {
+      console.log(`🚫 Blocked request without user-agent to ${pathname}`)
       return new NextResponse(JSON.stringify({ error: 'Invalid request' }), { 
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       })
     }
     
-    // Verificar headers básicos de navegador
-    const acceptLanguage = request.headers.get('accept-language')
-    const accept = request.headers.get('accept')
-    
-    // POST requests para APIs sensíveis devem ter headers típicos de navegador
-    if (request.method === 'POST') {
-      if (!acceptLanguage && !accept) {
-        console.log(`🚫 Blocked suspicious POST request to ${pathname} from ${ip}`)
-        return new NextResponse(JSON.stringify({ error: 'Invalid request headers' }), { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        })
-      }
-    }
+    // Não verificar mais headers extras - muitos clientes legítimos não enviam
   }
   
   const response = NextResponse.next()

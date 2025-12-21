@@ -14,6 +14,12 @@ if (!databaseUrl) {
 
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
   log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+  // Otimizações de performance para serverless (Vercel)
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL,
+    },
+  },
 })
 
 // Testar conexão na inicialização (somente no servidor)

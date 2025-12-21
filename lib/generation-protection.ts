@@ -19,44 +19,36 @@ export const GENERATION_PROTECTION = {
   // Cooldown entre gerações (em segundos)
   COOLDOWN_SECONDS: 120, // 2 minutos
   
-  // Rate limiting - MAIS RIGOROSO
-  MAX_GENERATIONS_PER_HOUR: 20, // Máximo por hora (reduzido)
-  MAX_GENERATIONS_PER_MINUTE: 1, // Máximo por minuto (apenas 1)
-  MAX_GENERATIONS_PER_DAY: 100, // Máximo por dia
+  // Rate limiting - MAIS PERMISSIVO para usuários legítimos
+  MAX_GENERATIONS_PER_HOUR: 60, // Máximo por hora (aumentado)
+  MAX_GENERATIONS_PER_MINUTE: 5, // Máximo por minuto (aumentado)
+  MAX_GENERATIONS_PER_DAY: 500, // Máximo por dia (aumentado)
   
-  // Detecção de automação - MAIS SENSÍVEL
-  MIN_TIME_BETWEEN_REQUESTS_MS: 1000, // Tempo mínimo entre requisições (1 segundo)
-  SUSPICIOUS_SPEED_THRESHOLD_MS: 2000, // Requisições mais rápidas que 2s são suspeitas
+  // Detecção de automação - MENOS SENSÍVEL (evitar falsos positivos)
+  MIN_TIME_BETWEEN_REQUESTS_MS: 200, // 200ms é suficiente para detectar bots extremos
+  SUSPICIOUS_SPEED_THRESHOLD_MS: 500, // Requisições mais rápidas que 500ms são suspeitas
   
-  // Bloqueio - MAIS SEVERO
-  MAX_SUSPICIOUS_ACTIONS: 3, // Após 3 ações suspeitas, bloquear (reduzido)
-  BLOCK_DURATION_MINUTES: 120, // Tempo de bloqueio de 2 horas
+  // Bloqueio - MAIS LEVE (usuários legítimos não devem sofrer muito)
+  MAX_SUSPICIOUS_ACTIONS: 10, // Após 10 ações suspeitas, bloquear
+  BLOCK_DURATION_MINUTES: 15, // Tempo de bloqueio de apenas 15 minutos
   
-  // Headers obrigatórios de navegador real
-  REQUIRED_HEADERS: ['user-agent', 'accept', 'accept-language', 'accept-encoding'],
+  // Headers obrigatórios - apenas os essenciais
+  REQUIRED_HEADERS: ['user-agent', 'accept'],
   
-  // User agents bloqueados (extensões, scripts, automação)
+  // User agents bloqueados (apenas ferramentas de automação conhecidas)
   BLOCKED_USER_AGENTS: [
-    // Linguagens de programação
-    'python', 'java/', 'perl', 'ruby', 'php', 'go-http', 'dart',
     // Ferramentas de linha de comando
-    'curl', 'wget', 'httpie', 'lynx', 'links',
-    // Clientes HTTP
-    'postman', 'insomnia', 'httpx', 'requests',
-    'axios', 'node-fetch', 'got', 'request', 'superagent', 'fetch',
-    'aiohttp', 'urllib', 'http.client', 'libwww',
-    // Automação de navegador
+    'curl/', 'wget/', 'httpie',
+    // Automação de navegador real (não todos os clientes HTTP)
     'puppeteer', 'playwright', 'selenium', 'webdriver', 'chromedriver',
-    'geckodriver', 'phantomjs', 'headless', 'chrome-lighthouse',
-    // Outros
-    'electron', 'bot', 'spider', 'crawler', 'scraper', 'scanner'
+    'geckodriver', 'phantomjs', 'headlesschrome',
+    // Scanners e crawlers maliciosos
+    'scrapy', 'scanner', 'sqlmap', 'nikto'
   ],
   
-  // Padrões suspeitos em User-Agent
+  // Padrões suspeitos em User-Agent - apenas os mais óbvios
   SUSPICIOUS_UA_PATTERNS: [
-    /^Mozilla\/5\.0$/i, // User agent muito curto
     /HeadlessChrome/i,
-    /Electron/i,
     /PhantomJS/i
   ]
 }
@@ -122,9 +114,15 @@ function getUserAgent(req: NextApiRequest): string {
 
 /**
  * Verificar se User-Agent é suspeito
+ * NOTA: Menos restritivo para evitar falsos positivos
  */
 function isSuspiciousUserAgent(userAgent: string): boolean {
-  // Verificar palavras bloqueadas
+  // Permitir user agents vazios em desenvolvimento
+  if (!userAgent && process.env.NODE_ENV === 'development') {
+    return false
+  }
+  
+  // Verificar palavras bloqueadas (apenas automação óbvia)
   for (const blocked of GENERATION_PROTECTION.BLOCKED_USER_AGENTS) {
     if (userAgent.includes(blocked)) {
       return true
@@ -138,14 +136,9 @@ function isSuspiciousUserAgent(userAgent: string): boolean {
     }
   }
   
-  // User agent muito curto é suspeito
-  if (userAgent.length < 30) {
-    return true
-  }
-  
-  // User agent sem informação de navegador é suspeito
-  const hasBrowserInfo = /chrome|firefox|safari|edge|opera|msie|trident/i.test(userAgent)
-  if (!hasBrowserInfo) {
+  // User agent muito curto (< 15 chars) é suspeito
+  // Mas permitir mobile e outros navegadores
+  if (userAgent.length < 15 && userAgent.length > 0) {
     return true
   }
   

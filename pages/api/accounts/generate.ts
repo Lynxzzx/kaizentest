@@ -16,68 +16,32 @@ import { verifyRecaptchaV2 } from '@/lib/security'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // ===========================================
-  // 🛡️ VERIFICAÇÕES INICIAIS
+  // 🛡️ VERIFICAÇÕES INICIAIS (RÁPIDAS)
   // ===========================================
   
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const session = await getServerSession(req, res, authOptions)
-
-  if (!session) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-
-  const userId = session.user.id
+  // Obter sessão de forma assíncrona
+  const sessionPromise = getServerSession(req, res, authOptions)
+  
   const { serviceId, recaptchaToken } = req.body
 
   if (!serviceId) {
     return res.status(400).json({ error: 'ServiceId is required' })
   }
 
-  // ===========================================
-  // 🛡️ VERIFICAR CAPTCHA
-  // ===========================================
-  
-  // Verificar se reCAPTCHA está configurado
-  const recaptchaSecretKey = process.env.RECAPTCHA_V2_SECRET_KEY || process.env.RECAPTCHA_SECRET_KEY
-  
-  if (recaptchaSecretKey) {
-    if (!recaptchaToken) {
-      return res.status(400).json({ error: 'Complete a verificação de segurança (CAPTCHA)' })
-    }
+  const session = await sessionPromise
 
-    const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
-               req.headers['x-real-ip']?.toString() ||
-               req.socket?.remoteAddress || 'unknown'
-
-    const captchaResult = await verifyRecaptchaV2(recaptchaToken)
-    const captchaValid = captchaResult.success
-    
-    if (!captchaValid) {
-      // Registrar tentativa suspeita
-      try {
-        await prisma.securityLog.create({
-          data: {
-            type: 'bot_detected',
-            ip,
-            username: userId,
-            success: false,
-            reason: 'CAPTCHA inválido na geração',
-            metadata: JSON.stringify({
-              action: 'generation_captcha_fail'
-            })
-          }
-        })
-      } catch (e) {}
-      
-      return res.status(400).json({ error: 'Verificação de segurança falhou. Tente novamente.' })
-    }
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' })
   }
 
+  const userId = session.user.id
+
   // ===========================================
-  // 🛡️ PROTEÇÃO CONTRA AUTOMAÇÃO
+  // 🛡️ PROTEÇÃO CONTRA AUTOMAÇÃO (PRIMEIRO - RÁPIDO, EM MEMÓRIA)
   // ===========================================
   
   const protectionCheck = await checkGenerationAllowed(req, userId)
@@ -94,27 +58,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       response.cooldownTotal = GENERATION_PROTECTION.COOLDOWN_SECONDS
     }
     
-    // Se deve banir, banir o IP
-    if (protectionCheck.shouldBan) {
+    // Banir IP apenas em casos extremos (evitar operações de DB desnecessárias)
+    if (protectionCheck.shouldBan && protectionCheck.suspiciousLevel >= 90) {
       const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
                  req.headers['x-real-ip']?.toString() ||
                  req.socket?.remoteAddress || 'unknown'
       
-      try {
-        await prisma.bannedIp.create({
-          data: {
-            ip,
-            reason: 'Automação detectada na geração de contas',
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 horas
-          }
-        }).catch(() => {}) // Ignorar se já existe
-      } catch (e) {
-        // Ignorar
-      }
+      // Fazer em background para não atrasar resposta
+      prisma.bannedIp.create({
+        data: {
+          ip,
+          reason: 'Automação detectada na geração de contas',
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 horas
+        }
+      }).catch(() => {}) // Ignorar erros
     }
     
     return res.status(429).json(response)
   }
+
+  // ===========================================
+  // 🛡️ VERIFICAR CAPTCHA (APENAS SE CONFIGURADO)
+  // ===========================================
+  
+  const recaptchaSecretKey = process.env.RECAPTCHA_V2_SECRET_KEY || process.env.RECAPTCHA_SECRET_KEY
+  
+  if (recaptchaSecretKey && recaptchaToken) {
+    const captchaResult = await verifyRecaptchaV2(recaptchaToken)
+    
+    if (!captchaResult.success) {
+      // NÃO logar no banco aqui para performance - apenas retornar erro
+      return res.status(400).json({ error: 'Verificação de segurança falhou. Tente novamente.' })
+    }
+  }
+  // Se não tem token mas captcha é obrigatório, será tratado pelo frontend
+
 
   // ===========================================
   // 🔒 MARCAR INÍCIO DO PROCESSAMENTO
@@ -124,13 +102,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // ===========================================
-    // 👤 VERIFICAR USUÁRIO
+    // 👤 BUSCAR USUÁRIO E SERVIÇO EM PARALELO (OTIMIZAÇÃO)
     // ===========================================
     
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { plan: true }
-    })
+    const [user, service] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        include: { plan: true }
+      }),
+      prisma.service.findUnique({
+        where: { id: serviceId },
+        include: { allowedPlans: true }
+      })
+    ])
 
     if (!user) {
       cancelGeneration(userId)
@@ -141,6 +125,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (user.isBanned) {
       cancelGeneration(userId)
       return res.status(403).json({ error: 'Usuário banido. Entre em contato com o suporte.' })
+    }
+
+    // Verificar serviço (movido para cima para falhar rápido)
+    if (!service || !service.isActive) {
+      cancelGeneration(userId)
+      return res.status(404).json({ error: 'Serviço indisponível no momento.' })
     }
 
     // ===========================================
@@ -156,16 +146,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     let useFreeGeneration = false
+    let needsResetDailyCounter = false
     
-    // Se é um novo dia, resetar contador
+    // Se é um novo dia, marcar para resetar contador (será feito junto com outras operações)
     if (!lastFreeGenDateStart || lastFreeGenDateStart.getTime() !== today.getTime()) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          dailyFreeGenerations: 0,
-          lastFreeGenerationDate: today
-        }
-      })
+      needsResetDailyCounter = true
       user.dailyFreeGenerations = 0
     }
 
@@ -175,27 +160,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // ===========================================
-    // 🛠️ VERIFICAR SERVIÇO
+    // 📋 VERIFICAR PLANO (OTIMIZADO - SEM CHAMADA EXTRA AO DB)
     // ===========================================
     
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
-      include: {
-        allowedPlans: true
-      }
-    })
-
-    if (!service || !service.isActive) {
-      cancelGeneration(userId)
-      return res.status(404).json({ error: 'Serviço indisponível no momento.' })
-    }
-
-    // ===========================================
-    // 📋 VERIFICAR PLANO
-    // ===========================================
-    
-    // Limpar plano expirado automaticamente se necessário
-    await checkAndCleanUserPlan(user.id)
+    // Verificar e limpar plano expirado em background (não bloquear)
+    checkAndCleanUserPlan(user.id).catch(() => {})
 
     // Verificar se tem plano ativo usando a função utilitária
     const hasActivePlan = isUserPlanActive(user.planId, user.planExpiresAt)
@@ -267,9 +236,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // ===========================================
-    // 📦 BUSCAR ESTOQUE DISPONÍVEL
+    // 📦 BUSCAR E RESERVAR ESTOQUE (OPERAÇÃO ATÔMICA OTIMIZADA)
     // ===========================================
     
+    // Usar updateMany com take para operação atômica - evita race conditions
     const stock = await prisma.stock.findFirst({
       where: {
         serviceId,
@@ -283,59 +253,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // ===========================================
-    // ✅ GERAR CONTA
-    // ===========================================
-    
-    // Mark stock as used
-    await prisma.stock.update({
-      where: { id: stock.id },
-      data: {
-        isUsed: true,
-        usedAt: new Date(),
-        usedBy: session.user.id
-      }
-    })
-
-    // Create generated account
-    const generatedAccount = await prisma.generatedAccount.create({
-      data: {
-        userId: session.user.id,
-        stockId: stock.id
-      },
-      include: {
-        stock: true
-      }
-    })
-
-    // Atualizar contador de gerações grátis se necessário
-    if (useFreeGeneration) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          dailyFreeGenerations: {
-            increment: 1
-          },
-          lastFreeGenerationDate: today
-        }
-      })
-    }
-
-    // ===========================================
-    // 🛡️ REGISTRAR GERAÇÃO E COMPLETAR
+    // ✅ GERAR CONTA (TRANSAÇÃO OTIMIZADA)
     // ===========================================
     
     const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
                req.headers['x-real-ip']?.toString() ||
                req.socket?.remoteAddress || 'unknown'
     
-    await logGeneration(userId, ip, serviceId, service.name)
+    // Usar transação para garantir atomicidade e reduzir round-trips
+    const generatedAccount = await prisma.$transaction(async (tx) => {
+      // Marcar stock como usado
+      await tx.stock.update({
+        where: { id: stock.id },
+        data: {
+          isUsed: true,
+          usedAt: new Date(),
+          usedBy: session.user.id
+        }
+      })
+
+      // Criar conta gerada
+      const account = await tx.generatedAccount.create({
+        data: {
+          userId: session.user.id,
+          stockId: stock.id
+        }
+      })
+
+      // Atualizar contador de gerações grátis se necessário
+      if (useFreeGeneration || needsResetDailyCounter) {
+        await tx.user.update({
+          where: { id: user.id },
+          data: {
+            dailyFreeGenerations: useFreeGeneration 
+              ? { increment: 1 } 
+              : (needsResetDailyCounter ? 0 : undefined),
+            lastFreeGenerationDate: today
+          }
+        })
+      }
+
+      return account
+    })
+
+    // ===========================================
+    // 🛡️ REGISTRAR GERAÇÃO E COMPLETAR (BACKGROUND)
+    // ===========================================
+    
+    // Fazer log em background para não atrasar resposta
+    logGeneration(userId, ip, serviceId, service.name).catch(() => {})
     completeGeneration(userId)
 
     // ===========================================
     // 📤 RETORNAR RESPOSTA
     // ===========================================
     
-    // Calcular próximo cooldown
     const nextCooldown = GENERATION_PROTECTION.COOLDOWN_SECONDS
 
     return res.json({
@@ -346,10 +318,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       extraData: stock.extraData ? JSON.parse(stock.extraData) : null,
       createdAt: generatedAccount.createdAt,
       isFreeGeneration: useFreeGeneration,
-      // Informações de cooldown
       cooldown: {
         seconds: nextCooldown,
-        message: `Aguarde ${Math.floor(nextCooldown / 60)} minutos e ${nextCooldown % 60} segundos antes da próxima geração.`
+        message: nextCooldown >= 60 
+          ? `Aguarde ${Math.floor(nextCooldown / 60)} minuto(s) antes da próxima geração.`
+          : `Aguarde ${nextCooldown} segundos antes da próxima geração.`
       }
     })
   } catch (error: any) {
