@@ -292,10 +292,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                req.headers['x-real-ip']?.toString() ||
                req.socket?.remoteAddress || 'unknown'
     
-    // Usar transação com timeout aumentado para evitar expiração
-    // Timeout de 15 segundos (padrão é 5s) para operações mais lentas
+    // Usar transação OTIMIZADA - apenas operações críticas (stock + account)
+    // Atualização do usuário será feita FORA da transação para evitar timeout
     const generatedAccount = await prisma.$transaction(async (tx) => {
-      // Marcar stock como usado
+      // Marcar stock como usado (CRÍTICO - deve ser atômico)
       await tx.stock.update({
         where: { id: stock.id },
         data: {
@@ -305,7 +305,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
-      // Criar conta gerada
+      // Criar conta gerada (CRÍTICO - deve ser atômico)
       const account = await tx.generatedAccount.create({
         data: {
           userId: session.user.id,
@@ -313,24 +313,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
-      // Atualizar contador de gerações grátis se necessário
-      if (useFreeGeneration || needsResetDailyCounter) {
-        await tx.user.update({
-          where: { id: user.id },
-          data: {
-            dailyFreeGenerations: useFreeGeneration 
-              ? { increment: 1 } 
-              : (needsResetDailyCounter ? 0 : undefined),
-            lastFreeGenerationDate: today
-          }
-        })
-      }
-
       return account
     }, {
-      maxWait: 10000, // Tempo máximo de espera para iniciar a transação (10s)
-      timeout: 15000,  // Timeout da transação (15s) - aumentado de 5s para 15s
+      maxWait: 15000, // Tempo máximo de espera para iniciar a transação (15s)
+      timeout: 30000,  // Timeout da transação (30s) - aumentado para operações lentas
     })
+
+    // Atualizar contador de gerações grátis FORA da transação (não crítico)
+    // Se falhar, não afeta a geração em si
+    if (useFreeGeneration || needsResetDailyCounter) {
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          dailyFreeGenerations: useFreeGeneration 
+            ? { increment: 1 } 
+            : (needsResetDailyCounter ? 0 : undefined),
+          lastFreeGenerationDate: today
+        }
+      }).catch((error) => {
+        // Log mas não falhar - a geração já foi concluída
+        console.warn('⚠️ Erro ao atualizar contador de gerações grátis (não crítico):', error)
+      })
+    }
 
     // ===========================================
     // 🛡️ REGISTRAR GERAÇÃO E COMPLETAR (BACKGROUND)
