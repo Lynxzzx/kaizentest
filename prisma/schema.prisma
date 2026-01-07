@@ -64,6 +64,7 @@ model User {
   withdrawalsProcessed AffiliateWithdrawal[] @relation("WithdrawalProcessor")
   adminLogs     AdminLog[] @relation("AdminLogUser")
   bannedIps     BannedIp[] @relation("BannedIpAdmin")
+  authorizedIps AuthorizedIp[] @relation("AuthorizedIpOwner")
 }
 
 enum UserRole {
@@ -492,4 +493,15 @@ model BannedIp {
   createdAt   DateTime @default(now())
   
   @@index([expiresAt])
+}
+
+// IPs autorizados a criar múltiplas contas no mesmo dispositivo (apenas Owner pode gerenciar)
+model AuthorizedIp {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  ip          String   @unique
+  description String?  // Descrição/nota sobre o IP autorizado
+  authorizedById String? @db.ObjectId // Owner que autorizou
+  authorizedBy User?    @relation("AuthorizedIpOwner", fields: [authorizedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

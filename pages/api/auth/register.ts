@@ -105,25 +105,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 🔒 VALIDAÇÃO DE DEVICE FINGERPRINT
     // ================================================
     if (sanitizedDeviceFingerprint) {
-      const existingDevice = await prisma.user.findFirst({
-        where: { deviceFingerprint: sanitizedDeviceFingerprint }
+      // Verificar se o IP está autorizado a criar múltiplas contas
+      const authorizedIp = await prisma.authorizedIp.findUnique({
+        where: { ip }
       })
 
-      if (existingDevice) {
-        console.log('🚫 Device already has an account:', sanitizedDeviceFingerprint)
-        
-        await logSecurityEvent({
-          type: 'register_attempt',
-          ip,
-          userAgent,
-          username: sanitizedUsername,
-          success: false,
-          reason: 'Device fingerprint já existe'
+      // Se o IP não está autorizado, verificar device fingerprint
+      if (!authorizedIp) {
+        const existingDevice = await prisma.user.findFirst({
+          where: { deviceFingerprint: sanitizedDeviceFingerprint }
         })
 
-        return res.status(403).json({ 
-          error: 'Este dispositivo já possui uma conta. Para sua segurança, cada dispositivo pode criar apenas uma conta.' 
-        })
+        if (existingDevice) {
+          console.log('🚫 Device already has an account:', sanitizedDeviceFingerprint)
+          
+          await logSecurityEvent({
+            type: 'register_attempt',
+            ip,
+            userAgent,
+            username: sanitizedUsername,
+            success: false,
+            reason: 'Device fingerprint já existe'
+          })
+
+          return res.status(403).json({ 
+            error: 'Este dispositivo já possui uma conta. Para sua segurança, cada dispositivo pode criar apenas uma conta.' 
+          })
+        }
+      } else {
+        console.log('✅ IP autorizado detectado, permitindo múltiplas contas:', ip)
       }
     }
 

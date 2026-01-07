@@ -60,6 +60,13 @@ export default function Dashboard() {
   const [generatedAccount, setGeneratedAccount] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   
+  // 📜 HISTÓRICO DE CONTAS
+  const [accountHistory, setAccountHistory] = useState<any[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyPagination, setHistoryPagination] = useState<any>(null)
+  const [showHistory, setShowHistory] = useState(false)
+  
   // 🛡️ COOLDOWN STATE
   const [cooldownRemaining, setCooldownRemaining] = useState(0)
   const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -181,6 +188,7 @@ export default function Dashboard() {
       loadServices()
       loadUserPlan()
       checkCooldown()
+      loadAccountHistory(1)
     }
     
     // Limpar timer ao desmontar
@@ -210,6 +218,21 @@ export default function Dashboard() {
       })
     } catch (error) {
       console.error('Error loading user plan')
+    }
+  }
+
+  const loadAccountHistory = async (page: number = 1) => {
+    setHistoryLoading(true)
+    try {
+      const response = await axios.get(`/api/accounts/history?page=${page}&limit=20`)
+      setAccountHistory(response.data.accounts)
+      setHistoryPagination(response.data.pagination)
+      setHistoryPage(page)
+    } catch (error) {
+      console.error('Error loading account history:', error)
+      toast.error('Erro ao carregar histórico')
+    } finally {
+      setHistoryLoading(false)
     }
   }
 
@@ -264,6 +287,7 @@ export default function Dashboard() {
       setGeneratedAccount(response.data)
       toast.success(t('accountGeneratedSuccess'))
       loadUserPlan()
+      loadAccountHistory(1) // Recarregar histórico após gerar conta
       
       // 🛡️ RESETAR CAPTCHA APÓS GERAÇÃO
       resetRecaptcha()
@@ -658,6 +682,144 @@ export default function Dashboard() {
             </div>
           </div>
         )}
+
+        {/* Histórico de Contas Geradas */}
+        <div className={`mt-6 sm:mt-8 ${getCardClasses()} neon-shadow`}>
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>
+              📜 Histórico de Contas Geradas
+            </h2>
+            <button
+              onClick={() => {
+                setShowHistory(!showHistory)
+                if (!showHistory && accountHistory.length === 0) {
+                  loadAccountHistory(1)
+                }
+              }}
+              className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                showHistory
+                  ? 'bg-red-600 text-white hover:bg-red-700'
+                  : 'bg-primary-600 text-white hover:bg-primary-700'
+              }`}
+            >
+              {showHistory ? 'Ocultar' : 'Ver Histórico'}
+            </button>
+          </div>
+          
+          {showHistory && (
+            <div className="space-y-4">
+              {historyLoading ? (
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
+                  <p className={`mt-4 ${textClasses.secondary}`}>Carregando histórico...</p>
+                </div>
+              ) : accountHistory.length === 0 ? (
+                <div className={`text-center py-8 ${textClasses.secondary}`}>
+                  <p className="text-lg mb-2">📭</p>
+                  <p>Nenhuma conta gerada ainda</p>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                    {accountHistory.map((account) => (
+                      <div
+                        key={account.id}
+                        className={`p-4 rounded-lg border ${
+                          theme === 'dark'
+                            ? 'bg-white/5 border-white/10 hover:bg-white/10'
+                            : 'bg-white border-gray-200 hover:bg-gray-50'
+                        } transition-all`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              {account.service?.icon && (
+                                <span className="text-2xl">{account.service.icon}</span>
+                              )}
+                              <span className={`font-bold ${textClasses.primary}`}>
+                                {account.service?.name || 'Serviço desconhecido'}
+                              </span>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm ${textClasses.secondary}`}>Usuário:</span>
+                                <span className={`font-mono text-sm ${textClasses.primary} break-all`}>
+                                  {account.username}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(account.username)
+                                    toast.success('Usuário copiado!')
+                                  }}
+                                  className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                                >
+                                  📋
+                                </button>
+                              </div>
+                              {account.email && (
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-sm ${textClasses.secondary}`}>Email:</span>
+                                  <span className={`font-mono text-sm ${textClasses.primary} break-all`}>
+                                    {account.email}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(account.email)
+                                      toast.success('Email copiado!')
+                                    }}
+                                    className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                                  >
+                                    📋
+                                  </button>
+                                </div>
+                              )}
+                              <div className={`text-xs ${textClasses.muted} mt-2`}>
+                                {format(new Date(account.createdAt), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Paginação */}
+                  {historyPagination && historyPagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                      <div className={`text-sm ${textClasses.secondary}`}>
+                        Página {historyPagination.page} de {historyPagination.totalPages} ({historyPagination.total} contas)
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => loadAccountHistory(historyPage - 1)}
+                          disabled={!historyPagination.hasPrev || historyLoading}
+                          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                            !historyPagination.hasPrev || historyLoading
+                              ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-50'
+                              : 'bg-primary-600 text-white hover:bg-primary-700'
+                          }`}
+                        >
+                          ← Anterior
+                        </button>
+                        <button
+                          onClick={() => loadAccountHistory(historyPage + 1)}
+                          disabled={!historyPagination.hasNext || historyLoading}
+                          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                            !historyPagination.hasNext || historyLoading
+                              ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-50'
+                              : 'bg-primary-600 text-white hover:bg-primary-700'
+                          }`}
+                        >
+                          Próxima →
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Available Services */}
         <div className={`mt-6 sm:mt-8 ${getCardClasses()} neon-shadow`}>
