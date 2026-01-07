@@ -34,6 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               id: true,
               username: true,
               email: true,
+              password: true,
               service: {
                 select: {
                   id: true,
@@ -64,6 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         id: acc.id,
         username: acc.stock.username,
         email: acc.stock.email,
+        password: acc.stock.password,
         service: {
           id: acc.stock.service.id,
           name: acc.stock.service.name,

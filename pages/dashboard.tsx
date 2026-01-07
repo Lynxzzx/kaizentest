@@ -773,6 +773,23 @@ export default function Dashboard() {
                                   </button>
                                 </div>
                               )}
+                              {account.password && (
+                                <div className="flex items-center gap-2">
+                                  <span className={`text-sm ${textClasses.secondary}`}>Senha:</span>
+                                  <span className={`font-mono text-sm ${textClasses.primary} break-all`}>
+                                    {account.password}
+                                  </span>
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(account.password)
+                                      toast.success('Senha copiada!')
+                                    }}
+                                    className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                                  >
+                                    📋
+                                  </button>
+                                </div>
+                              )}
                               <div className={`text-xs ${textClasses.muted} mt-2`}>
                                 {format(new Date(account.createdAt), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                               </div>
