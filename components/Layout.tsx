@@ -6,7 +6,6 @@ import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getThemeClasses } from '@/lib/theme-utils'
 import Logo from './Logo'
-import Chatbox from './Chatbox'
 import BroadcastBanner from './BroadcastBanner'
 import MaintenanceBanner from './MaintenanceBanner'
 
@@ -20,7 +19,6 @@ export default function Layout({ children }: LayoutProps) {
   const { theme } = useTheme()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [chatboxOpen, setChatboxOpen] = useState(false)
   const themeClasses = useMemo(() => getThemeClasses(theme), [theme])
   const isAdminRoute = router.pathname.startsWith('/admin')
 
@@ -90,13 +88,6 @@ export default function Layout({ children }: LayoutProps) {
                           <span>{item.label}</span>
                         </Link>
                       ))}
-                      <button
-                        onClick={() => setChatboxOpen((prev) => !prev)}
-                        className={`${navLinkClasses('chat')} ${chatboxOpen ? 'ring-2 ring-cyan-400/60 ring-offset-2 ring-offset-transparent' : ''}`}
-                      >
-                        <span>💬</span>
-                        <span>{t('chat')}</span>
-                      </button>
                     </div>
                     <button
                       onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -203,16 +194,6 @@ export default function Layout({ children }: LayoutProps) {
                     </Link>
                   ))}
                 </div>
-                <button
-                  onClick={() => {
-                    setChatboxOpen((prev) => !prev)
-                    setMobileMenuOpen(false)
-                  }}
-                  className="mt-3 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-white/10"
-                >
-                  <span>💬</span>
-                  <span>{t('chat')}</span>
-                </button>
               </div>
             )}
           </div>
@@ -229,10 +210,6 @@ export default function Layout({ children }: LayoutProps) {
           <p>© {new Date().getFullYear()} Kaizen Gerador · {t('allRightsReserved')}</p>
         </div>
       </footer>
-
-      {session?.user && (
-        <Chatbox isOpen={chatboxOpen} onToggle={() => setChatboxOpen(!chatboxOpen)} />
-      )}
     </div>
   )
 }

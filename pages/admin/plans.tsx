@@ -21,6 +21,7 @@ export default function AdminPlans() {
   const router = useRouter()
   const [plans, setPlans] = useState<Plan[]>([])
   const [showForm, setShowForm] = useState(false)
+  const [editingPlan, setEditingPlan] = useState<Plan | null>(null)
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -55,14 +56,45 @@ export default function AdminPlans() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await axios.post('/api/plans', formData)
-      toast.success('Plano criado com sucesso!')
+      if (editingPlan) {
+        // Editar plano existente
+        await axios.put(`/api/plans/${editingPlan.id}`, {
+          ...formData,
+          isActive: editingPlan.isActive
+        })
+        toast.success('Plano atualizado com sucesso!')
+      } else {
+        // Criar novo plano
+        await axios.post('/api/plans', formData)
+        toast.success('Plano criado com sucesso!')
+      }
       setShowForm(false)
+      setEditingPlan(null)
       setFormData({ name: '', description: '', price: '', duration: '', maxGenerations: '0' })
       loadPlans()
-    } catch (error) {
-      toast.error('Erro ao criar plano')
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || (editingPlan ? 'Erro ao atualizar plano' : 'Erro ao criar plano'))
     }
+  }
+
+  const handleEdit = (plan: Plan) => {
+    setEditingPlan(plan)
+    setFormData({
+      name: plan.name,
+      description: plan.description || '',
+      price: plan.price.toString(),
+      duration: plan.duration.toString(),
+      maxGenerations: plan.maxGenerations.toString()
+    })
+    setShowForm(true)
+    // Scroll para o formulário
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleCancel = () => {
+    setShowForm(false)
+    setEditingPlan(null)
+    setFormData({ name: '', description: '', price: '', duration: '', maxGenerations: '0' })
   }
 
   const handleToggleActive = async (plan: Plan) => {
@@ -91,7 +123,13 @@ export default function AdminPlans() {
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">{t('plans')}</h1>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm) {
+              handleCancel()
+            } else {
+              setShowForm(true)
+            }
+          }}
           className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
         >
           {showForm ? t('cancel') : t('create')} {t('plans')}
@@ -100,7 +138,9 @@ export default function AdminPlans() {
 
       {showForm && (
         <div className="bg-white shadow rounded-lg p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">{t('create')} {t('plans')}</h2>
+          <h2 className="text-xl font-bold mb-4">
+            {editingPlan ? `✏️ Editar Plano: ${editingPlan.name}` : `➕ ${t('create')} ${t('plans')}`}
+          </h2>
           <form onSubmit={handleSubmit}>
             <div className="space-y-4">
               <div>
@@ -164,12 +204,21 @@ export default function AdminPlans() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
-              <button
-                type="submit"
-                className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
-              >
-                {t('save')}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+                >
+                  {editingPlan ? 'Atualizar' : t('save')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -185,16 +234,24 @@ export default function AdminPlans() {
               <p><strong>Duração:</strong> {plan.duration} dias</p>
               <p><strong>Max Gerações:</strong> {plan.maxGenerations === 0 ? t('unlimitedLabel') : plan.maxGenerations}</p>
             </div>
-            <button
-              onClick={() => handleToggleActive(plan)}
-              className={`w-full px-4 py-2 rounded-md ${
-                plan.isActive
-                  ? 'bg-red-600 text-white hover:bg-red-700'
-                  : 'bg-green-600 text-white hover:bg-green-700'
-              }`}
-            >
-              {plan.isActive ? 'Desativar' : 'Ativar'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleEdit(plan)}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+              >
+                ✏️ Editar
+              </button>
+              <button
+                onClick={() => handleToggleActive(plan)}
+                className={`flex-1 px-4 py-2 rounded-md ${
+                  plan.isActive
+                    ? 'bg-red-600 text-white hover:bg-red-700'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                {plan.isActive ? 'Desativar' : 'Ativar'}
+              </button>
+            </div>
           </div>
         ))}
       </div>
