@@ -24,6 +24,10 @@ interface User {
   dailyFreeGenerations: number
   lastFreeGenerationDate: string | null
   createdAt: string
+  registrationIp: string | null
+  lastIp: string | null
+  registrationIpBanned?: boolean
+  lastIpBanned?: boolean
   _count: {
     generatedAccounts: number
     payments: number
@@ -204,6 +208,35 @@ export default function AdminUsers() {
     }
   }
 
+  const handleBanIp = async (ip: string, username: string) => {
+    if (!confirm(`Tem certeza que deseja banir o IP ${ip} do usuário ${username}?`)) return
+
+    try {
+      await axios.post('/api/admin/banned-ips', {
+        ip,
+        reason: `Banido manualmente pelo admin - Usuário: ${username}`
+      })
+      toast.success(`IP ${ip} banido com sucesso!`)
+      loadUsers(searchTerm)
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao banir IP')
+    }
+  }
+
+  const handleUnbanIp = async (ip: string, username: string) => {
+    if (!confirm(`Tem certeza que deseja desbanir o IP ${ip} do usuário ${username}?`)) return
+
+    try {
+      await axios.delete('/api/admin/banned-ips', {
+        data: { ip }
+      })
+      toast.success(`IP ${ip} desbanido com sucesso!`)
+      loadUsers(searchTerm)
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao desbanir IP')
+    }
+  }
+
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     loadUsers(searchTerm)
@@ -256,7 +289,7 @@ export default function AdminUsers() {
     if (tableLoading) {
       return (
         <tr>
-          <td colSpan={7} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+          <td colSpan={8} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
             Carregando usuários...
           </td>
         </tr>
@@ -266,7 +299,7 @@ export default function AdminUsers() {
     if (users.length === 0) {
       return (
         <tr>
-          <td colSpan={7} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+          <td colSpan={8} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
             Nenhum usuário encontrado
           </td>
         </tr>
@@ -339,28 +372,103 @@ export default function AdminUsers() {
           <div>Grátis hoje: {user.dailyFreeGenerations}/2</div>
           <div>Bonus: {user.bonusGenerations}</div>
         </td>
+        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+          <div className="space-y-1">
+            {user.registrationIp && (
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs">
+                  Reg: {user.registrationIp}
+                </span>
+                {user.registrationIpBanned ? (
+                  <span className="px-1.5 py-0.5 rounded text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
+                    🚫 Banido
+                  </span>
+                ) : null}
+              </div>
+            )}
+            {user.lastIp && (
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs">
+                  Último: {user.lastIp}
+                </span>
+                {user.lastIpBanned ? (
+                  <span className="px-1.5 py-0.5 rounded text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">
+                    🚫 Banido
+                  </span>
+                ) : null}
+              </div>
+            )}
+            {!user.registrationIp && !user.lastIp && (
+              <span className="text-gray-400">-</span>
+            )}
+          </div>
+        </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-          <div className="flex space-x-2">
-            <button
-              onClick={() => handleEdit(user)}
-              className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
-            >
-              Editar
-            </button>
-            {user.isBanned ? (
+          <div className="flex flex-col space-y-1">
+            <div className="flex space-x-2">
               <button
-                onClick={() => handleBan(user, false)}
-                className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
+                onClick={() => handleEdit(user)}
+                className="text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300"
               >
-                Desbanir
+                Editar
               </button>
-            ) : (
-              <button
-                onClick={() => handleBan(user, true)}
-                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
-              >
-                Banir
-              </button>
+              {user.isBanned ? (
+                <button
+                  onClick={() => handleBan(user, false)}
+                  className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
+                >
+                  Desbanir
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleBan(user, true)}
+                  className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                >
+                  Banir
+                </button>
+              )}
+            </div>
+            {user.registrationIp && (
+              <div className="flex space-x-1">
+                {user.registrationIpBanned ? (
+                  <button
+                    onClick={() => handleUnbanIp(user.registrationIp!, user.username)}
+                    className="text-xs text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
+                    title={`Desbanir IP ${user.registrationIp}`}
+                  >
+                    🌐 Desbanir IP Reg
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleBanIp(user.registrationIp!, user.username)}
+                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                    title={`Banir IP ${user.registrationIp}`}
+                  >
+                    🌐 Banir IP Reg
+                  </button>
+                )}
+              </div>
+            )}
+            {user.lastIp && user.lastIp !== user.registrationIp && (
+              <div className="flex space-x-1">
+                {user.lastIpBanned ? (
+                  <button
+                    onClick={() => handleUnbanIp(user.lastIp!, user.username)}
+                    className="text-xs text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
+                    title={`Desbanir IP ${user.lastIp}`}
+                  >
+                    🌐 Desbanir IP Último
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleBanIp(user.lastIp!, user.username)}
+                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+                    title={`Banir IP ${user.lastIp}`}
+                  >
+                    🌐 Banir IP Último
+                  </button>
+                )}
+              </div>
             )}
           </div>
         </td>
@@ -563,6 +671,7 @@ export default function AdminUsers() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Plano</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Gerações</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">IPs</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
               </tr>
             </thead>

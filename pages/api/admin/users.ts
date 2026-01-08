@@ -45,8 +45,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         orderBy: { createdAt: 'desc' }
       })
 
+      // Verificar quais IPs estão banidos
+      const allIps = new Set<string>()
+      users.forEach(user => {
+        if (user.registrationIp) allIps.add(user.registrationIp)
+        if (user.lastIp) allIps.add(user.lastIp)
+      })
+
+      const bannedIps = await prisma.bannedIp.findMany({
+        where: {
+          ip: { in: Array.from(allIps) }
+        },
+        select: {
+          ip: true,
+          expiresAt: true
+        }
+      })
+
+      const bannedIpSet = new Set<string>()
+      bannedIps.forEach(ban => {
+        // Verificar se o banimento não expirou
+        if (!ban.expiresAt || ban.expiresAt > new Date()) {
+          bannedIpSet.add(ban.ip)
+        }
+      })
+
+      // Adicionar informações de banimento aos usuários
+      const usersWithIpStatus = users.map(user => ({
+        ...user,
+        registrationIpBanned: user.registrationIp ? bannedIpSet.has(user.registrationIp) : false,
+        lastIpBanned: user.lastIp ? bannedIpSet.has(user.lastIp) : false
+      }))
+
       console.log('✅ Usuários encontrados:', users.length)
-      return res.json(users)
+      return res.json(usersWithIpStatus)
     } catch (error: any) {
       console.error('❌ Error fetching users:', error)
       return res.status(500).json({ error: 'Internal server error', details: error.message })
