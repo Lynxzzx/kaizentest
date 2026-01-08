@@ -34,8 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       password, 
       deviceFingerprint, 
       affiliateRef,
-      turnstileToken,
-      recaptchaToken, // Mantido para compatibilidade, mas não usado
+      recaptchaToken,
       honeypot,
       formStartTime
     } = req.body
@@ -47,7 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ================================================
     const securityCheck = await validateRegisterRequest(req, {
       username: sanitizedUsername,
-      turnstileToken: turnstileToken || recaptchaToken, // Usar turnstileToken, fallback para compatibilidade
+      recaptchaToken,
       honeypot,
       formStartTime
     })

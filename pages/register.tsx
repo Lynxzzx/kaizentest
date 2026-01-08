@@ -8,7 +8,7 @@ import Link from 'next/link'
 import axios from 'axios'
 import { getStoredDeviceFingerprint } from '@/lib/device-fingerprint'
 import toast from 'react-hot-toast'
-import TurnstileCheckbox, { useTurnstile } from '@/components/TurnstileCheckbox'
+import ReCaptcha, { useReCaptcha, ReCaptchaBadge } from '@/components/ReCaptcha'
 
 export default function Register() {
   const { t } = useTranslation()
@@ -26,15 +26,9 @@ export default function Register() {
   const [honeypot, setHoneypot] = useState('') // Campo invisível
   const formStartTimeRef = useRef<number>(Date.now()) // Tempo de início
 
-  // 🛡️ Cloudflare Turnstile - Checkbox "Não sou um robô"
-  const {
-    token: turnstileToken,
-    isVerified: turnstileVerified,
-    handleVerify: handleTurnstileVerify,
-    handleExpire: handleTurnstileExpire,
-    handleError: handleTurnstileError,
-    reset: resetTurnstile
-  } = useTurnstile()
+  // 🛡️ Google reCAPTCHA v3 (invisível)
+  const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
 
   // Capturar parâmetro ref da URL
   useEffect(() => {
@@ -79,15 +73,24 @@ export default function Register() {
       return
     }
 
-    // 🛡️ Verificar Turnstile
-    if (!turnstileVerified) {
-      toast.error('Por favor, marque a caixa "Não sou um robô"')
+    // 🛡️ Executar reCAPTCHA v3
+    if (!recaptchaReady || !recaptchaConfigured) {
+      toast.error('Verificação de segurança não está pronta. Aguarde um momento.')
       return
     }
 
     setLoading(true)
 
     try {
+      // Executar reCAPTCHA v3
+      const token = await executeRecaptcha('register')
+      if (!token) {
+        toast.error('Erro ao verificar segurança. Tente novamente.')
+        setLoading(false)
+        return
+      }
+      setRecaptchaToken(token)
+
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000)
 
@@ -101,7 +104,7 @@ export default function Register() {
         deviceFingerprint,
         affiliateRef: affiliateRef || null,
         // 🛡️ Dados de segurança
-        turnstileToken,
+        recaptchaToken: token,
         honeypot,
         formStartTime: formStartTimeRef.current
       }, {
@@ -128,7 +131,7 @@ export default function Register() {
       }
     } catch (error: any) {
       console.error('Register error:', error)
-      resetTurnstile()
+      setRecaptchaToken(null)
       
       let errorMessage = t('errorCreatingAccount')
       
@@ -266,15 +269,11 @@ export default function Register() {
               />
             </div>
 
-            {/* 🛡️ Cloudflare Turnstile - Checkbox "Não sou um robô" */}
-            <div className="flex justify-center py-2">
-              <TurnstileCheckbox
-                onVerify={handleTurnstileVerify}
-                onExpire={handleTurnstileExpire}
-                onError={handleTurnstileError}
-                theme={theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'auto'}
-              />
-            </div>
+            {/* 🛡️ Google reCAPTCHA v3 (invisível) */}
+            <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="register" />
+
+            {/* 🛡️ Badge do reCAPTCHA */}
+            <ReCaptchaBadge />
 
             {/* 🛡️ Indicador de segurança */}
             <div className={`flex items-center justify-center gap-2 text-xs ${themeClasses.text.muted}`}>
@@ -286,7 +285,7 @@ export default function Register() {
 
             <button
               type="submit"
-              disabled={loading || !turnstileVerified}
+              disabled={loading || !recaptchaReady || !recaptchaConfigured}
               className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (

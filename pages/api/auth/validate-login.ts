@@ -28,8 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { 
       username, 
-      turnstileToken,
-      recaptchaToken, // Mantido para compatibilidade, mas não usado
+      recaptchaToken,
       honeypot, 
       formStartTime,
       resetAttempts // Flag para resetar tentativas após login bem-sucedido
@@ -50,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Validação de segurança completa
     const securityCheck = await validateLoginRequest(req, {
       username: sanitizedUsername,
-      turnstileToken: turnstileToken || recaptchaToken, // Usar turnstileToken, fallback para compatibilidade
+      recaptchaToken,
       honeypot,
       formStartTime
     })

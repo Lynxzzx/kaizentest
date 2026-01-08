@@ -9,7 +9,8 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
-import TurnstileCheckbox, { useTurnstile } from '@/components/TurnstileCheckbox'
+import { useReCaptcha } from '@/components/ReCaptcha'
+import ReCaptcha from '@/components/ReCaptcha'
 
 interface ServicePlanRule {
   planId: string
@@ -71,15 +72,9 @@ export default function Dashboard() {
   const [cooldownRemaining, setCooldownRemaining] = useState(0)
   const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null)
   
-  // 🛡️ TURNSTILE STATE
-  const {
-    token: turnstileToken,
-    isVerified: turnstileVerified,
-    handleVerify: handleTurnstileVerify,
-    handleExpire: handleTurnstileExpire,
-    handleError: handleTurnstileError,
-    reset: resetTurnstile
-  } = useTurnstile()
+  // 🛡️ Google reCAPTCHA v3 (invisível)
+  const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
 
   // Classes de tema para o dashboard
   const getDashboardThemeClasses = () => {
@@ -253,9 +248,9 @@ export default function Dashboard() {
       return
     }
 
-    // 🛡️ VERIFICAR TURNSTILE
-    if (!turnstileVerified || !turnstileToken) {
-      toast.error('Complete a verificação de segurança (CAPTCHA)')
+    // 🛡️ VERIFICAR reCAPTCHA v3
+    if (!recaptchaReady || !recaptchaConfigured) {
+      toast.error('Verificação de segurança não está pronta. Aguarde um momento.')
       return
     }
 
@@ -277,11 +272,19 @@ export default function Dashboard() {
       return
     }
 
+    // Executar reCAPTCHA v3
+    const token = await executeRecaptcha('generate')
+    if (!token) {
+      toast.error('Erro ao verificar segurança. Tente novamente.')
+      return
+    }
+    setRecaptchaToken(token)
+
     setLoading(true)
     try {
       const response = await axios.post('/api/accounts/generate', {
         serviceId: selectedService,
-        turnstileToken // 🛡️ Enviar token do Turnstile
+        recaptchaToken: token // 🛡️ Enviar token do reCAPTCHA v3
       })
       
       setGeneratedAccount(response.data)
@@ -289,8 +292,8 @@ export default function Dashboard() {
       loadUserPlan()
       loadAccountHistory(1) // Recarregar histórico após gerar conta
       
-      // 🛡️ RESETAR TURNSTILE APÓS GERAÇÃO
-      resetTurnstile()
+      // 🛡️ RESETAR reCAPTCHA APÓS GERAÇÃO
+      setRecaptchaToken(null)
       
       // 🛡️ INICIAR COOLDOWN APÓS GERAÇÃO BEM-SUCEDIDA
       if (response.data.cooldown?.seconds) {
@@ -302,8 +305,8 @@ export default function Dashboard() {
     } catch (error: any) {
       const errorData = error.response?.data
       
-      // 🛡️ RESETAR TURNSTILE EM CASO DE ERRO
-      resetTurnstile()
+      // 🛡️ RESETAR reCAPTCHA EM CASO DE ERRO
+      setRecaptchaToken(null)
       
       // 🛡️ SE RECEBER COOLDOWN NA RESPOSTA DE ERRO
       if (errorData?.cooldownRemaining) {
@@ -503,23 +506,14 @@ export default function Dashboard() {
                 </div>
               )}
               
-              {/* 🛡️ TURNSTILE - Apenas mostrar quando não tem cooldown */}
-              {cooldownRemaining === 0 && selectedService && (
-                <div className="flex justify-center">
-                  <TurnstileCheckbox
-                    onVerify={handleTurnstileVerify}
-                    onExpire={handleTurnstileExpire}
-                    onError={handleTurnstileError}
-                    theme={theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'auto'}
-                  />
-                </div>
-              )}
+              {/* 🛡️ Google reCAPTCHA v3 (invisível) */}
+              <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="generate" />
               
               <button
                 onClick={handleGenerateAccount}
-                disabled={loading || !selectedService || cooldownRemaining > 0 || !turnstileVerified}
+                disabled={loading || !selectedService || cooldownRemaining > 0 || !recaptchaReady || !recaptchaConfigured}
                 className={`w-full py-3 sm:py-4 rounded-lg text-sm sm:text-base font-bold transition-all shadow-lg transform touch-manipulation ${
-                  cooldownRemaining > 0 || !turnstileVerified
+                  cooldownRemaining > 0 || !recaptchaReady || !recaptchaConfigured
                     ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-60'
                     : 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
                 }`}

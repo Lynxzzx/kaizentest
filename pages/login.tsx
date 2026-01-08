@@ -7,7 +7,7 @@ import { getThemeClasses } from '@/lib/theme-utils'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import axios from 'axios'
-import TurnstileCheckbox, { useTurnstile } from '@/components/TurnstileCheckbox'
+import ReCaptcha, { useReCaptcha, ReCaptchaBadge } from '@/components/ReCaptcha'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -23,15 +23,9 @@ export default function Login() {
   const formStartTimeRef = useRef<number>(Date.now()) // Tempo de início
   const [loginAttempts, setLoginAttempts] = useState(0)
 
-  // 🛡️ Cloudflare Turnstile - Checkbox "Não sou um robô"
-  const {
-    token: turnstileToken,
-    isVerified: turnstileVerified,
-    handleVerify: handleTurnstileVerify,
-    handleExpire: handleTurnstileExpire,
-    handleError: handleTurnstileError,
-    reset: resetTurnstile
-  } = useTurnstile()
+  // 🛡️ Google reCAPTCHA v3 (invisível)
+  const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
 
   // Resetar tempo quando o componente monta
   useEffect(() => {
@@ -67,34 +61,43 @@ export default function Login() {
       return
     }
 
-    // 🛡️ Verificar Turnstile
-    if (!turnstileVerified) {
-      toast.error('Por favor, marque a caixa "Não sou um robô"')
+    // 🛡️ Executar reCAPTCHA v3
+    if (!recaptchaReady || !recaptchaConfigured) {
+      toast.error('Verificação de segurança não está pronta. Aguarde um momento.')
       return
     }
 
     setLoading(true)
 
     try {
+      // Executar reCAPTCHA v3
+      const token = await executeRecaptcha('login')
+      if (!token) {
+        toast.error('Erro ao verificar segurança. Tente novamente.')
+        setLoading(false)
+        return
+      }
+      setRecaptchaToken(token)
+
       // 🛡️ SEGURANÇA: Validar requisição antes de autenticar
       try {
         const validateResponse = await axios.post('/api/auth/validate-login', {
           username: username.trim(),
-          turnstileToken, // Token do Turnstile
+          recaptchaToken: token,
           honeypot,
           formStartTime: formStartTimeRef.current
         })
 
         if (!validateResponse.data.allowed && validateResponse.status !== 200) {
           toast.error(validateResponse.data.error || 'Verificação de segurança falhou.')
-          resetTurnstile()
+          setRecaptchaToken(null)
           return
         }
       } catch (validateError: any) {
         if (validateError.response?.status === 403) {
           // Bloqueado por segurança
           toast.error(validateError.response.data.error || 'Acesso temporariamente bloqueado.')
-          resetTurnstile()
+          setRecaptchaToken(null)
           return
         }
         // Se a validação falhar por outro motivo, continuar com o login
@@ -111,8 +114,8 @@ export default function Login() {
       if (result?.error) {
         setLoginAttempts(prev => prev + 1)
         toast.error(t('invalidCredentials'))
-        // Resetar Turnstile após erro
-        resetTurnstile()
+        // Resetar reCAPTCHA após erro
+        setRecaptchaToken(null)
       } else {
         // Login bem-sucedido - resetar tentativas no servidor
         try {
@@ -130,7 +133,7 @@ export default function Login() {
     } catch (error: any) {
       console.error('Login error:', error)
       setLoginAttempts(prev => prev + 1)
-      resetTurnstile()
+      setRecaptchaToken(null)
       
       let errorMessage = t('errorLoggingIn')
       
@@ -239,15 +242,11 @@ export default function Login() {
               />
             </div>
 
-            {/* 🛡️ Cloudflare Turnstile - Checkbox "Não sou um robô" */}
-            <div className="flex justify-center py-2">
-              <TurnstileCheckbox
-                onVerify={handleTurnstileVerify}
-                onExpire={handleTurnstileExpire}
-                onError={handleTurnstileError}
-                theme={theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'auto'}
-              />
-            </div>
+            {/* 🛡️ Google reCAPTCHA v3 (invisível) */}
+            <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="login" />
+
+            {/* 🛡️ Badge do reCAPTCHA */}
+            <ReCaptchaBadge />
 
             <div className="flex justify-end">
               <Link href="/forgot-password" className="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:underline">
@@ -265,7 +264,7 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading || !turnstileVerified}
+              disabled={loading || !recaptchaReady || !recaptchaConfigured}
               className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (

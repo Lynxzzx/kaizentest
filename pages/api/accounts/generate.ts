@@ -12,7 +12,7 @@ import {
   getCooldownRemaining,
   GENERATION_PROTECTION
 } from '@/lib/generation-protection'
-import { verifyTurnstile } from '@/lib/security'
+import { verifyRecaptcha } from '@/lib/security'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // ===========================================
@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Obter sessão de forma assíncrona
   const sessionPromise = getServerSession(req, res, authOptions)
   
-  const { serviceId, turnstileToken } = req.body
+  const { serviceId, recaptchaToken } = req.body
 
   if (!serviceId) {
     return res.status(400).json({ error: 'ServiceId is required' })
@@ -90,19 +90,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // ===========================================
-  // 🛡️ VERIFICAR TURNSTILE
+  // 🛡️ VERIFICAR reCAPTCHA v3
   // ===========================================
   
-  const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY
+  const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY
   
-  if (turnstileToken && turnstileSecretKey) {
+  if (recaptchaToken && recaptchaSecretKey) {
     try {
-      const captchaResult = await verifyTurnstile(turnstileToken)
+      const captchaResult = await verifyRecaptcha(recaptchaToken, 'generate')
       
       if (!captchaResult.success) {
         const errorCodes = captchaResult.errorCodes || []
         
-        // Erros conhecidos do Turnstile que podem ocorrer mesmo com usuários legítimos:
+        // Erros conhecidos do reCAPTCHA que podem ocorrer mesmo com usuários legítimos:
         // - timeout-or-duplicate: token expirado ou já usado (comum em double-clicks)
         // - invalid-input-response: resposta inválida
         // - bad-request: requisição malformada
@@ -113,12 +113,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!isTolerableError) {
           // Erro crítico - bloquear requisição
           return res.status(403).json({ 
-            error: 'Verificação de segurança falhou. Por favor, marque a caixa "Não sou um robô" novamente.',
+            error: 'Verificação de segurança falhou. Por favor, tente novamente.',
             securityBlock: true
           })
         } else {
           // Erro tolerável - permitir requisição mas avisar
-          console.warn('⚠️ Turnstile retornou erro tolerável, permitindo requisição:', errorCodes)
+          console.warn('⚠️ reCAPTCHA retornou erro tolerável, permitindo requisição:', errorCodes)
         }
       }
     } catch (error) {
@@ -129,12 +129,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           securityBlock: true
         })
       }
-      console.warn('⚠️ Erro ao verificar Turnstile:', error)
+      console.warn('⚠️ Erro ao verificar reCAPTCHA:', error)
     }
-  } else if (turnstileSecretKey && process.env.NODE_ENV === 'production') {
-    // Turnstile obrigatório em produção se configurado
+  } else if (recaptchaSecretKey && process.env.NODE_ENV === 'production') {
+    // reCAPTCHA obrigatório em produção se configurado
     return res.status(403).json({ 
-      error: 'Verificação de segurança obrigatória. Por favor, marque a caixa "Não sou um robô".',
+      error: 'Verificação de segurança obrigatória.',
       securityBlock: true
     })
   }

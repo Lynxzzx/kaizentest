@@ -662,8 +662,7 @@ export async function validateRegisterRequest(
   req: NextApiRequest,
   data: {
     username: string
-    turnstileToken?: string
-    recaptchaToken?: string // Mantido para compatibilidade, mas não usado
+    recaptchaToken?: string
     honeypot?: string
     formStartTime?: number
   }
@@ -767,36 +766,37 @@ export async function validateRegisterRequest(
     warnings.push('Username com padrão suspeito')
   }
   
-  // 5. Cloudflare Turnstile (checkbox "Não sou um robô")
+  // 5. Google reCAPTCHA v3 (invisível)
   let recaptchaScore: number | undefined
-  if (data.turnstileToken) {
-    const turnstileResult = await verifyTurnstile(data.turnstileToken)
+  if (data.recaptchaToken) {
+    const recaptchaResult = await verifyRecaptcha(data.recaptchaToken, 'register')
+    recaptchaScore = recaptchaResult.score
     
-    if (!turnstileResult.success) {
+    if (!recaptchaResult.success) {
       await logSecurityEvent({
         type: 'bot_detected',
         ip,
         userAgent,
         username: data.username,
         success: false,
-        reason: 'Turnstile falhou',
-        metadata: { errorCodes: turnstileResult.errorCodes }
+        reason: 'reCAPTCHA v3 falhou',
+        metadata: { errorCodes: recaptchaResult.errorCodes, score: recaptchaResult.score }
       })
       
       return {
         allowed: false,
-        reason: 'Verificação de segurança falhou. Por favor, marque a caixa "Não sou um robô".',
+        reason: 'Verificação de segurança falhou. Por favor, tente novamente.',
         warnings: [],
         botScore: 80,
         recaptchaScore
       }
     }
-    // Turnstile passou - sucesso!
-  } else if (process.env.TURNSTILE_SECRET_KEY && process.env.NODE_ENV === 'production') {
-    // Turnstile obrigatório em produção se configurado
+    // reCAPTCHA v3 passou - sucesso!
+  } else if (process.env.RECAPTCHA_SECRET_KEY && process.env.NODE_ENV === 'production') {
+    // reCAPTCHA obrigatório em produção se configurado
     return {
       allowed: false,
-      reason: 'Por favor, marque a caixa "Não sou um robô".',
+      reason: 'Verificação de segurança obrigatória.',
       warnings: [],
       botScore: 50
     }
@@ -831,8 +831,7 @@ export async function validateLoginRequest(
   req: NextApiRequest,
   data: {
     username: string
-    turnstileToken?: string
-    recaptchaToken?: string // Mantido para compatibilidade, mas não usado
+    recaptchaToken?: string
     honeypot?: string
     formStartTime?: number
   }
@@ -920,36 +919,37 @@ export async function validateLoginRequest(
     }
   }
   
-  // 4. Cloudflare Turnstile (checkbox "Não sou um robô")
+  // 4. Google reCAPTCHA v3 (invisível)
   let recaptchaScore: number | undefined
-  if (data.turnstileToken) {
-    const turnstileResult = await verifyTurnstile(data.turnstileToken)
+  if (data.recaptchaToken) {
+    const recaptchaResult = await verifyRecaptcha(data.recaptchaToken, 'login')
+    recaptchaScore = recaptchaResult.score
     
-    if (!turnstileResult.success) {
+    if (!recaptchaResult.success) {
       await logSecurityEvent({
         type: 'bot_detected',
         ip,
         userAgent,
         username: data.username,
         success: false,
-        reason: 'Turnstile falhou',
-        metadata: { errorCodes: turnstileResult.errorCodes }
+        reason: 'reCAPTCHA v3 falhou',
+        metadata: { errorCodes: recaptchaResult.errorCodes, score: recaptchaResult.score }
       })
       
       return {
         allowed: false,
-        reason: 'Por favor, marque a caixa "Não sou um robô".',
+        reason: 'Verificação de segurança falhou. Por favor, tente novamente.',
         warnings: [],
         botScore: 80,
         recaptchaScore
       }
     }
-    // Turnstile passou - sucesso!
-  } else if (process.env.TURNSTILE_SECRET_KEY && process.env.NODE_ENV === 'production') {
-    // Turnstile obrigatório em produção se configurado
+    // reCAPTCHA v3 passou - sucesso!
+  } else if (process.env.RECAPTCHA_SECRET_KEY && process.env.NODE_ENV === 'production') {
+    // reCAPTCHA obrigatório em produção se configurado
     return {
       allowed: false,
-      reason: 'Por favor, marque a caixa "Não sou um robô".',
+      reason: 'Verificação de segurança obrigatória.',
       warnings: [],
       botScore: 50
     }
