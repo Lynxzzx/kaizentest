@@ -248,12 +248,6 @@ export default function Dashboard() {
       return
     }
 
-    // 🛡️ VERIFICAR reCAPTCHA v3
-    if (!recaptchaReady || !recaptchaConfigured) {
-      toast.error('Verificação de segurança não está pronta. Aguarde um momento.')
-      return
-    }
-
     // 🛡️ VERIFICAR COOLDOWN NO FRONTEND
     if (cooldownRemaining > 0) {
       toast.error(`Aguarde ${formatCooldown(cooldownRemaining)} antes de gerar novamente.`)
@@ -272,16 +266,32 @@ export default function Dashboard() {
       return
     }
 
-    // Executar reCAPTCHA v3
-    const token = await executeRecaptcha('generate')
-    if (!token) {
-      toast.error('Erro ao verificar segurança. Tente novamente.')
+    // 🛡️ VERIFICAR reCAPTCHA v3
+    if (!recaptchaConfigured) {
+      toast.error('Verificação de segurança não configurada. Entre em contato com o suporte.')
       return
     }
-    setRecaptchaToken(token)
 
     setLoading(true)
+
     try {
+      // Executar reCAPTCHA v3 - aguardar se necessário
+      let token = await executeRecaptcha('generate')
+      
+      // Se não obteve token e não está pronto, aguardar um pouco
+      if (!token && !recaptchaReady) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        token = await executeRecaptcha('generate')
+      }
+
+      if (!token) {
+        toast.error('Erro ao verificar segurança. Por favor, recarregue a página e tente novamente.')
+        setLoading(false)
+        return
+      }
+      setRecaptchaToken(token)
+
+      // Continuar com a requisição
       const response = await axios.post('/api/accounts/generate', {
         serviceId: selectedService,
         recaptchaToken: token // 🛡️ Enviar token do reCAPTCHA v3
@@ -511,9 +521,9 @@ export default function Dashboard() {
               
               <button
                 onClick={handleGenerateAccount}
-                disabled={loading || !selectedService || cooldownRemaining > 0 || !recaptchaReady || !recaptchaConfigured}
+                disabled={loading || !selectedService || cooldownRemaining > 0 || !recaptchaConfigured}
                 className={`w-full py-3 sm:py-4 rounded-lg text-sm sm:text-base font-bold transition-all shadow-lg transform touch-manipulation ${
-                  cooldownRemaining > 0 || !recaptchaReady || !recaptchaConfigured
+                  cooldownRemaining > 0 || !recaptchaConfigured
                     ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-60'
                     : 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
                 }`}

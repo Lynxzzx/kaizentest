@@ -73,19 +73,27 @@ export default function Register() {
       return
     }
 
-    // 🛡️ Executar reCAPTCHA v3
-    if (!recaptchaReady || !recaptchaConfigured) {
-      toast.error('Verificação de segurança não está pronta. Aguarde um momento.')
-      return
-    }
-
     setLoading(true)
 
     try {
-      // Executar reCAPTCHA v3
-      const token = await executeRecaptcha('register')
+      // 🛡️ Executar reCAPTCHA v3
+      if (!recaptchaConfigured) {
+        toast.error('Verificação de segurança não configurada. Entre em contato com o suporte.')
+        setLoading(false)
+        return
+      }
+
+      // Executar reCAPTCHA v3 - aguardar se necessário
+      let token = await executeRecaptcha('register')
+      
+      // Se não obteve token e não está pronto, aguardar um pouco
+      if (!token && !recaptchaReady) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        token = await executeRecaptcha('register')
+      }
+
       if (!token) {
-        toast.error('Erro ao verificar segurança. Tente novamente.')
+        toast.error('Erro ao verificar segurança. Por favor, recarregue a página e tente novamente.')
         setLoading(false)
         return
       }
@@ -285,7 +293,7 @@ export default function Register() {
 
             <button
               type="submit"
-              disabled={loading || !recaptchaReady || !recaptchaConfigured}
+              disabled={loading || !recaptchaConfigured}
               className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (

@@ -29,28 +29,65 @@ export function useReCaptcha() {
   }, [])
 
   useEffect(() => {
-    if (siteKey && window.grecaptcha) {
-      window.grecaptcha.ready(() => {
-        setIsReady(true)
-      })
+    // Verificar se o script já está carregado
+    const checkReady = () => {
+      if (siteKey && window.grecaptcha) {
+        window.grecaptcha.ready(() => {
+          setIsReady(true)
+        })
+      }
+    }
+
+    // Se já estiver carregado
+    if (window.grecaptcha) {
+      checkReady()
+    } else {
+      // Aguardar o script carregar
+      const interval = setInterval(() => {
+        if (window.grecaptcha) {
+          checkReady()
+          clearInterval(interval)
+        }
+      }, 100)
+
+      // Limpar após 10 segundos
+      setTimeout(() => clearInterval(interval), 10000)
     }
   }, [siteKey])
 
   const executeRecaptcha = useCallback(async (action: string): Promise<string | null> => {
     if (!siteKey) {
-      console.warn('reCAPTCHA site key não configurada')
+      console.warn('⚠️ reCAPTCHA site key não configurada')
       return null
     }
 
+    // Aguardar o grecaptcha estar pronto
     if (!window.grecaptcha) {
-      console.warn('reCAPTCHA não carregado')
-      return null
+      console.warn('⚠️ reCAPTCHA não carregado, aguardando...')
+      // Tentar aguardar um pouco
+      await new Promise(resolve => setTimeout(resolve, 500))
+      if (!window.grecaptcha) {
+        console.error('❌ reCAPTCHA não carregou após aguardar')
+        return null
+      }
     }
 
     try {
-      return await window.grecaptcha.execute(siteKey, { action })
+      // Garantir que está pronto
+      await new Promise<void>((resolve) => {
+        if (window.grecaptcha) {
+          window.grecaptcha.ready(() => {
+            resolve()
+          })
+        } else {
+          resolve()
+        }
+      })
+
+      const token = await window.grecaptcha.execute(siteKey, { action })
+      return token
     } catch (error) {
-      console.error('Erro ao executar reCAPTCHA:', error)
+      console.error('❌ Erro ao executar reCAPTCHA:', error)
       return null
     }
   }, [siteKey])
@@ -62,35 +99,33 @@ export function useReCaptcha() {
   }
 }
 
-// Componente que carrega o script do reCAPTCHA
+// Componente que carrega o script do reCAPTCHA v3 (não executa automaticamente)
 export default function ReCaptcha({ onVerify, action = 'submit' }: ReCaptchaProps) {
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 
   useEffect(() => {
     if (!siteKey) return
 
-    window.onRecaptchaLoad = () => {
-      if (window.grecaptcha && onVerify) {
-        window.grecaptcha.ready(async () => {
-          try {
-            const token = await window.grecaptcha.execute(siteKey, { action })
-            onVerify(token)
-          } catch (error) {
-            console.error('Erro ao executar reCAPTCHA:', error)
-          }
-        })
-      }
+    // Função para marcar que o script está carregado
+    const markAsLoaded = () => {
+      // Apenas marca que está carregado, não executa
+      // A execução será feita manualmente via executeRecaptcha
     }
 
-    // Se o grecaptcha já estiver carregado
+    // Se já estiver carregado
     if (window.grecaptcha) {
-      window.onRecaptchaLoad()
+      markAsLoaded()
+    } else {
+      // Aguardar o script carregar
+      window.onRecaptchaLoad = markAsLoaded
     }
 
     return () => {
-      delete window.onRecaptchaLoad
+      if (window.onRecaptchaLoad === markAsLoaded) {
+        delete window.onRecaptchaLoad
+      }
     }
-  }, [siteKey, action, onVerify])
+  }, [siteKey])
 
   if (!siteKey) {
     return null
