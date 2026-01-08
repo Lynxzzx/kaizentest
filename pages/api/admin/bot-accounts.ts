@@ -274,6 +274,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         where: { userId: { in: idsToDelete } }
       })
 
+      // Deletar comissões de afiliado relacionadas
+      await prisma.affiliateCommission.deleteMany({
+        where: { affiliateId: { in: idsToDelete } }
+      })
+
+      // Deletar saques de afiliado relacionados
+      await prisma.affiliateWithdrawal.deleteMany({
+        where: { userId: { in: idsToDelete } }
+      })
+
+      // Remover referências de afiliados ANTES de deletar
+      // 1. Remover referredBy dos usuários que serão deletados (caso tenham referenciado alguém)
+      await prisma.user.updateMany({
+        where: { id: { in: idsToDelete } },
+        data: { referredBy: null }
+      })
+
+      // 2. Remover referredBy de outros usuários que apontam para os usuários que serão deletados
+      await prisma.user.updateMany({
+        where: { referredBy: { in: idsToDelete } },
+        data: { referredBy: null }
+      })
+
       // Finalmente, deletar os usuários
       const result = await prisma.user.deleteMany({
         where: { id: { in: idsToDelete } }
