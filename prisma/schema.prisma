@@ -109,6 +109,7 @@ model Plan {
   price       Float
   duration    Int      // in days
   maxGenerations Int    @default(0) // 0 = unlimited
+  generationCooldownSeconds Int @default(120) // Cooldown entre gerações em segundos (padrão: 2 minutos)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

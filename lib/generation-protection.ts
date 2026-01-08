@@ -222,7 +222,8 @@ export interface GenerationProtectionResult {
  */
 export async function checkGenerationAllowed(
   req: NextApiRequest,
-  userId: string
+  userId: string,
+  customCooldownSeconds?: number
 ): Promise<GenerationProtectionResult> {
   const now = Date.now()
   const ip = getClientIp(req)
@@ -340,10 +341,11 @@ export async function checkGenerationAllowed(
   }
   
   // ===========================================
-  // 8. VERIFICAR COOLDOWN DE 2 MINUTOS
+  // 8. VERIFICAR COOLDOWN (usar customizado se fornecido)
   // ===========================================
   const timeSinceLastGeneration = now - state.lastGeneration
-  const cooldownMs = GENERATION_PROTECTION.COOLDOWN_SECONDS * 1000
+  const cooldownSeconds = customCooldownSeconds || GENERATION_PROTECTION.COOLDOWN_SECONDS
+  const cooldownMs = cooldownSeconds * 1000
   
   if (state.lastGeneration > 0 && timeSinceLastGeneration < cooldownMs) {
     const remainingSeconds = Math.ceil((cooldownMs - timeSinceLastGeneration) / 1000)
@@ -456,12 +458,13 @@ export function cancelGeneration(userId: string): void {
 /**
  * Obter tempo restante de cooldown
  */
-export function getCooldownRemaining(userId: string): number {
+export function getCooldownRemaining(userId: string, customCooldownSeconds?: number): number {
   const state = userGenerationState.get(userId)
   if (!state) return 0
   
   const now = Date.now()
-  const cooldownMs = GENERATION_PROTECTION.COOLDOWN_SECONDS * 1000
+  const cooldownSeconds = customCooldownSeconds || GENERATION_PROTECTION.COOLDOWN_SECONDS
+  const cooldownMs = cooldownSeconds * 1000
   const timeSinceLastGeneration = now - state.lastGeneration
   
   if (timeSinceLastGeneration >= cooldownMs) return 0

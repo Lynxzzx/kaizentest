@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
-    const { name, description, price, duration, maxGenerations } = req.body
+    const { name, description, price, duration, maxGenerations, generationCooldownSeconds } = req.body
 
     if (!name || !price || !duration) {
       return res.status(400).json({ error: 'Name, price and duration are required' })
@@ -31,7 +31,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         description,
         price: parseFloat(price),
         duration: parseInt(duration),
-        maxGenerations: maxGenerations ? parseInt(maxGenerations) : 0
+        maxGenerations: maxGenerations ? parseInt(maxGenerations) : 0,
+        generationCooldownSeconds: generationCooldownSeconds ? parseInt(generationCooldownSeconds) : 120
       }
     })
 

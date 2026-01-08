@@ -435,9 +435,64 @@ interface RecaptchaResult {
 }
 
 /**
- * Verificar token reCAPTCHA v2 (checkbox) com o Google
+ * Verificar token Cloudflare Turnstile
+ */
+export async function verifyTurnstile(token: string): Promise<RecaptchaResult> {
+  const secretKey = process.env.TURNSTILE_SECRET_KEY
+  
+  if (!secretKey) {
+    console.warn('⚠️ TURNSTILE_SECRET_KEY não configurada')
+    // Em desenvolvimento, permitir sem CAPTCHA
+    if (process.env.NODE_ENV === 'development') {
+      return { success: true }
+    }
+    return { success: false, errorCodes: ['missing-secret-key'] }
+  }
+  
+  if (!token) {
+    return { success: false, errorCodes: ['missing-input-response'] }
+  }
+  
+  try {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        secret: secretKey,
+        response: token
+      }),
+    })
+    
+    const data = await response.json()
+    
+    if (!data.success) {
+      return {
+        success: false,
+        errorCodes: data['error-codes'] || ['unknown-error']
+      }
+    }
+    
+    return { success: true }
+  } catch (error) {
+    console.error('Erro ao verificar Turnstile:', error)
+    return { success: false, errorCodes: ['network-error'] }
+  }
+}
+
+/**
+ * Verificar token reCAPTCHA v2 (checkbox) com o Google (DEPRECATED - usar verifyTurnstile)
+ * Mantido para compatibilidade
  */
 export async function verifyRecaptchaV2(token: string): Promise<RecaptchaResult> {
+  // Tentar usar Turnstile primeiro
+  const turnstileKey = process.env.TURNSTILE_SECRET_KEY
+  if (turnstileKey) {
+    return verifyTurnstile(token)
+  }
+  
+  // Fallback para reCAPTCHA se Turnstile não estiver configurado
   const secretKey = process.env.RECAPTCHA_V2_SECRET_KEY
   
   if (!secretKey) {
@@ -607,7 +662,8 @@ export async function validateRegisterRequest(
   req: NextApiRequest,
   data: {
     username: string
-    recaptchaToken?: string
+    turnstileToken?: string
+    recaptchaToken?: string // Mantido para compatibilidade, mas não usado
     honeypot?: string
     formStartTime?: number
   }
@@ -711,45 +767,33 @@ export async function validateRegisterRequest(
     warnings.push('Username com padrão suspeito')
   }
   
-  // 5. reCAPTCHA v2 (checkbox "Não sou um robô")
+  // 5. Cloudflare Turnstile (checkbox "Não sou um robô")
   let recaptchaScore: number | undefined
-  if (data.recaptchaToken) {
-    // Primeiro tenta v2 (checkbox), depois v3 (invisível)
-    const recaptchaV2Result = await verifyRecaptchaV2(data.recaptchaToken)
+  if (data.turnstileToken) {
+    const turnstileResult = await verifyTurnstile(data.turnstileToken)
     
-    if (!recaptchaV2Result.success) {
-      // Tentar v3 como fallback
-      const recaptchaV3Result = await verifyRecaptcha(data.recaptchaToken, 'register')
-      recaptchaScore = recaptchaV3Result.score
+    if (!turnstileResult.success) {
+      await logSecurityEvent({
+        type: 'bot_detected',
+        ip,
+        userAgent,
+        username: data.username,
+        success: false,
+        reason: 'Turnstile falhou',
+        metadata: { errorCodes: turnstileResult.errorCodes }
+      })
       
-      if (!recaptchaV3Result.success) {
-        await logSecurityEvent({
-          type: 'bot_detected',
-          ip,
-          userAgent,
-          username: data.username,
-          success: false,
-          reason: 'reCAPTCHA falhou',
-          metadata: { errorCodes: recaptchaV2Result.errorCodes || recaptchaV3Result.errorCodes }
-        })
-        
-        // Se o score é baixo mas não zero, pode ser um humano com comportamento suspeito
-        if (recaptchaV3Result.score && recaptchaV3Result.score > 0.1) {
-          warnings.push('Score reCAPTCHA baixo')
-        } else {
-          return {
-            allowed: false,
-            reason: 'Verificação de segurança falhou. Por favor, marque a caixa "Não sou um robô".',
-            warnings: [],
-            botScore: 80,
-            recaptchaScore
-          }
-        }
+      return {
+        allowed: false,
+        reason: 'Verificação de segurança falhou. Por favor, marque a caixa "Não sou um robô".',
+        warnings: [],
+        botScore: 80,
+        recaptchaScore
       }
     }
-    // reCAPTCHA v2 passou - sucesso!
-  } else if ((process.env.RECAPTCHA_V2_SECRET_KEY || process.env.RECAPTCHA_SECRET_KEY) && process.env.NODE_ENV === 'production') {
-    // reCAPTCHA obrigatório em produção se configurado
+    // Turnstile passou - sucesso!
+  } else if (process.env.TURNSTILE_SECRET_KEY && process.env.NODE_ENV === 'production') {
+    // Turnstile obrigatório em produção se configurado
     return {
       allowed: false,
       reason: 'Por favor, marque a caixa "Não sou um robô".',
@@ -787,7 +831,8 @@ export async function validateLoginRequest(
   req: NextApiRequest,
   data: {
     username: string
-    recaptchaToken?: string
+    turnstileToken?: string
+    recaptchaToken?: string // Mantido para compatibilidade, mas não usado
     honeypot?: string
     formStartTime?: number
   }
@@ -875,38 +920,39 @@ export async function validateLoginRequest(
     }
   }
   
-  // 4. reCAPTCHA v2 (checkbox "Não sou um robô")
+  // 4. Cloudflare Turnstile (checkbox "Não sou um robô")
   let recaptchaScore: number | undefined
-  if (data.recaptchaToken) {
-    // Primeiro tenta v2 (checkbox), depois v3 (invisível)
-    const recaptchaV2Result = await verifyRecaptchaV2(data.recaptchaToken)
+  if (data.turnstileToken) {
+    const turnstileResult = await verifyTurnstile(data.turnstileToken)
     
-    if (!recaptchaV2Result.success) {
-      // Tentar v3 como fallback
-      const recaptchaV3Result = await verifyRecaptcha(data.recaptchaToken, 'login')
-      recaptchaScore = recaptchaV3Result.score
+    if (!turnstileResult.success) {
+      await logSecurityEvent({
+        type: 'bot_detected',
+        ip,
+        userAgent,
+        username: data.username,
+        success: false,
+        reason: 'Turnstile falhou',
+        metadata: { errorCodes: turnstileResult.errorCodes }
+      })
       
-      if (!recaptchaV3Result.success && (!recaptchaV3Result.score || recaptchaV3Result.score < 0.3)) {
-        await logSecurityEvent({
-          type: 'bot_detected',
-          ip,
-          userAgent,
-          username: data.username,
-          success: false,
-          reason: 'reCAPTCHA falhou',
-          metadata: { errorCodes: recaptchaV2Result.errorCodes || recaptchaV3Result.errorCodes }
-        })
-        
-        return {
-          allowed: false,
-          reason: 'Por favor, marque a caixa "Não sou um robô".',
-          warnings: [],
-          botScore: 80,
-          recaptchaScore
-        }
+      return {
+        allowed: false,
+        reason: 'Por favor, marque a caixa "Não sou um robô".',
+        warnings: [],
+        botScore: 80,
+        recaptchaScore
       }
     }
-    // reCAPTCHA v2 passou - sucesso!
+    // Turnstile passou - sucesso!
+  } else if (process.env.TURNSTILE_SECRET_KEY && process.env.NODE_ENV === 'production') {
+    // Turnstile obrigatório em produção se configurado
+    return {
+      allowed: false,
+      reason: 'Por favor, marque a caixa "Não sou um robô".',
+      warnings: [],
+      botScore: 50
+    }
   }
   
   return {

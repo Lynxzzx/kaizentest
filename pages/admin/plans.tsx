@@ -12,6 +12,7 @@ interface Plan {
   price: number
   duration: number
   maxGenerations: number
+  generationCooldownSeconds?: number
   isActive: boolean
 }
 
@@ -27,7 +28,8 @@ export default function AdminPlans() {
     description: '',
     price: '',
     duration: '',
-    maxGenerations: '0'
+    maxGenerations: '0',
+    generationCooldownSeconds: '120'
   })
 
   useEffect(() => {
@@ -70,7 +72,7 @@ export default function AdminPlans() {
       }
       setShowForm(false)
       setEditingPlan(null)
-      setFormData({ name: '', description: '', price: '', duration: '', maxGenerations: '0' })
+      setFormData({ name: '', description: '', price: '', duration: '', maxGenerations: '0', generationCooldownSeconds: '120' })
       loadPlans()
     } catch (error: any) {
       toast.error(error.response?.data?.error || (editingPlan ? 'Erro ao atualizar plano' : 'Erro ao criar plano'))
@@ -84,7 +86,8 @@ export default function AdminPlans() {
       description: plan.description || '',
       price: plan.price.toString(),
       duration: plan.duration.toString(),
-      maxGenerations: plan.maxGenerations.toString()
+      maxGenerations: plan.maxGenerations.toString(),
+      generationCooldownSeconds: (plan.generationCooldownSeconds || 120).toString()
     })
     setShowForm(true)
     // Scroll para o formulário
@@ -94,7 +97,7 @@ export default function AdminPlans() {
   const handleCancel = () => {
     setShowForm(false)
     setEditingPlan(null)
-    setFormData({ name: '', description: '', price: '', duration: '', maxGenerations: '0' })
+    setFormData({ name: '', description: '', price: '', duration: '', maxGenerations: '0', generationCooldownSeconds: '120' })
   }
 
   const handleToggleActive = async (plan: Plan) => {
@@ -204,6 +207,20 @@ export default function AdminPlans() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md"
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Cooldown de Geração (segundos)
+                </label>
+                <input
+                  type="number"
+                  value={formData.generationCooldownSeconds}
+                  onChange={(e) => setFormData({ ...formData, generationCooldownSeconds: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  min="0"
+                  placeholder="120"
+                />
+                <p className="text-xs text-gray-500 mt-1">Tempo de espera entre gerações (padrão: 120 segundos = 2 minutos)</p>
+              </div>
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -233,6 +250,7 @@ export default function AdminPlans() {
               <p><strong>Preço:</strong> R$ {plan.price.toFixed(2)}</p>
               <p><strong>Duração:</strong> {plan.duration} dias</p>
               <p><strong>Max Gerações:</strong> {plan.maxGenerations === 0 ? t('unlimitedLabel') : plan.maxGenerations}</p>
+              <p><strong>Cooldown:</strong> {plan.generationCooldownSeconds || 120} segundos</p>
             </div>
             <div className="flex gap-2">
               <button

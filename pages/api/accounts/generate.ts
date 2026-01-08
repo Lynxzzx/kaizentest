@@ -12,7 +12,7 @@ import {
   getCooldownRemaining,
   GENERATION_PROTECTION
 } from '@/lib/generation-protection'
-import { verifyRecaptchaV2 } from '@/lib/security'
+import { verifyTurnstile } from '@/lib/security'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // ===========================================
@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Obter sessão de forma assíncrona
   const sessionPromise = getServerSession(req, res, authOptions)
   
-  const { serviceId, recaptchaToken } = req.body
+  const { serviceId, turnstileToken } = req.body
 
   if (!serviceId) {
     return res.status(400).json({ error: 'ServiceId is required' })
@@ -44,7 +44,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // 🛡️ PROTEÇÃO CONTRA AUTOMAÇÃO (PRIMEIRO - RÁPIDO, EM MEMÓRIA)
   // ===========================================
   
-  const protectionCheck = await checkGenerationAllowed(req, userId)
+  // Buscar usuário para obter cooldown do plano (será reutilizado depois)
+  const userForCooldown = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { plan: true }
+  })
+  
+  if (!userForCooldown) {
+    return res.status(404).json({ error: 'User not found' })
+  }
+  
+  const planCooldown = userForCooldown.plan?.generationCooldownSeconds
+  
+  const protectionCheck = await checkGenerationAllowed(req, userId, planCooldown)
   
   if (!protectionCheck.allowed) {
     // Retornar informações de cooldown se aplicável
@@ -55,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     if (protectionCheck.cooldownRemaining) {
       response.cooldownRemaining = protectionCheck.cooldownRemaining
-      response.cooldownTotal = GENERATION_PROTECTION.COOLDOWN_SECONDS
+      response.cooldownTotal = planCooldown || GENERATION_PROTECTION.COOLDOWN_SECONDS
     }
     
     // Banir IP apenas em casos extremos (evitar operações de DB desnecessárias)
@@ -78,52 +90,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // ===========================================
-  // 🛡️ VERIFICAR CAPTCHA (APENAS SE CONFIGURADO - TOLERANTE COM ERROS CONHECIDOS)
+  // 🛡️ VERIFICAR TURNSTILE
   // ===========================================
   
-  const recaptchaSecretKey = process.env.RECAPTCHA_V2_SECRET_KEY || process.env.RECAPTCHA_SECRET_KEY
+  const turnstileSecretKey = process.env.TURNSTILE_SECRET_KEY
   
-  // Tornar reCAPTCHA mais tolerante devido a problemas conhecidos (challenges impossíveis)
-  if (recaptchaSecretKey && recaptchaToken) {
+  if (turnstileToken && turnstileSecretKey) {
     try {
-      const captchaResult = await verifyRecaptchaV2(recaptchaToken)
+      const captchaResult = await verifyTurnstile(turnstileToken)
       
       if (!captchaResult.success) {
         const errorCodes = captchaResult.errorCodes || []
         
-        // Erros conhecidos do reCAPTCHA que podem ocorrer mesmo com usuários legítimos:
+        // Erros conhecidos do Turnstile que podem ocorrer mesmo com usuários legítimos:
         // - timeout-or-duplicate: token expirado ou já usado (comum em double-clicks)
-        // - invalid-input-response: resposta inválida (pode ser challenge impossível)
-        // - bad-request: requisição malformada (problema do Google, não do usuário)
+        // - invalid-input-response: resposta inválida
+        // - bad-request: requisição malformada
         const isTolerableError = errorCodes.some(code => 
           ['timeout-or-duplicate', 'invalid-input-response', 'bad-request', 'network-error'].includes(code)
         )
         
-        if (isTolerableError) {
-          // Erro tolerável - permitir requisição mas avisar
-          console.warn('⚠️ reCAPTCHA retornou erro tolerável, permitindo requisição:', errorCodes)
+        if (!isTolerableError) {
+          // Erro crítico - bloquear requisição
+          return res.status(403).json({ 
+            error: 'Verificação de segurança falhou. Por favor, marque a caixa "Não sou um robô" novamente.',
+            securityBlock: true
+          })
         } else {
-          // Erro crítico (ex: missing-input-secret, invalid-input-secret) - bloquear
-          // Mas apenas se for claramente um problema de configuração ou bot óbvio
-          const isCriticalError = errorCodes.some(code => 
-            ['missing-input-secret', 'invalid-input-secret'].includes(code)
-          )
-          
-          if (isCriticalError) {
-            // Erro crítico de configuração - não deveria acontecer em produção
-            console.error('❌ Erro crítico do reCAPTCHA:', errorCodes)
-          }
-          
-          // Para outros erros, ainda permitir mas avisar
-          console.warn('⚠️ reCAPTCHA retornou erro, mas permitindo requisição:', errorCodes)
+          // Erro tolerável - permitir requisição mas avisar
+          console.warn('⚠️ Turnstile retornou erro tolerável, permitindo requisição:', errorCodes)
         }
       }
     } catch (error) {
-      // Se houver erro na verificação (rede, etc), permitir requisição
-      console.warn('⚠️ Erro ao verificar reCAPTCHA, permitindo requisição:', error)
+      // Se houver erro na verificação (rede, etc), bloquear em produção
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(403).json({ 
+          error: 'Erro ao verificar segurança. Tente novamente.',
+          securityBlock: true
+        })
+      }
+      console.warn('⚠️ Erro ao verificar Turnstile:', error)
     }
+  } else if (turnstileSecretKey && process.env.NODE_ENV === 'production') {
+    // Turnstile obrigatório em produção se configurado
+    return res.status(403).json({ 
+      error: 'Verificação de segurança obrigatória. Por favor, marque a caixa "Não sou um robô".',
+      securityBlock: true
+    })
   }
-  // Se não tem token mas captcha está configurado, permitir (pode ser problema do frontend)
 
 
   // ===========================================
@@ -134,19 +148,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // ===========================================
-    // 👤 BUSCAR USUÁRIO E SERVIÇO EM PARALELO (OTIMIZAÇÃO)
+    // 👤 BUSCAR SERVIÇO (USUÁRIO JÁ FOI BUSCADO ACIMA)
     // ===========================================
     
-    const [user, service] = await Promise.all([
-      prisma.user.findUnique({
-        where: { id: userId },
-        include: { plan: true }
-      }),
-      prisma.service.findUnique({
-        where: { id: serviceId },
-        include: { allowedPlans: true }
-      })
-    ])
+    // Reutilizar usuário já buscado acima, apenas buscar serviço
+    const user = userForCooldown
+    const service = await prisma.service.findUnique({
+      where: { id: serviceId },
+      include: { allowedPlans: true }
+    })
 
     if (!user) {
       cancelGeneration(userId)
@@ -348,7 +358,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 📤 RETORNAR RESPOSTA
     // ===========================================
     
-    const nextCooldown = GENERATION_PROTECTION.COOLDOWN_SECONDS
+    // Usar cooldown do plano se disponível, senão usar o padrão
+    const planCooldown = user.plan?.generationCooldownSeconds || GENERATION_PROTECTION.COOLDOWN_SECONDS
+    const nextCooldown = planCooldown
 
     return res.json({
       id: generatedAccount.id,

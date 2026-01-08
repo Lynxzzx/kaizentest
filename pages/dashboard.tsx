@@ -9,7 +9,7 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
-import ReCaptchaCheckbox, { useReCaptchaV2 } from '@/components/ReCaptchaCheckbox'
+import TurnstileCheckbox, { useTurnstile } from '@/components/TurnstileCheckbox'
 
 interface ServicePlanRule {
   planId: string
@@ -71,15 +71,15 @@ export default function Dashboard() {
   const [cooldownRemaining, setCooldownRemaining] = useState(0)
   const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null)
   
-  // 🛡️ CAPTCHA STATE
+  // 🛡️ TURNSTILE STATE
   const {
-    token: recaptchaToken,
-    isVerified: recaptchaVerified,
-    handleVerify: handleRecaptchaVerify,
-    handleExpire: handleRecaptchaExpire,
-    handleError: handleRecaptchaError,
-    reset: resetRecaptcha
-  } = useReCaptchaV2()
+    token: turnstileToken,
+    isVerified: turnstileVerified,
+    handleVerify: handleTurnstileVerify,
+    handleExpire: handleTurnstileExpire,
+    handleError: handleTurnstileError,
+    reset: resetTurnstile
+  } = useTurnstile()
 
   // Classes de tema para o dashboard
   const getDashboardThemeClasses = () => {
@@ -253,8 +253,8 @@ export default function Dashboard() {
       return
     }
 
-    // 🛡️ VERIFICAR CAPTCHA
-    if (!recaptchaVerified || !recaptchaToken) {
+    // 🛡️ VERIFICAR TURNSTILE
+    if (!turnstileVerified || !turnstileToken) {
       toast.error('Complete a verificação de segurança (CAPTCHA)')
       return
     }
@@ -281,7 +281,7 @@ export default function Dashboard() {
     try {
       const response = await axios.post('/api/accounts/generate', {
         serviceId: selectedService,
-        recaptchaToken // 🛡️ Enviar token do CAPTCHA
+        turnstileToken // 🛡️ Enviar token do Turnstile
       })
       
       setGeneratedAccount(response.data)
@@ -289,8 +289,8 @@ export default function Dashboard() {
       loadUserPlan()
       loadAccountHistory(1) // Recarregar histórico após gerar conta
       
-      // 🛡️ RESETAR CAPTCHA APÓS GERAÇÃO
-      resetRecaptcha()
+      // 🛡️ RESETAR TURNSTILE APÓS GERAÇÃO
+      resetTurnstile()
       
       // 🛡️ INICIAR COOLDOWN APÓS GERAÇÃO BEM-SUCEDIDA
       if (response.data.cooldown?.seconds) {
@@ -302,8 +302,8 @@ export default function Dashboard() {
     } catch (error: any) {
       const errorData = error.response?.data
       
-      // 🛡️ RESETAR CAPTCHA EM CASO DE ERRO
-      resetRecaptcha()
+      // 🛡️ RESETAR TURNSTILE EM CASO DE ERRO
+      resetTurnstile()
       
       // 🛡️ SE RECEBER COOLDOWN NA RESPOSTA DE ERRO
       if (errorData?.cooldownRemaining) {
@@ -503,22 +503,23 @@ export default function Dashboard() {
                 </div>
               )}
               
-              {/* 🛡️ CAPTCHA - Apenas mostrar quando não tem cooldown */}
+              {/* 🛡️ TURNSTILE - Apenas mostrar quando não tem cooldown */}
               {cooldownRemaining === 0 && selectedService && (
                 <div className="flex justify-center">
-                  <ReCaptchaCheckbox
-                    onVerify={handleRecaptchaVerify}
-                    onExpire={handleRecaptchaExpire}
-                    onError={handleRecaptchaError}
+                  <TurnstileCheckbox
+                    onVerify={handleTurnstileVerify}
+                    onExpire={handleTurnstileExpire}
+                    onError={handleTurnstileError}
+                    theme={theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'auto'}
                   />
                 </div>
               )}
               
               <button
                 onClick={handleGenerateAccount}
-                disabled={loading || !selectedService || cooldownRemaining > 0 || !recaptchaVerified}
+                disabled={loading || !selectedService || cooldownRemaining > 0 || !turnstileVerified}
                 className={`w-full py-3 sm:py-4 rounded-lg text-sm sm:text-base font-bold transition-all shadow-lg transform touch-manipulation ${
-                  cooldownRemaining > 0 || !recaptchaVerified
+                  cooldownRemaining > 0 || !turnstileVerified
                     ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-60'
                     : 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
                 }`}

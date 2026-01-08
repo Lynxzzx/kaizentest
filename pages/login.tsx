@@ -7,7 +7,7 @@ import { getThemeClasses } from '@/lib/theme-utils'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import axios from 'axios'
-import ReCaptchaCheckbox, { useReCaptchaV2 } from '@/components/ReCaptchaCheckbox'
+import TurnstileCheckbox, { useTurnstile } from '@/components/TurnstileCheckbox'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -23,15 +23,15 @@ export default function Login() {
   const formStartTimeRef = useRef<number>(Date.now()) // Tempo de início
   const [loginAttempts, setLoginAttempts] = useState(0)
 
-  // 🤖 reCAPTCHA v2 - Checkbox "Não sou um robô"
+  // 🛡️ Cloudflare Turnstile - Checkbox "Não sou um robô"
   const {
-    token: recaptchaToken,
-    isVerified: recaptchaVerified,
-    handleVerify: handleRecaptchaVerify,
-    handleExpire: handleRecaptchaExpire,
-    handleError: handleRecaptchaError,
-    reset: resetRecaptcha
-  } = useReCaptchaV2()
+    token: turnstileToken,
+    isVerified: turnstileVerified,
+    handleVerify: handleTurnstileVerify,
+    handleExpire: handleTurnstileExpire,
+    handleError: handleTurnstileError,
+    reset: resetTurnstile
+  } = useTurnstile()
 
   // Resetar tempo quando o componente monta
   useEffect(() => {
@@ -67,8 +67,8 @@ export default function Login() {
       return
     }
 
-    // 🤖 Verificar reCAPTCHA v2
-    if (!recaptchaVerified) {
+    // 🛡️ Verificar Turnstile
+    if (!turnstileVerified) {
       toast.error('Por favor, marque a caixa "Não sou um robô"')
       return
     }
@@ -80,21 +80,21 @@ export default function Login() {
       try {
         const validateResponse = await axios.post('/api/auth/validate-login', {
           username: username.trim(),
-          recaptchaToken, // Token do reCAPTCHA v2
+          turnstileToken, // Token do Turnstile
           honeypot,
           formStartTime: formStartTimeRef.current
         })
 
         if (!validateResponse.data.allowed && validateResponse.status !== 200) {
           toast.error(validateResponse.data.error || 'Verificação de segurança falhou.')
-          resetRecaptcha()
+          resetTurnstile()
           return
         }
       } catch (validateError: any) {
         if (validateError.response?.status === 403) {
           // Bloqueado por segurança
           toast.error(validateError.response.data.error || 'Acesso temporariamente bloqueado.')
-          resetRecaptcha()
+          resetTurnstile()
           return
         }
         // Se a validação falhar por outro motivo, continuar com o login
@@ -111,10 +111,8 @@ export default function Login() {
       if (result?.error) {
         setLoginAttempts(prev => prev + 1)
         toast.error(t('invalidCredentials'))
-        // Resetar reCAPTCHA após erro
-        resetRecaptcha()
-        // Forçar reload do captcha
-        window.location.reload()
+        // Resetar Turnstile após erro
+        resetTurnstile()
       } else {
         // Login bem-sucedido - resetar tentativas no servidor
         try {
@@ -132,7 +130,7 @@ export default function Login() {
     } catch (error: any) {
       console.error('Login error:', error)
       setLoginAttempts(prev => prev + 1)
-      resetRecaptcha()
+      resetTurnstile()
       
       let errorMessage = t('errorLoggingIn')
       
@@ -241,13 +239,13 @@ export default function Login() {
               />
             </div>
 
-            {/* 🤖 reCAPTCHA v2 - Checkbox "Não sou um robô" */}
+            {/* 🛡️ Cloudflare Turnstile - Checkbox "Não sou um robô" */}
             <div className="flex justify-center py-2">
-              <ReCaptchaCheckbox
-                onVerify={handleRecaptchaVerify}
-                onExpire={handleRecaptchaExpire}
-                onError={handleRecaptchaError}
-                theme={theme === 'dark' ? 'dark' : 'light'}
+              <TurnstileCheckbox
+                onVerify={handleTurnstileVerify}
+                onExpire={handleTurnstileExpire}
+                onError={handleTurnstileError}
+                theme={theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'auto'}
               />
             </div>
 
@@ -267,7 +265,7 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading || !recaptchaVerified}
+              disabled={loading || !turnstileVerified}
               className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (

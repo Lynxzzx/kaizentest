@@ -8,7 +8,7 @@ import Link from 'next/link'
 import axios from 'axios'
 import { getStoredDeviceFingerprint } from '@/lib/device-fingerprint'
 import toast from 'react-hot-toast'
-import ReCaptchaCheckbox, { useReCaptchaV2 } from '@/components/ReCaptchaCheckbox'
+import TurnstileCheckbox, { useTurnstile } from '@/components/TurnstileCheckbox'
 
 export default function Register() {
   const { t } = useTranslation()
@@ -26,15 +26,15 @@ export default function Register() {
   const [honeypot, setHoneypot] = useState('') // Campo invisível
   const formStartTimeRef = useRef<number>(Date.now()) // Tempo de início
 
-  // 🤖 reCAPTCHA v2 - Checkbox "Não sou um robô"
+  // 🛡️ Cloudflare Turnstile - Checkbox "Não sou um robô"
   const {
-    token: recaptchaToken,
-    isVerified: recaptchaVerified,
-    handleVerify: handleRecaptchaVerify,
-    handleExpire: handleRecaptchaExpire,
-    handleError: handleRecaptchaError,
-    reset: resetRecaptcha
-  } = useReCaptchaV2()
+    token: turnstileToken,
+    isVerified: turnstileVerified,
+    handleVerify: handleTurnstileVerify,
+    handleExpire: handleTurnstileExpire,
+    handleError: handleTurnstileError,
+    reset: resetTurnstile
+  } = useTurnstile()
 
   // Capturar parâmetro ref da URL
   useEffect(() => {
@@ -79,8 +79,8 @@ export default function Register() {
       return
     }
 
-    // 🤖 Verificar reCAPTCHA v2
-    if (!recaptchaVerified) {
+    // 🛡️ Verificar Turnstile
+    if (!turnstileVerified) {
       toast.error('Por favor, marque a caixa "Não sou um robô"')
       return
     }
@@ -101,7 +101,7 @@ export default function Register() {
         deviceFingerprint,
         affiliateRef: affiliateRef || null,
         // 🛡️ Dados de segurança
-        recaptchaToken,
+        turnstileToken,
         honeypot,
         formStartTime: formStartTimeRef.current
       }, {
@@ -128,9 +128,7 @@ export default function Register() {
       }
     } catch (error: any) {
       console.error('Register error:', error)
-      resetRecaptcha()
-      // Forçar reload do captcha
-      window.location.reload()
+      resetTurnstile()
       
       let errorMessage = t('errorCreatingAccount')
       
@@ -268,13 +266,13 @@ export default function Register() {
               />
             </div>
 
-            {/* 🤖 reCAPTCHA v2 - Checkbox "Não sou um robô" */}
+            {/* 🛡️ Cloudflare Turnstile - Checkbox "Não sou um robô" */}
             <div className="flex justify-center py-2">
-              <ReCaptchaCheckbox
-                onVerify={handleRecaptchaVerify}
-                onExpire={handleRecaptchaExpire}
-                onError={handleRecaptchaError}
-                theme={theme === 'dark' ? 'dark' : 'light'}
+              <TurnstileCheckbox
+                onVerify={handleTurnstileVerify}
+                onExpire={handleTurnstileExpire}
+                onError={handleTurnstileError}
+                theme={theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : 'auto'}
               />
             </div>
 
@@ -288,7 +286,7 @@ export default function Register() {
 
             <button
               type="submit"
-              disabled={loading || !recaptchaVerified}
+              disabled={loading || !turnstileVerified}
               className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (

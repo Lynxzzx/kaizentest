@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
-    const { name, description, price, duration, maxGenerations, isActive } = req.body
+    const { name, description, price, duration, maxGenerations, generationCooldownSeconds, isActive } = req.body
 
     const plan = await prisma.plan.update({
       where: { id: id as string },
@@ -22,6 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         price: price ? parseFloat(price) : undefined,
         duration: duration ? parseInt(duration) : undefined,
         maxGenerations: maxGenerations !== undefined ? parseInt(maxGenerations) : undefined,
+        generationCooldownSeconds: generationCooldownSeconds !== undefined ? parseInt(generationCooldownSeconds) : undefined,
         isActive
       }
     })
