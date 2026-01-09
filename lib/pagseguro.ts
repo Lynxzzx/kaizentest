@@ -660,20 +660,35 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
       throw new Error('CVV inválido')
     }
 
-    // Estrutura para pagamento via cartão usando /charges
-    const chargeData: any = {
+    // Estrutura para pagamento via cartão usando /orders (mesmo endpoint do PIX)
+    // O PagBank usa /orders para todos os tipos de pagamento
+    const orderData: any = {
       reference_id: data.reference_id,
-      description: data.description,
-      amount: {
-        value: valueInCents,
-        currency: 'BRL'
-      },
-      payment_method: {
-        type: 'CREDIT_CARD',
-        installments: data.installments || 1,
-        capture: true, // Captura imediata
-        card: cardData
-      }
+      customer: customerData,
+      items: [
+        {
+          reference_id: `${data.reference_id}_item`,
+          name: data.description,
+          quantity: 1,
+          unit_amount: valueInCents
+        }
+      ],
+      charges: [
+        {
+          reference_id: `${data.reference_id}_charge`,
+          description: data.description,
+          amount: {
+            value: valueInCents,
+            currency: 'BRL'
+          },
+          payment_method: {
+            type: 'CREDIT_CARD',
+            installments: data.installments || 1,
+            capture: true, // Captura imediata
+            card: cardData
+          }
+        }
+      ]
     }
     
     // Headers para a requisição
@@ -696,29 +711,34 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
     console.log('📤 REQUEST - PagSeguro CARTÃO')
     console.log('='.repeat(80))
     console.log('📡 Método: POST')
-    console.log('📡 URL:', `${apiUrl}/charges`)
+    console.log('📡 URL:', `${apiUrl}/orders`)
     console.log('🌐 Ambiente:', apiUrl.includes('sandbox') ? 'SANDBOX' : 'PRODUÇÃO')
     console.log('📋 Headers:')
-    console.log(JSON.stringify({ ...headers, 'Authorization': 'Bearer ***' }, null, 2))
+    console.log(JSON.stringify({ ...headers, 'Authorization': 'Bearer ***', 'App-Token': '***' }, null, 2))
     // Não logar número completo do cartão por segurança
-    const safeChargeData = {
-      ...chargeData,
-      payment_method: {
-        ...chargeData.payment_method,
-        card: {
-          ...chargeData.payment_method.card,
-          number: `****${cardData.number.slice(-4)}`,
-          security_code: '***'
+    const safeOrderData = {
+      ...orderData,
+      charges: [
+        {
+          ...orderData.charges[0],
+          payment_method: {
+            ...orderData.charges[0].payment_method,
+            card: {
+              ...orderData.charges[0].payment_method.card,
+              number: `****${cardData.number.slice(-4)}`,
+              security_code: '***'
+            }
+          }
         }
-      }
+      ]
     }
     console.log('📦 Body (dados sensíveis ocultados):')
-    console.log(JSON.stringify(safeChargeData, null, 2))
+    console.log(JSON.stringify(safeOrderData, null, 2))
     console.log('='.repeat(80))
     
     const response = await axios.post(
-      `${apiUrl}/charges`,
-      chargeData,
+      `${apiUrl}/orders`,
+      orderData,
       { headers }
     )
 
@@ -733,22 +753,28 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
     console.log(JSON.stringify(response.data, null, 2))
     console.log('='.repeat(80))
     
-    const chargeResponse = response.data
+    const orderResponse = response.data
+    
+    // Extrair dados da charge dentro do order
+    const charge = orderResponse.charges?.[0] || orderResponse.charge || orderResponse
     
     // Verificar status do pagamento
-    const paymentStatus = chargeResponse.status
-    const chargeId = chargeResponse.id
+    const paymentStatus = charge.status || orderResponse.status
+    const chargeId = charge.id || orderResponse.id
+    const orderId = orderResponse.id
     
-    console.log('✅ Cobrança via cartão criada:', chargeId)
+    console.log('✅ Pedido via cartão criado:', orderId)
+    console.log('✅ Charge ID:', chargeId)
     console.log('📊 Status:', paymentStatus)
 
     return {
-      id: chargeId,
+      id: chargeId || orderId,
+      orderId: orderId,
       status: paymentStatus,
       paid: paymentStatus === 'PAID' || paymentStatus === 'AUTHORIZED',
       message: getCardPaymentStatusMessage(paymentStatus),
-      paymentMethod: chargeResponse.payment_method,
-      createdAt: chargeResponse.created_at
+      paymentMethod: charge.payment_method,
+      createdAt: charge.created_at || orderResponse.created_at
     }
   } catch (error: any) {
     const errorData = error.response?.data || error.message
