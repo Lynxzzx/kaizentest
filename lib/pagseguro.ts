@@ -677,12 +677,14 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
     }
     
     // Headers para a requisição
+    // IMPORTANTE: Usar os mesmos headers do PIX (Authorization + App-Token)
     const headers: any = {
       'Authorization': `Bearer ${key}`,
+      'App-Token': key, // Adicionar App-Token (necessário para autenticação)
       'Content-Type': 'application/json'
     }
     
-    // Adicionar email do vendedor se configurado
+    // Adicionar email do vendedor se configurado (recomendado pela documentação)
     if (sellerEmail) {
       headers['X-Seller-Email'] = sellerEmail
     }
