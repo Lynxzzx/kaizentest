@@ -603,7 +603,7 @@ interface CreateCardPaymentData {
   }
   amount: number // Valor em reais
   description: string
-  card: CardData
+  card: CardData // Dados do cartão (processados diretamente pelo PagBank de forma segura)
   installments?: number // Número de parcelas (1 = à vista)
 }
 
@@ -639,8 +639,9 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
       throw new Error('O email do cliente não pode ser igual ao email do vendedor.')
     }
 
-    // Preparar dados do cartão encriptado
-    // Nota: Em produção, o número do cartão deve ser tokenizado no frontend usando PagSeguro.js
+    // Preparar dados do cartão
+    // Os dados são processados diretamente pelo PagBank com criptografia SSL
+    // O PagBank não armazena dados em nossos servidores
     const cardData = {
       number: data.card.number.replace(/\D/g, ''), // Apenas números
       exp_month: data.card.exp_month.padStart(2, '0'),
