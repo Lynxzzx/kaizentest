@@ -71,12 +71,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Se where estiver vazio, usar undefined (Prisma prefere isso)
-    const whereClause = Object.keys(where).length > 0 ? where : undefined
+    // Construir where clause garantindo que sempre filtra usuários válidos
+    // Filtra apenas pagamentos que têm usuário válido para evitar erros de dados inconsistentes
+    const finalWhere: any = {}
+    
+    // Adicionar filtros existentes
+    if (Object.keys(where).length > 0) {
+      Object.assign(finalWhere, where)
+    }
+    
+    // Garantir que o usuário existe (não é null)
+    // Verifica se userId existe na tabela User
+    finalWhere.user = {
+      isNot: null
+    }
 
     // Buscar pagamentos
-    const payments = await prisma.payment.findMany({
-      where: whereClause,
+    const paymentsData = await prisma.payment.findMany({
+      where: finalWhere,
       include: {
         user: {
           select: {
@@ -103,6 +115,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       take: 1000 // Limitar a 1000 pagamentos
     })
+    
+    // Filtrar resultados que por algum motivo não têm usuário (proteção extra)
+    const payments = paymentsData.filter(payment => payment.user !== null).map(payment => ({
+      ...payment,
+      user: payment.user || {
+        id: 'unknown',
+        username: 'Usuário removido',
+        email: null
+      }
+    }))
 
     // Calcular estatísticas - buscar todos os pagamentos sem filtros de busca para estatísticas gerais
     const today = new Date()
