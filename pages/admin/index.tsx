@@ -230,6 +230,7 @@ export default function AdminDashboard() {
     { href: '/admin/raffles', icon: '🎲', label: t('raffles'), gradient: 'from-indigo-500 via-purple-500 to-pink-500' },
     { href: '/admin/feedback', icon: '💬', label: t('feedbacks'), gradient: 'from-teal-500 via-emerald-500 to-lime-500' },
     { href: '/admin/withdrawals', icon: '💸', label: 'Resgates', gradient: 'from-green-500 via-emerald-500 to-teal-500' },
+    { href: '/admin/payments', icon: '💰', label: 'Pagamentos', gradient: 'from-emerald-500 via-green-500 to-teal-500' },
     { href: '/admin/abuse', icon: '🔍', label: 'Abusos', gradient: 'from-red-600 via-red-500 to-orange-500' },
     { href: '/admin/security', icon: '🛡️', label: 'Segurança', gradient: 'from-blue-600 via-indigo-600 to-purple-700' },
     { href: '/admin/bot-cleanup', icon: '🤖', label: 'Limpar Bots', gradient: 'from-red-500 via-rose-600 to-pink-600' },

@@ -407,20 +407,16 @@ export default function Plans() {
         couponCode: normalizedCoupon || undefined
       })
 
-      if (response.data.paid) {
-        // Pagamento aprovado imediatamente
-        toast.success(t('cardPaymentApproved'))
-        setShowCardModal(false)
-        resetCardForm()
-        // Recarregar a página após 2 segundos para atualizar o plano do usuário
-        setTimeout(() => {
-          window.location.reload()
-        }, 2000)
+      // Sempre redirecionar para página de status do pagamento
+      setShowCardModal(false)
+      resetCardForm()
+      
+      // Redirecionar para página de status
+      if (response.data.id || response.data.paymentId) {
+        const paymentId = response.data.id || response.data.paymentId
+        router.push(`/payment-status/${paymentId}`)
       } else {
-        // Pagamento pendente ou em análise
-        toast.success(response.data.message || t('cardPaymentPending'))
-        setShowCardModal(false)
-        resetCardForm()
+        toast.error('Erro ao obter ID do pagamento')
       }
     } catch (error: any) {
       console.error('Erro ao processar pagamento via cartão:', error)
