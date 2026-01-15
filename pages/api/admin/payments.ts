@@ -44,35 +44,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Filtro de busca (usuário ou ID)
-    if (search && typeof search === 'string') {
-      where.OR = [
-        {
-          user: {
-            username: {
-              contains: search,
-              mode: 'insensitive'
+    if (search && typeof search === 'string' && search.trim()) {
+      const searchTrimmed = search.trim()
+      
+      // Verificar se é um ObjectId válido (24 caracteres hex)
+      if (/^[0-9a-fA-F]{24}$/.test(searchTrimmed)) {
+        where.id = searchTrimmed
+      } else {
+        // Buscar por username ou email
+        where.OR = [
+          {
+            user: {
+              username: {
+                contains: searchTrimmed
+              }
+            }
+          },
+          {
+            user: {
+              email: {
+                contains: searchTrimmed
+              }
             }
           }
-        },
-        {
-          user: {
-            email: {
-              contains: search,
-              mode: 'insensitive'
-            }
-          }
-        },
-        {
-          id: {
-            contains: search
-          }
-        }
-      ]
+        ]
+      }
     }
+
+    // Se where estiver vazio, usar undefined (Prisma prefere isso)
+    const whereClause = Object.keys(where).length > 0 ? where : undefined
 
     // Buscar pagamentos
     const payments = await prisma.payment.findMany({
-      where,
+      where: whereClause,
       include: {
         user: {
           select: {
@@ -100,14 +104,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       take: 1000 // Limitar a 1000 pagamentos
     })
 
-    // Calcular estatísticas
+    // Calcular estatísticas - buscar todos os pagamentos sem filtros de busca para estatísticas gerais
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const tomorrow = new Date(today)
     tomorrow.setDate(tomorrow.getDate() + 1)
 
+    // Construir where para estatísticas (sem busca de texto)
+    const statsWhere: any = {}
+    if (startDate || endDate) {
+      statsWhere.createdAt = {}
+      if (startDate) {
+        statsWhere.createdAt.gte = new Date(startDate as string)
+      }
+      if (endDate) {
+        const end = new Date(endDate as string)
+        end.setHours(23, 59, 59, 999)
+        statsWhere.createdAt.lte = end
+      }
+    }
+    if (status && typeof status === 'string') {
+      statsWhere.status = status
+    }
+    if (method && typeof method === 'string') {
+      statsWhere.method = method
+    }
+
+    const statsWhereClause = Object.keys(statsWhere).length > 0 ? statsWhere : undefined
+
     const allPayments = await prisma.payment.findMany({
-      where: startDate || endDate ? where : undefined
+      where: statsWhereClause,
+      select: {
+        status: true,
+        finalAmount: true,
+        amount: true,
+        paidAt: true
+      }
     })
 
     const stats = {
@@ -128,6 +160,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   } catch (error: any) {
     console.error('Error fetching payments:', error)
+    console.error('Error stack:', error.stack)
     return res.status(500).json({
       error: 'Internal server error',
       details: error.message
