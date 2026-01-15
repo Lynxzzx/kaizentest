@@ -71,32 +71,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
-    // Construir where clause garantindo que sempre filtra usuários válidos
-    // Filtra apenas pagamentos que têm usuário válido para evitar erros de dados inconsistentes
-    const finalWhere: any = {}
-    
-    // Adicionar filtros existentes
-    if (Object.keys(where).length > 0) {
-      Object.assign(finalWhere, where)
-    }
-    
-    // Garantir que o usuário existe (não é null)
-    // Verifica se userId existe na tabela User
-    finalWhere.user = {
-      isNot: null
-    }
+    // Construir where clause final
+    const finalWhere = Object.keys(where).length > 0 ? where : undefined
 
-    // Buscar pagamentos
+    // Buscar pagamentos SEM incluir user diretamente (evita erro se user for null)
+    // Usar select em vez de include para ter mais controle
     const paymentsData = await prisma.payment.findMany({
       where: finalWhere,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            email: true
-          }
-        },
+      select: {
+        id: true,
+        userId: true,
+        planId: true,
+        amount: true,
+        finalAmount: true,
+        discountValue: true,
+        method: true,
+        status: true,
+        createdAt: true,
+        paidAt: true,
         plan: {
           select: {
             id: true,
@@ -115,16 +107,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
       take: 1000 // Limitar a 1000 pagamentos
     })
-    
-    // Filtrar resultados que por algum motivo não têm usuário (proteção extra)
-    const payments = paymentsData.filter(payment => payment.user !== null).map(payment => ({
-      ...payment,
-      user: payment.user || {
-        id: 'unknown',
-        username: 'Usuário removido',
-        email: null
+
+    // Buscar apenas os userIds únicos e válidos
+    const userIds = [...new Set(paymentsData.map(p => p.userId))]
+    const validUsers = await prisma.user.findMany({
+      where: {
+        id: {
+          in: userIds
+        }
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true
       }
-    }))
+    })
+
+    // Criar map de usuários para lookup rápido
+    const userMap = new Map(validUsers.map(u => [u.id, u]))
+
+    // Combinar dados e filtrar apenas pagamentos com usuários válidos
+    const payments = paymentsData
+      .filter(payment => userMap.has(payment.userId))
+      .map(payment => {
+        const user = userMap.get(payment.userId)!
+        return {
+          id: payment.id,
+          userId: payment.userId,
+          planId: payment.planId,
+          amount: payment.amount,
+          finalAmount: payment.finalAmount,
+          discountValue: payment.discountValue,
+          method: payment.method,
+          status: payment.status,
+          createdAt: payment.createdAt,
+          paidAt: payment.paidAt,
+          user: user,
+          plan: payment.plan,
+          coupon: payment.coupon
+        }
+      })
 
     // Calcular estatísticas - buscar todos os pagamentos sem filtros de busca para estatísticas gerais
     const today = new Date()
