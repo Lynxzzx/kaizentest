@@ -382,7 +382,7 @@ export default function AdminDashboard() {
                       <div>
                         <p className={`font-semibold ${themeClasses.text.primary}`}>{payment.user.username}</p>
                         <p className={`text-sm ${themeClasses.text.muted}`}>
-                          {payment.plan.name} • {payment.method}
+                          {t.translatePlanName ? t.translatePlanName(payment.plan.name) : payment.plan.name} • {payment.method}
                         </p>
                         <p className={`text-xs ${themeClasses.text.muted} mt-1`}>
                           {format(new Date(payment.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}

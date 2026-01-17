@@ -389,7 +389,7 @@ export default function Dashboard() {
               <div className="space-y-4">
                 <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-purple-50 via-blue-50 to-purple-100 border border-purple-200'} rounded-xl p-6 shadow-lg`}>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600">{userPlan.plan.name}</h3>
+                    <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600">{t.translatePlanName ? t.translatePlanName(userPlan.plan.name) : userPlan.plan.name}</h3>
                     <span className="text-2xl">💎</span>
                   </div>
                   <p className={`${textClasses.secondary} mb-4`}>{userPlan.plan.description}</p>

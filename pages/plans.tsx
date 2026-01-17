@@ -516,7 +516,7 @@ export default function Plans() {
                   <span className="font-bold text-xs sm:text-sm">{t('mostPopular')}</span>
                 </div>
               )}
-              <h3 className={`text-xl sm:text-2xl font-bold mb-2 ${themeClasses.text.primary}`}>{plan.name}</h3>
+              <h3 className={`text-xl sm:text-2xl font-bold mb-2 ${themeClasses.text.primary}`}>{t.translatePlanName ? t.translatePlanName(plan.name) : plan.name}</h3>
               <p className={`text-sm sm:text-base mb-4 sm:mb-6 min-h-[60px] ${themeClasses.text.secondary}`}>{plan.description}</p>
               <div className="mb-4 sm:mb-6">
                 <div className="flex items-baseline mb-2">

@@ -867,6 +867,105 @@ export function useDynamicTranslation() {
   return { translate }
 }
 
+// Função para traduzir nomes de planos automaticamente
+export function translatePlanName(planName: string, locale: string = 'pt-BR'): string {
+  if (locale === 'pt-BR') {
+    return planName // Retornar original se for português
+  }
+
+  const planNameLower = planName.toLowerCase().trim()
+  
+  // Mapeamento de nomes de planos (ordem importa - mais específicos primeiro)
+  const planTranslations: Record<string, Record<string, string>> = {
+    'en': {
+      'plano diário': 'Daily Plan',
+      'plano diaria': 'Daily Plan',
+      'diário': 'Daily',
+      'diaria': 'Daily',
+      'daily': 'Daily',
+      'plano semanal': 'Weekly Plan',
+      'semanal': 'Weekly',
+      'weekly': 'Weekly',
+      'plano mensal': 'Monthly Plan',
+      'mensal': 'Monthly',
+      'monthly': 'Monthly',
+      'plano anual': 'Annual Plan',
+      'anual': 'Annual',
+      'yearly': 'Annual',
+      'plano permanente': 'Lifetime Plan',
+      'plano vitalício': 'Lifetime Plan',
+      'permanente': 'Lifetime',
+      'lifetime': 'Lifetime',
+      'vitalício': 'Lifetime',
+      'lifelong': 'Lifetime'
+    },
+    'es': {
+      'plano diário': 'Plan Diario',
+      'plano diaria': 'Plan Diario',
+      'diário': 'Diario',
+      'diaria': 'Diario',
+      'daily': 'Diario',
+      'plano semanal': 'Plan Semanal',
+      'semanal': 'Semanal',
+      'weekly': 'Semanal',
+      'plano mensal': 'Plan Mensual',
+      'mensal': 'Mensual',
+      'monthly': 'Mensual',
+      'plano anual': 'Plan Anual',
+      'anual': 'Anual',
+      'yearly': 'Anual',
+      'plano permanente': 'Plan Permanente',
+      'plano vitalício': 'Plan Permanente',
+      'permanente': 'Permanente',
+      'lifetime': 'Permanente',
+      'vitalício': 'Permanente'
+    },
+    'fr': {
+      'plano diário': 'Plan Quotidien',
+      'plano diaria': 'Plan Quotidien',
+      'diário': 'Quotidien',
+      'diaria': 'Quotidien',
+      'daily': 'Quotidien',
+      'plano semanal': 'Plan Hebdomadaire',
+      'semanal': 'Hebdomadaire',
+      'weekly': 'Hebdomadaire',
+      'plano mensal': 'Plan Mensuel',
+      'mensal': 'Mensuel',
+      'monthly': 'Mensuel',
+      'plano anual': 'Plan Annuel',
+      'anual': 'Annuel',
+      'yearly': 'Annuel',
+      'plano permanente': 'Plan À vie',
+      'plano vitalício': 'Plan À vie',
+      'permanente': 'À vie',
+      'lifetime': 'À vie',
+      'vitalício': 'À vie'
+    }
+  }
+
+  const translations = planTranslations[locale] || planTranslations['en'] || {}
+  
+  // Tentar encontrar correspondência exata primeiro (mais específica)
+  for (const [key, translation] of Object.entries(translations)) {
+    if (planNameLower === key || planNameLower.startsWith(key + ' ') || planNameLower.endsWith(' ' + key) || planNameLower.includes(' ' + key + ' ')) {
+      // Substituir a palavra-chave pela tradução, mantendo o resto do nome
+      const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+      return planName.replace(regex, translation)
+    }
+  }
+
+  // Se não encontrou correspondência exata, tentar substituição simples
+  for (const [key, translation] of Object.entries(translations)) {
+    if (planNameLower.includes(key)) {
+      const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi')
+      return planName.replace(regex, translation)
+    }
+  }
+
+  // Se não encontrou tradução, retornar original
+  return planName
+}
+
 export function useTranslation() {
   const router = useRouter()
   const locale = (router?.locale || 'pt-BR') as keyof typeof translations
@@ -941,6 +1040,7 @@ export function useTranslation() {
     translating: translatingKeys.size > 0,
     changeLanguage: (newLocale: string) => {
       router.push(router.asPath, router.asPath, { locale: newLocale })
-    }
+    },
+    translatePlanName: (planName: string) => translatePlanName(planName, locale)
   }
 }

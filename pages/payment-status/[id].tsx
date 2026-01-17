@@ -210,7 +210,7 @@ export default function PaymentStatusPage() {
               </div>
               <div className="flex justify-between">
                 <span className={themeClasses.text.secondary}>Plano:</span>
-                <span className={themeClasses.text.primary}>{payment.plan.name}</span>
+                <span className={themeClasses.text.primary}>{t.translatePlanName ? t.translatePlanName(payment.plan.name) : payment.plan.name}</span>
               </div>
               <div className="flex justify-between">
                 <span className={themeClasses.text.secondary}>Método:</span>

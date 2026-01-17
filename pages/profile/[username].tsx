@@ -8,6 +8,7 @@ import Image from 'next/image'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
+import { translatePlanName } from '@/lib/i18n-helper'
 
 interface UserProfile {
   id: string
@@ -30,6 +31,7 @@ interface UserProfile {
 
 export default function ProfilePage() {
   const router = useRouter()
+  const locale = (router?.locale || 'pt-BR') as string
   const { username } = router.query
   const { data: session } = useSession()
   const { theme } = useTheme()
@@ -317,7 +319,7 @@ export default function ProfilePage() {
               <h2 className="text-2xl font-bold text-white mb-4">📦 Plano Atual</h2>
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-white text-xl font-bold mb-1">{profile.plan.name}</div>
+                  <div className="text-white text-xl font-bold mb-1">{translatePlanName(profile.plan.name, locale)}</div>
                   {profile.planExpiresAt && (
                     <div className="text-gray-400 text-sm">
                       Expira em {format(new Date(profile.planExpiresAt), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}

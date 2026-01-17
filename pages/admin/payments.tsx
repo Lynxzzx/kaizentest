@@ -338,7 +338,7 @@ export default function AdminPayments() {
                         </div>
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap text-sm ${themeClasses.text.primary}`}>
-                        {payment.plan.name}
+                        {t.translatePlanName ? t.translatePlanName(payment.plan.name) : payment.plan.name}
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap text-sm ${themeClasses.text.primary}`}>
                         {getMethodBadge(payment.method)}
