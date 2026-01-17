@@ -130,6 +130,17 @@ export default function Layout({ children }: LayoutProps) {
                     <span>🇺🇸</span>
                     <span className="hidden sm:inline">EN</span>
                   </button>
+                  <button
+                    onClick={() => changeLanguage('es')}
+                    className={`flex items-center gap-1 rounded-xl px-3 py-1 text-xs font-semibold transition-all ${
+                      locale === 'es'
+                        ? 'bg-gradient-to-r from-emerald-400/40 to-cyan-400/40 text-white'
+                        : 'text-slate-200 hover:text-white'
+                    }`}
+                  >
+                    <span>🇪🇸</span>
+                    <span className="hidden sm:inline">ES</span>
+                  </button>
                 </div>
 
                 {session ? (

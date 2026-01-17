@@ -46,6 +46,21 @@ export default function LanguageSelector() {
         <span className="text-base">🇺🇸</span>
         <span className="hidden sm:inline">EN</span>
       </button>
+      <button
+        onClick={() => changeLanguage('es')}
+        className={`px-3 py-1.5 md:px-4 md:py-2 text-xs md:text-sm font-medium transition-all flex items-center gap-2 border-l ${
+          locale === 'es'
+            ? theme === 'dark'
+              ? 'bg-primary-600 text-white border-white/20'
+              : 'bg-primary-600 text-white border-gray-300'
+            : theme === 'dark'
+              ? 'bg-white/10 text-white hover:bg-white/20 border-white/20'
+              : 'bg-white text-gray-700 hover:bg-gray-50 border-gray-300'
+        }`}
+      >
+        <span className="text-base">🇪🇸</span>
+        <span className="hidden sm:inline">ES</span>
+      </button>
     </div>
   )
 }

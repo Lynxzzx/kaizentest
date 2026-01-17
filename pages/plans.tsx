@@ -464,7 +464,7 @@ export default function Plans() {
               >
                 {plans.map((plan) => (
                   <option key={plan.id} value={plan.id}>
-                    {plan.name}
+                    {translatePlanName ? translatePlanName(plan.name) : plan.name}
                   </option>
                 ))}
               </select>
