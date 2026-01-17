@@ -42,7 +42,7 @@ interface PaymentFilters {
 }
 
 export default function AdminPayments() {
-  const { t } = useTranslation()
+  const { t, translatePlanName } = useTranslation()
   const { data: session, status } = useSession()
   const { theme } = useTheme()
   const router = useRouter()
@@ -338,7 +338,7 @@ export default function AdminPayments() {
                         </div>
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap text-sm ${themeClasses.text.primary}`}>
-                        {t.translatePlanName ? t.translatePlanName(payment.plan.name) : payment.plan.name}
+                        {translatePlanName ? translatePlanName(payment.plan.name) : payment.plan.name}
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap text-sm ${themeClasses.text.primary}`}>
                         {getMethodBadge(payment.method)}

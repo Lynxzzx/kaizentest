@@ -24,7 +24,7 @@ interface PaymentStatus {
 }
 
 export default function PaymentStatusPage() {
-  const { t } = useTranslation()
+  const { t, translatePlanName } = useTranslation()
   const { theme } = useTheme()
   const router = useRouter()
   const { data: session } = useSession()
@@ -210,7 +210,7 @@ export default function PaymentStatusPage() {
               </div>
               <div className="flex justify-between">
                 <span className={themeClasses.text.secondary}>Plano:</span>
-                <span className={themeClasses.text.primary}>{t.translatePlanName ? t.translatePlanName(payment.plan.name) : payment.plan.name}</span>
+                <span className={themeClasses.text.primary}>{translatePlanName ? translatePlanName(payment.plan.name) : payment.plan.name}</span>
               </div>
               <div className="flex justify-between">
                 <span className={themeClasses.text.secondary}>Método:</span>

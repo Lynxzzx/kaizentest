@@ -46,7 +46,7 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
-  const { t } = useTranslation()
+  const { t, translatePlanName } = useTranslation()
   const { data: session, status } = useSession()
   const { theme } = useTheme()
   const router = useRouter()
@@ -382,7 +382,7 @@ export default function AdminDashboard() {
                       <div>
                         <p className={`font-semibold ${themeClasses.text.primary}`}>{payment.user.username}</p>
                         <p className={`text-sm ${themeClasses.text.muted}`}>
-                          {t.translatePlanName ? t.translatePlanName(payment.plan.name) : payment.plan.name} • {payment.method}
+                          {translatePlanName ? translatePlanName(payment.plan.name) : payment.plan.name} • {payment.method}
                         </p>
                         <p className={`text-xs ${themeClasses.text.muted} mt-1`}>
                           {format(new Date(payment.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
