@@ -70,6 +70,11 @@ export default function Plans() {
   const [cardHolderName, setCardHolderName] = useState('')
   const [cardEmail, setCardEmail] = useState('')
   const [processingCard, setProcessingCard] = useState(false)
+  const [showLanguageModal, setShowLanguageModal] = useState(false)
+  const [pendingBitcoinPayment, setPendingBitcoinPayment] = useState<Plan | null>(null)
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('pt')
+  const [showManualPaymentModal, setShowManualPaymentModal] = useState(false)
+  const [pendingManualPayment, setPendingManualPayment] = useState<Plan | null>(null)
   const themeClasses = getThemeClasses(theme)
 
   useEffect(() => {
@@ -212,75 +217,9 @@ export default function Plans() {
     }
 
     if (method === 'CRYPTO') {
-      // Para criptomoedas, criar pagamento via Binance
-      setLoading(true)
-      setSelectedPlan(plan)
-      setPaymentMethod(method)
-      
-      try {
-        console.log('🚀 Criando pagamento via criptomoedas...')
-        const response = await axios.post('/api/payments/create', {
-          planId: plan.id,
-          method: 'BITCOIN', // Usar BITCOIN internamente para manter compatibilidade
-          couponCode: normalizedCoupon || undefined
-        })
-        
-        console.log('✅ Resposta recebida:', response.data)
-        console.log('✅ Status HTTP:', response.status)
-        console.log('✅ Tem bitcoinAddress?', !!response.data.bitcoinAddress)
-        console.log('✅ Tem fallback?', !!response.data.fallback)
-        
-        // SEMPRE verificar primeiro se tem bitcoinAddress (sucesso Binance)
-        if (response.data.bitcoinAddress) {
-          console.log('✅ Dados Binance recebidos com sucesso!')
-          console.log('📋 Dados completos:', JSON.stringify(response.data, null, 2))
-          setPaymentData({
-            ...response.data,
-            originalAmount: response.data.originalAmount || plan.price,
-            finalAmount: response.data.finalAmount ?? response.data.originalAmount ?? plan.price,
-            discountAmount: response.data.discountAmount || 0
-          })
-          if (normalizedCoupon && response.data.discountAmount) {
-            setAppliedCoupon({
-              code: normalizedCoupon,
-              planId: plan.id,
-              discountAmount: response.data.discountAmount,
-              finalAmount: response.data.finalAmount ?? plan.price
-            })
-          }
-          setQrCodeImageError(false)
-          toast.success(t('cryptoPaymentCreated'))
-          // Garantir que o modal apareça
-          setPaymentMethod('CRYPTO')
-          setSelectedPlan(plan)
-        } else {
-          // Sem bitcoinAddress - mostrar erro mas NÃO redirecionar
-          console.error('❌ Resposta não contém bitcoinAddress')
-          console.error('❌ Resposta completa:', response.data)
-          console.error('❌ Keys na resposta:', Object.keys(response.data))
-          toast.error(t('errorIncompletePaymentData'))
-          setLoading(false)
-        }
-      } catch (error: any) {
-        console.error('❌ Erro HTTP ao criar pagamento:', error)
-        console.error('❌ Status HTTP:', error.response?.status)
-        console.error('❌ Error response data:', error.response?.data)
-        console.error('❌ Error message:', error.message)
-        
-        // NUNCA redirecionar para Telegram automaticamente
-        // Sempre mostrar erro ao usuário
-        const errorMessage = error.response?.data?.error || error.response?.data?.details || error.message || t('errorCreatingPayment')
-        toast.error(errorMessage)
-        setLoading(false)
-        
-        // Se ainda assim tiver bitcoinAddress no erro (caso raro), usar
-        if (error.response?.data?.bitcoinAddress) {
-          console.log('⚠️ Erro HTTP mas tem bitcoinAddress, usando dados')
-          setPaymentData(error.response.data)
-          setPaymentMethod('CRYPTO')
-          setSelectedPlan(plan)
-        }
-      }
+      // Para criptomoedas, mostrar modal de seleção de idioma primeiro
+      setPendingBitcoinPayment(plan)
+      setShowLanguageModal(true)
       return
     }
   }
@@ -435,6 +374,34 @@ export default function Plans() {
     setCardHolderName('')
     setCardEmail('')
     setPendingCardPayment(null)
+  }
+
+  const handleLanguageSelection = () => {
+    if (!pendingBitcoinPayment) return
+    
+    // Redirecionar para Telegram com o idioma selecionado
+    const telegramLink = `https://t.me/lynxdevz?start=bitcoin_${pendingBitcoinPayment.id}_${selectedLanguage}`
+    window.open(telegramLink, '_blank')
+    
+    // Fechar modal
+    setShowLanguageModal(false)
+    setPendingBitcoinPayment(null)
+    setSelectedLanguage('pt')
+  }
+
+  const handleManualPayment = (plan: Plan) => {
+    setPendingManualPayment(plan)
+    setShowManualPaymentModal(true)
+  }
+
+  const redirectToTelegramManual = () => {
+    if (!pendingManualPayment) return
+    
+    const telegramLink = `https://t.me/lynxdevz?start=manual_${pendingManualPayment.id}`
+    window.open(telegramLink, '_blank')
+    
+    setShowManualPaymentModal(false)
+    setPendingManualPayment(null)
   }
 
   return (
@@ -603,6 +570,13 @@ export default function Plans() {
                   className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-lg text-sm sm:text-base font-bold hover:from-green-700 hover:to-emerald-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 touch-manipulation"
                 >
                   💳 {t('payViaCard')}
+                </button>
+                <button
+                  onClick={() => handleManualPayment(plan)}
+                  disabled={loading}
+                  className="w-full py-2.5 sm:py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg text-sm sm:text-base font-bold hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 touch-manipulation"
+                >
+                  🌍 {t('payManualInternational')}
                 </button>
               </div>
             </div>
@@ -1092,6 +1066,155 @@ export default function Plans() {
             >
               {t('close')}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Language Selection Modal for Bitcoin */}
+      {showLanguageModal && pendingBitcoinPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${themeClasses.card} rounded-xl sm:rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl`}>
+            <h2 className={`text-xl sm:text-2xl font-bold mb-4 ${themeClasses.text.primary}`}>
+              {t('selectLanguage')}
+            </h2>
+            <p className={`text-sm mb-6 ${themeClasses.text.secondary}`}>
+              {t('selectLanguageDescription')}
+            </p>
+
+            {/* Plan info */}
+            <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4 mb-6`}>
+              <p className={`text-sm ${themeClasses.text.secondary}`}>{pendingBitcoinPayment.name}</p>
+              <p className={`${themeClasses.text.primary} text-lg font-semibold`}>
+                {t('currencySymbol')} {pendingBitcoinPayment.price.toFixed(2)}
+              </p>
+            </div>
+
+            {/* Language selection */}
+            <div className="mb-6">
+              <label className={`block text-sm font-semibold mb-3 ${themeClasses.text.primary}`}>
+                {t('yourLanguage')}
+              </label>
+              <select
+                value={selectedLanguage}
+                onChange={(e) => setSelectedLanguage(e.target.value)}
+                className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500`}
+              >
+                <option value="pt">🇧🇷 Português (Brasil)</option>
+                <option value="en">🇺🇸 English</option>
+                <option value="es">🇪🇸 Español</option>
+                <option value="fr">🇫🇷 Français</option>
+                <option value="de">🇩🇪 Deutsch</option>
+                <option value="it">🇮🇹 Italiano</option>
+                <option value="other">🌍 {t('otherLanguage')}</option>
+              </select>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleLanguageSelection}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-600 to-orange-700 text-white rounded-lg font-semibold hover:from-orange-700 hover:to-orange-800 transition-all flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                </svg>
+                {t('openTelegram')}
+              </button>
+              <button
+                onClick={() => {
+                  setShowLanguageModal(false)
+                  setPendingBitcoinPayment(null)
+                  setSelectedLanguage('pt')
+                }}
+                className={`px-4 py-3 rounded-lg font-semibold transition-colors ${
+                  theme === 'dark' 
+                    ? 'bg-white/10 text-white hover:bg-white/20' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                {t('cancel')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Payment Modal for International Users */}
+      {showManualPaymentModal && pendingManualPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className={`${themeClasses.card} rounded-xl sm:rounded-2xl p-6 sm:p-8 max-w-md w-full mx-4 shadow-2xl my-4`}>
+            <h2 className={`text-xl sm:text-2xl font-bold mb-2 ${themeClasses.text.primary}`}>
+              🌍 {t('manualPaymentInternational')}
+            </h2>
+            <p className={`text-sm mb-6 ${themeClasses.text.secondary}`}>
+              {t('manualPaymentDescription')}
+            </p>
+
+            {/* Plan info */}
+            <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'} rounded-lg p-4 mb-6`}>
+              <p className={`text-sm ${themeClasses.text.secondary}`}>{pendingManualPayment.name}</p>
+              <p className={`${themeClasses.text.primary} text-lg font-semibold`}>
+                {t('currencySymbol')} {pendingManualPayment.price.toFixed(2)}
+              </p>
+              {appliedCoupon && appliedCoupon.planId === pendingManualPayment.id && (
+                <>
+                  <p className={`text-sm ${themeClasses.text.secondary}`}>
+                    {t('discount')}: -{t('currencySymbol')} {appliedCoupon.discountAmount.toFixed(2)}
+                  </p>
+                  <p className="text-sm text-green-400 font-semibold">
+                    {t('finalPrice')}: {t('currencySymbol')} {appliedCoupon.finalAmount.toFixed(2)}
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Payment methods accepted */}
+            <div className={`${theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-50 border border-blue-200'} rounded-lg p-4 mb-6`}>
+              <h3 className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-blue-200' : 'text-blue-900'}`}>
+                {t('acceptedPaymentMethods')}
+              </h3>
+              <ul className={`space-y-2 text-sm ${theme === 'dark' ? 'text-blue-200' : 'text-blue-800'}`}>
+                <li className="flex items-center gap-2">
+                  <span>💳</span>
+                  <span><strong>Wise</strong> - {t('wiseDescription')}</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span>₿</span>
+                  <span><strong>{t('anyCryptocurrency')}</strong> - {t('cryptoDescription')}</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Instructions */}
+            <div className={`${theme === 'dark' ? 'bg-yellow-500/20 border border-yellow-400/30' : 'bg-yellow-50 border border-yellow-200'} rounded-lg p-4 mb-6`}>
+              <p className={`text-sm ${theme === 'dark' ? 'text-yellow-200' : 'text-yellow-800'}`}>
+                <strong>{t('instructions')}</strong> {t('manualPaymentInstructions')}
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={redirectToTelegramManual}
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                </svg>
+                {t('openTelegram')}
+              </button>
+              <button
+                onClick={() => {
+                  setShowManualPaymentModal(false)
+                  setPendingManualPayment(null)
+                }}
+                className={`px-4 py-3 rounded-lg font-semibold transition-colors ${
+                  theme === 'dark' 
+                    ? 'bg-white/10 text-white hover:bg-white/20' 
+                    : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                }`}
+              >
+                {t('cancel')}
+              </button>
+            </div>
           </div>
         </div>
       )}
