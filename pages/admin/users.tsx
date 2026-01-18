@@ -302,6 +302,46 @@ export default function AdminUsers() {
     setEditData((prev) => ({
       ...prev,
       planId,
+      apiPlanId: '', // Limpar apiPlanId quando selecionar plano normal
+      planExpiresAt: computedExpiration,
+      permanentPlan: isPermanent
+    }))
+  }
+
+  const handleApiPlanSelection = (apiPlanId: string) => {
+    if (!apiPlanId) {
+      setEditData((prev) => ({
+        ...prev,
+        planId: '',
+        apiPlanId: '',
+        planExpiresAt: '',
+        permanentPlan: false
+      }))
+      return
+    }
+
+    const selectedPlan = apiPlans.find((plan) => plan.id === apiPlanId)
+    if (!selectedPlan) {
+      setEditData((prev) => ({
+        ...prev,
+        apiPlanId,
+        planId: '' // Limpar planId quando selecionar plano de API
+      }))
+      return
+    }
+
+    let computedExpiration = ''
+    const isPermanent = selectedPlan.duration <= 0
+    if (!isPermanent) {
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + selectedPlan.duration)
+      computedExpiration = format(expiresAt, 'yyyy-MM-dd')
+    }
+
+    setEditData((prev) => ({
+      ...prev,
+      planId: '', // Limpar planId quando selecionar plano de API
+      apiPlanId,
       planExpiresAt: computedExpiration,
       permanentPlan: isPermanent
     }))
