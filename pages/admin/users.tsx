@@ -48,11 +48,13 @@ export default function AdminUsers() {
   const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [plans, setPlans] = useState<Plan[]>([])
+  const [apiPlans, setApiPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(true)
   const [tableLoading, setTableLoading] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editData, setEditData] = useState({
     planId: '',
+    apiPlanId: '',
     planExpiresAt: '',
     permanentPlan: false,
     isBanned: false,
@@ -91,6 +93,7 @@ export default function AdminUsers() {
     console.log('🔄 Iniciando carregamento de usuários e planos...')
     loadUsers('')
     loadPlans()
+    loadApiPlans()
   }, [session?.user, status, router])
 
   const loadUsers = async (search = '') => {
@@ -129,12 +132,30 @@ export default function AdminUsers() {
     }
   }
 
+  const loadApiPlans = async () => {
+    try {
+      const response = await axios.get('/api/plans')
+      // Filtrar apenas planos que contêm "API" no nome
+      const apiPlansList = response.data.filter((plan: Plan) => 
+        plan.name.toLowerCase().includes('api')
+      )
+      setApiPlans(apiPlansList)
+    } catch (error) {
+      toast.error('Erro ao carregar planos de API')
+    }
+  }
+
   const handleEdit = (user: User) => {
+    // Determinar se o plano atual é um plano de API ou normal
+    const currentPlan = user.plan
+    const isApiPlan = currentPlan?.name?.toLowerCase().includes('api') || false
+    
     setEditingUser(user)
     setEditData({
-      planId: user.plan?.id || '',
+      planId: !isApiPlan ? (currentPlan?.id || '') : '',
+      apiPlanId: isApiPlan ? (currentPlan?.id || '') : '',
       planExpiresAt: user.planExpiresAt ? format(new Date(user.planExpiresAt), 'yyyy-MM-dd') : '',
-      permanentPlan: !!user.plan && !user.planExpiresAt,
+      permanentPlan: !!currentPlan && !user.planExpiresAt,
       isBanned: user.isBanned,
       role: user.role,
       newPassword: '',
@@ -157,10 +178,13 @@ export default function AdminUsers() {
     }
 
     try {
+      // Se foi selecionado um plano de API, usar apiPlanId, senão usar planId
+      const finalPlanId = editData.apiPlanId || editData.planId || null
+      
       await axios.put('/api/admin/users', {
         userId: editingUser.id,
         ...editData,
-        planId: editData.planId || null,
+        planId: finalPlanId,
         planExpiresAt: editData.permanentPlan ? null : editData.planExpiresAt || null,
         newPassword: editData.newPassword || undefined
       })
@@ -283,7 +307,8 @@ export default function AdminUsers() {
     }))
   }
 
-  const selectedPlanDetails = plans.find((plan) => plan.id === editData.planId)
+  const selectedPlanDetails = plans.find((plan) => plan.id === editData.planId) || 
+                               apiPlans.find((plan) => plan.id === editData.apiPlanId)
 
   const renderUserRows = () => {
     if (tableLoading) {
@@ -522,25 +547,47 @@ export default function AdminUsers() {
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <h2 className="text-xl font-bold mb-4">Editar Usuário: {editingUser.username}</h2>
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Plano</label>
-              <select
-                value={editData.planId}
-                onChange={(e) => handlePlanSelection(e.target.value)}
-                className={`w-full px-3 py-2 rounded-md ${
-                  theme === 'dark'
-                    ? 'bg-white/10 border border-white/20 text-white'
-                    : 'bg-white border border-gray-300 text-gray-900'
-                }`}
-                style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
-              >
-                <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Sem plano</option>
-                {plans.map((plan) => (
-                  <option key={plan.id} value={plan.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
-                    {plan.name}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Plano Normal</label>
+                <select
+                  value={editData.planId}
+                  onChange={(e) => handlePlanSelection(e.target.value)}
+                  className={`w-full px-3 py-2 rounded-md ${
+                    theme === 'dark'
+                      ? 'bg-white/10 border border-white/20 text-white'
+                      : 'bg-white border border-gray-300 text-gray-900'
+                  }`}
+                  style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
+                >
+                  <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Sem plano normal</option>
+                  {plans.filter((plan) => !plan.name.toLowerCase().includes('api')).map((plan) => (
+                    <option key={plan.id} value={plan.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
+                      {plan.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Plano de API</label>
+                <select
+                  value={editData.apiPlanId}
+                  onChange={(e) => handleApiPlanSelection(e.target.value)}
+                  className={`w-full px-3 py-2 rounded-md ${
+                    theme === 'dark'
+                      ? 'bg-white/10 border border-white/20 text-white'
+                      : 'bg-white border border-gray-300 text-gray-900'
+                  }`}
+                  style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
+                >
+                  <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Sem plano de API</option>
+                  {apiPlans.map((plan) => (
+                    <option key={plan.id} value={plan.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
+                      {plan.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -60,7 +60,7 @@ const API_PLANS: ApiPlan[] = [
   {
     id: 'api-starter',
     name: 'API KAIZEN STARTER',
-    description: 'Entrada, mas já filtra curioso.',
+    description: 'Perfeito para começar a integrar nossa API.',
     price: 79.90,
     duration: 30,
     maxGenerations: 1500,
@@ -95,7 +95,7 @@ const API_PLANS: ApiPlan[] = [
   {
     id: 'api-pro',
     name: 'API KAIZEN PRO',
-    description: 'Aqui é cliente de verdade.',
+    description: 'Solução completa para negócios em escala.',
     price: 299.90,
     duration: 30,
     maxGenerations: 15000,
