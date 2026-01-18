@@ -43,18 +43,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Plan not found' })
     }
 
-    // Verificar se o usuário tem pagamento ativo para este plano
-    const activePayment = await prisma.payment.findFirst({
-      where: {
-        userId: session.user.id,
-        planId: planId,
-        status: 'PAID'
-      },
-      orderBy: { createdAt: 'desc' }
-    })
+    // OWNER tem acesso automático ao melhor plano de API (api-pro) para testes
+    const isOwner = session.user.role === 'OWNER'
+    const isApiProPlan = plan.name.toLowerCase().includes('api') && plan.name.toLowerCase().includes('pro')
+    
+    if (!isOwner) {
+      // Verificar se o usuário tem pagamento ativo para este plano
+      const activePayment = await prisma.payment.findFirst({
+        where: {
+          userId: session.user.id,
+          planId: planId,
+          status: 'PAID'
+        },
+        orderBy: { createdAt: 'desc' }
+      })
 
-    // Por enquanto, vamos permitir criar API key se o usuário tiver um pagamento ativo
-    // (a validação de expiração pode ser adicionada depois)
+      if (!activePayment) {
+        return res.status(403).json({ error: 'Você precisa ter um pagamento ativo para este plano para criar uma API key' })
+      }
+    }
 
     const apiKey = await prisma.apiKey.create({
       data: {
