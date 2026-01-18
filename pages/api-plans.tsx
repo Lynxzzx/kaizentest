@@ -141,17 +141,6 @@ export default function ApiPlans() {
             <p className="text-xl text-slate-300 mb-8">
               Integre nosso estoque ao seu site ou bot
             </p>
-            <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-lg p-6 max-w-3xl mx-auto mb-8">
-              <h2 className="text-2xl font-bold text-amber-200 mb-4">🧠 REGRA DE OURO</h2>
-              <p className="text-white mb-4">
-                Se alguém acha API "cara", essa pessoa não é teu cliente.
-              </p>
-              <p className="text-slate-300 text-sm">
-                Cliente de API pensa em: <strong>escala</strong>, <strong>tempo</strong>, <strong>lucro</strong>, <strong>estabilidade</strong>.
-                <br />
-                Não em economizar 20 reais. E deixe BEM claro isso.
-              </p>
-            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
