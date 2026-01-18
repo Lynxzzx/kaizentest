@@ -65,6 +65,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // Enviar notificação do Discord se houver estoques criados
+    if (createdStocks.length > 0) {
+      try {
+        // Pegar o nome do serviço
+        const service = await prisma.service.findUnique({
+          where: { id: serviceId }
+        })
+        
+        if (service) {
+          await sendStockRestockNotification(
+            DISCORD_WEBHOOK_URL,
+            service.name,
+            createdStocks.length
+          )
+        }
+      } catch (error) {
+        console.error('Error sending Discord notification:', error)
+        // Não bloquear a resposta se o webhook falhar
+      }
+    }
+
     return res.json({
       success: true,
       created: createdStocks.length,
