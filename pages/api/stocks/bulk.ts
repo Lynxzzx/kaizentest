@@ -2,6 +2,9 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { sendStockRestockNotification } from '@/lib/discord-webhook'
+
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1462491603875926151/zjLBTVjZLpA20IhBjAs5NQvV4J4nbKn8t3hlNEZ_vYFMCMnLjNc4h_RmpiMqkbD2xmfT'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)

@@ -1364,10 +1364,15 @@ export function useTranslation() {
   }, [locale])
 
   const t = useCallback((key: string) => {
+    // Se for espanhol, usar tradução estática
+    if (locale === 'es') {
+      return translations['es']?.[key] || key
+    }
+
     // Se não for inglês ou espanhol, usar tradução estática
-    if (locale !== 'en' && locale !== 'es') {
-    return translations[locale]?.[key] || key
-  }
+    if (locale !== 'en') {
+      return translations[locale]?.[key] || key
+    }
 
     // Se for inglês, verificar se já tem tradução dinâmica
     if (translatedKeys[key]) {
