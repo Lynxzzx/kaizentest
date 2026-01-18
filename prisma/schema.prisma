@@ -65,6 +65,7 @@ model User {
   adminLogs     AdminLog[] @relation("AdminLogUser")
   bannedIps     BannedIp[] @relation("BannedIpAdmin")
   authorizedIps AuthorizedIp[] @relation("AuthorizedIpOwner")
+  apiKeys       ApiKey[]
 }
 
 enum UserRole {
@@ -85,6 +86,7 @@ model Service {
   updatedAt   DateTime @updatedAt
   stocks      Stock[]
   allowedPlans ServicePlanAccess[]
+  apiKeyUsageLogs ApiKeyUsageLog[]
 }
 
 model Stock {
@@ -118,6 +120,7 @@ model Plan {
   payments    Payment[]
   raffles     Raffle[] // Planos que podem ser prêmios de sorteios
   serviceAccess ServicePlanAccess[]
+  apiKeys     ApiKey[] @relation("ApiPlan")
 }
 
 model Key {
@@ -505,4 +508,46 @@ model AuthorizedIp {
   authorizedBy User?    @relation("AuthorizedIpOwner", fields: [authorizedById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// API Keys para integração via API
+model ApiKey {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  key               String   @unique // API key gerada
+  userId            String   @db.ObjectId
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId            String   @db.ObjectId // Plano de API (API Plan)
+  plan              Plan     @relation("ApiPlan", fields: [planId], references: [id])
+  name              String?  // Nome identificador da API key (opcional)
+  monthlyGenerations Int     // Limite de gerações por mês
+  usedGenerations   Int      @default(0) // Gerações usadas no mês atual
+  lastResetAt       DateTime @default(now()) // Última vez que o contador foi resetado
+  rateLimit         Int      @default(60) // Requests por minuto
+  allowedServiceIds String[] @default([]) // Array de serviceIds permitidos (vazio = todos)
+  ipWhitelist       String[] @default([]) // Array de IPs permitidos (vazio = sem whitelist)
+  isActive          Boolean  @default(true)
+  isCommercial      Boolean  @default(false) // Se permite uso comercial/revenda
+  priorityStock     Boolean  @default(false) // Se tem prioridade no estoque
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  usageLogs         ApiKeyUsageLog[]
+}
+
+// Logs de uso da API
+model ApiKeyUsageLog {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  apiKeyId      String   @db.ObjectId
+  apiKey        ApiKey   @relation(fields: [apiKeyId], references: [id], onDelete: Cascade)
+  serviceId     String?  @db.ObjectId
+  service       Service? @relation(fields: [serviceId], references: [id])
+  endpoint      String   // Endpoint chamado (ex: /api/v1/generate)
+  ip            String   // IP que fez a requisição
+  userAgent     String?  // User agent
+  success       Boolean  // Se a requisição foi bem-sucedida
+  errorMessage  String?  // Mensagem de erro se houver
+  responseTime  Int?     // Tempo de resposta em ms
+  createdAt     DateTime @default(now())
+  
+  @@index([apiKeyId])
+  @@index([createdAt])
 }

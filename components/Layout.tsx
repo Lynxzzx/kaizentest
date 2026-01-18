@@ -41,6 +41,8 @@ export default function Layout({ children }: LayoutProps) {
     return [
       { href: '/dashboard', label: t('dashboard'), icon: '📊' },
       { href: '/plans', label: t('plans'), icon: '💎' },
+      { href: '/api-plans', label: 'API', icon: '🌐' },
+      { href: '/api-keys', label: 'API Keys', icon: '🔑' },
       { href: '/affiliate', label: t('affiliates'), icon: '🤝' },
       { href: '/raffles', label: t('raffles'), icon: '🎲' },
       { href: '/tickets', label: t('support'), icon: '🛟' },
