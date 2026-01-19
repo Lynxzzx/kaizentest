@@ -359,6 +359,168 @@ export default function ApiPlans() {
           </div>
         )}
 
+        {/* Payment Modal - PIX */}
+        {(paymentData || (paymentMethod && loading)) && pendingPayment && paymentMethod === 'PIX' && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+            <div className="glass-panel p-8 rounded-2xl max-w-md w-full border border-white/10 transform transition-all animate-fadeIn">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-2xl font-bold text-white flex items-center gap-2">
+                  <span className="text-green-400">❖</span> {t('paymentVia')} {t('paymentMethodPix')}
+                </h3>
+                <button onClick={() => { setPaymentData(null); setPaymentMethod(null); }} className="text-gray-400 hover:text-white transition-colors">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-gray-400 animate-pulse">{t('creatingPixPayment')}</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-400 mb-2">{t('finalPrice')}</p>
+                    <p className="text-4xl font-bold text-white">{t('currencySymbol')}{paymentData?.finalAmount?.toFixed(2)}</p>
+                    {paymentData?.discountAmount ? (
+                      <p className="text-green-400 text-sm mt-1">{t('discount')}: {t('currencySymbol')}{paymentData.discountAmount.toFixed(2)}</p>
+                    ) : null}
+                  </div>
+
+                  {paymentData?.pixQrCodeImage && (
+                    <div className="bg-white p-4 rounded-xl mx-auto w-64 h-64 flex items-center justify-center shadow-lg shadow-cyan-900/20">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={`data:image/jpeg;base64,${paymentData.pixQrCodeImage}`} alt="QR Code PIX" className="w-full h-full object-contain" />
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <label className="text-sm text-gray-400 block">{t('pixCodeCopyPaste')}</label>
+                    <div className="flex gap-2">
+                      <input
+                        readOnly
+                        value={paymentData?.pixCopyPaste || ''}
+                        className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-gray-300 font-mono truncate focus:outline-none"
+                      />
+                      <button
+                        onClick={() => {
+                          if (paymentData?.pixCopyPaste) {
+                            navigator.clipboard.writeText(paymentData.pixCopyPaste)
+                            toast.success('Copiado!')
+                          }
+                        }}
+                        className="bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg text-white transition-colors"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 012 2v8a2 2 0 01-2 2h-8a2 2 0 01-2-2v-8a2 2 0 012-2z" /></svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse" />
+                      <span className="text-cyan-400 font-bold text-sm">{t('waitProcessing')}</span>
+                    </div>
+                    <p className="text-xs text-cyan-300/80">{t('autoActivationText')}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Payment Modal - CARD */}
+        {showCardModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+            <div className="glass-panel p-8 rounded-2xl max-w-md w-full border border-white/10 transform transition-all animate-fadeIn">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-white">{t('payViaCard')}</h3>
+                <button onClick={() => setShowCardModal(false)} className="text-gray-400 hover:text-white">✕</button>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); createCardPayment(); }} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">{t('cardHolderName')}</label>
+                  <input
+                    value={cardHolderName}
+                    onChange={e => setCardHolderName(e.target.value.toUpperCase())}
+                    placeholder={t('cardHolderNamePlaceholder')}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500/50 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">{t('email')}</label>
+                  <input
+                    type="email"
+                    value={cardEmail}
+                    onChange={e => setCardEmail(e.target.value)}
+                    placeholder="email@example.com"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500/50 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">{t('cardNumber')}</label>
+                  <input
+                    value={cardNumber}
+                    onChange={e => setCardNumber(formatCardNumber(e.target.value))}
+                    placeholder="0000 0000 0000 0000"
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500/50 outline-none font-mono"
+                    maxLength={19}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">{t('expMonth')} / {t('expYear')}</label>
+                    <div className="flex gap-2">
+                      <input
+                        value={cardExpMonth}
+                        onChange={e => setCardExpMonth(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                        placeholder="MM"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500/50 outline-none text-center"
+                        required
+                      />
+                      <input
+                        value={cardExpYear}
+                        onChange={e => setCardExpYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                        placeholder="YYYY"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500/50 outline-none text-center"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">CVV</label>
+                    <input
+                      value={cardCvv}
+                      onChange={e => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="123"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-cyan-500/50 outline-none text-center"
+                      type="password"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={processingCard}
+                  className="w-full bg-cyan-600 hover:bg-cyan-500 text-white py-4 rounded-xl font-bold shadow-lg shadow-cyan-900/20 disabled:opacity-50 mt-4"
+                >
+                  {processingCard ? t('waitProcessing') : t('pay')}
+                </button>
+
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-500 mt-4">
+                  <span>🔒 {t('sslEncrypted')}</span>
+                  <span>🛡️ {t('pciCompliant')}</span>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
       </div>
     </Layout>
   )
