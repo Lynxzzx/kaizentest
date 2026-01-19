@@ -220,6 +220,9 @@ export interface GenerationProtectionResult {
 /**
  * Verificar se a geração é permitida
  */
+/**
+ * Verificar se a geração é permitida
+ */
 export async function checkGenerationAllowed(
   req: NextApiRequest,
   userId: string,
@@ -297,7 +300,7 @@ export async function checkGenerationAllowed(
   // ===========================================
   if (state.isProcessing) {
     state.suspiciousActions++
-    await logSuspiciousActivity(userId, ip, 'simultaneous_request', '')
+    // await logSuspiciousActivity(userId, ip, 'simultaneous_request', '') // Desativado para evitar spam
     return {
       allowed: false,
       reason: 'Aguarde a geração anterior ser concluída.',
@@ -313,18 +316,17 @@ export async function checkGenerationAllowed(
   const timeSinceLastRequest = isFirstRequest ? Infinity : (now - state.lastRequestTime)
   
   // Só verificar velocidade se já houve uma requisição anterior (não é a primeira)
+  // E se a diferença for muito pequena (automação extrema)
   if (!isFirstRequest && timeSinceLastRequest < GENERATION_PROTECTION.MIN_TIME_BETWEEN_REQUESTS_MS) {
     state.suspiciousActions += 2
-    await logSuspiciousActivity(userId, ip, 'too_fast', `${timeSinceLastRequest}ms`)
     
-    // Bloquear após muitas ações suspeitas
+    // Bloquear apenas se for realmente abusivo
     if (state.suspiciousActions >= GENERATION_PROTECTION.MAX_SUSPICIOUS_ACTIONS) {
       state.blockedUntil = now + (GENERATION_PROTECTION.BLOCK_DURATION_MINUTES * 60 * 1000)
       return {
         allowed: false,
-        reason: 'Atividade automatizada detectada. Você foi bloqueado temporariamente.',
-        suspiciousLevel: 100,
-        shouldBan: true
+        reason: 'Muitas requisições rápidas. Bloqueio temporário.',
+        suspiciousLevel: 100
       }
     }
     
@@ -335,19 +337,40 @@ export async function checkGenerationAllowed(
     }
   }
   
-  // Marcar como suspeito se muito rápido (mas não bloquear) - apenas se não for primeira requisição
-  if (!isFirstRequest && timeSinceLastRequest < GENERATION_PROTECTION.SUSPICIOUS_SPEED_THRESHOLD_MS) {
-    state.suspiciousActions++
-  }
-  
   // ===========================================
-  // 8. VERIFICAR COOLDOWN (usar customizado se fornecido)
+  // 8. VERIFICAR COOLDOWN (NO BANCO DE DADOS)
   // ===========================================
-  const timeSinceLastGeneration = now - state.lastGeneration
+  // 🛡️ CRÍTICO: Verificar no DB para evitar bypass via refresh
+  // Só verificamos se a memória diz que já passou o cooldown ou não tem registro
   const cooldownSeconds = customCooldownSeconds || GENERATION_PROTECTION.COOLDOWN_SECONDS
   const cooldownMs = cooldownSeconds * 1000
+    
+  // Buscar a última geração válida no banco de dados
+  // Isso garante persistência mesmo se o container reiniciar ou se o usuário der F5
+  const lastGenDb = await prisma.generatedAccount.findFirst({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true }
+  })
+
+  let lastGenTime = 0
   
-  if (state.lastGeneration > 0 && timeSinceLastGeneration < cooldownMs) {
+  if (lastGenDb) {
+    lastGenTime = new Date(lastGenDb.createdAt).getTime()
+    
+    // Sincronizar estado em memória se o DB for mais recente
+    if (lastGenTime > state.lastGeneration) {
+      state.lastGeneration = lastGenTime
+      userGenerationState.set(userId, state)
+    }
+  } else {
+    // Se não tem no DB, confiar na memória (pode ser primeira vez)
+    lastGenTime = state.lastGeneration
+  }
+  
+  const timeSinceLastGeneration = now - lastGenTime
+  
+  if (lastGenTime > 0 && timeSinceLastGeneration < cooldownMs) {
     const remainingSeconds = Math.ceil((cooldownMs - timeSinceLastGeneration) / 1000)
     return {
       allowed: false,
@@ -361,47 +384,10 @@ export async function checkGenerationAllowed(
   // 9. VERIFICAR RATE LIMITING POR MINUTO
   // ===========================================
   if (state.generationsThisMinute >= GENERATION_PROTECTION.MAX_GENERATIONS_PER_MINUTE) {
-    state.suspiciousActions++
     return {
       allowed: false,
       reason: 'Limite de gerações por minuto atingido. Aguarde.',
       suspiciousLevel: 40
-    }
-  }
-  
-  // ===========================================
-  // 10. VERIFICAR RATE LIMITING POR HORA
-  // ===========================================
-  if (state.generationsThisHour >= GENERATION_PROTECTION.MAX_GENERATIONS_PER_HOUR) {
-    return {
-      allowed: false,
-      reason: 'Limite de gerações por hora atingido. Aguarde.',
-      suspiciousLevel: 20
-    }
-  }
-  
-  // ===========================================
-  // 10.5. VERIFICAR RATE LIMITING DIÁRIO
-  // ===========================================
-  if (state.generationsThisDay >= GENERATION_PROTECTION.MAX_GENERATIONS_PER_DAY) {
-    return {
-      allowed: false,
-      reason: 'Limite de gerações diárias atingido. Aguarde até amanhã.',
-      suspiciousLevel: 10
-    }
-  }
-  
-  // ===========================================
-  // 11. VERIFICAR AÇÕES SUSPEITAS ACUMULADAS
-  // ===========================================
-  if (state.suspiciousActions >= GENERATION_PROTECTION.MAX_SUSPICIOUS_ACTIONS) {
-    state.blockedUntil = now + (GENERATION_PROTECTION.BLOCK_DURATION_MINUTES * 60 * 1000)
-    await logSuspiciousActivity(userId, ip, 'max_suspicious_reached', `${state.suspiciousActions} ações`)
-    return {
-      allowed: false,
-      reason: 'Muitas ações suspeitas detectadas. Bloqueio temporário aplicado.',
-      suspiciousLevel: 100,
-      shouldBan: true
     }
   }
   
@@ -412,7 +398,7 @@ export async function checkGenerationAllowed(
   // Geração permitida
   return {
     allowed: true,
-    suspiciousLevel: Math.min(state.suspiciousActions * 15, 100)
+    suspiciousLevel: Math.min(state.suspiciousActions * 10, 100)
   }
 }
 
@@ -440,7 +426,7 @@ export function completeGeneration(userId: string): void {
   
   // Reduzir nível de suspeita com gerações bem-sucedidas
   if (state.suspiciousActions > 0) {
-    state.suspiciousActions = Math.max(0, state.suspiciousActions - 0.5)
+    state.suspiciousActions = Math.max(0, state.suspiciousActions - 1)
   }
   
   userGenerationState.set(userId, state)
@@ -456,20 +442,48 @@ export function cancelGeneration(userId: string): void {
 }
 
 /**
- * Obter tempo restante de cooldown
+ * Obter tempo restante de cooldown (verificando DB se necessário)
  */
-export function getCooldownRemaining(userId: string, customCooldownSeconds?: number): number {
+export async function getCooldownRemaining(userId: string, customCooldownSeconds?: number): Promise<number> {
   const state = userGenerationState.get(userId)
-  if (!state) return 0
-  
   const now = Date.now()
   const cooldownSeconds = customCooldownSeconds || GENERATION_PROTECTION.COOLDOWN_SECONDS
   const cooldownMs = cooldownSeconds * 1000
-  const timeSinceLastGeneration = now - state.lastGeneration
   
-  if (timeSinceLastGeneration >= cooldownMs) return 0
+  // Verificar memória primeiro (mais rápido)
+  if (state && state.lastGeneration > 0) {
+    const timeSinceMem = now - state.lastGeneration
+    if (timeSinceMem < cooldownMs) {
+      return Math.ceil((cooldownMs - timeSinceMem) / 1000)
+    }
+  }
   
-  return Math.ceil((cooldownMs - timeSinceLastGeneration) / 1000)
+  // Se memória diz que pode, verificar DB para ter certeza (caso de refresh)
+  try {
+    const lastGenDb = await prisma.generatedAccount.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true }
+    })
+    
+    if (lastGenDb) {
+      const dbTime = new Date(lastGenDb.createdAt).getTime()
+      const timeSinceDb = now - dbTime
+      
+      if (timeSinceDb < cooldownMs) {
+        // Atualizar memória já que o DB tem dado mais recente
+        if (state) {
+          state.lastGeneration = dbTime
+          userGenerationState.set(userId, state)
+        }
+        return Math.ceil((cooldownMs - timeSinceDb) / 1000)
+      }
+    }
+  } catch (e) {
+    // Falha silenciosa no DB, confiar na memória
+  }
+  
+  return 0
 }
 
 // ===========================================

@@ -18,14 +18,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // ===========================================
   // 🛡️ VERIFICAÇÕES INICIAIS (RÁPIDAS)
   // ===========================================
-  
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
   // Obter sessão de forma assíncrona
   const sessionPromise = getServerSession(req, res, authOptions)
-  
+
   const { serviceId, recaptchaToken } = req.body
 
   if (!serviceId) {
@@ -43,39 +43,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // ===========================================
   // 🛡️ PROTEÇÃO CONTRA AUTOMAÇÃO (PRIMEIRO - RÁPIDO, EM MEMÓRIA)
   // ===========================================
-  
+
   // Buscar usuário para obter cooldown do plano (será reutilizado depois)
   const userForCooldown = await prisma.user.findUnique({
     where: { id: userId },
     include: { plan: true }
   })
-  
+
   if (!userForCooldown) {
     return res.status(404).json({ error: 'User not found' })
   }
-  
+
   const planCooldown = userForCooldown.plan?.generationCooldownSeconds
-  
+
   const protectionCheck = await checkGenerationAllowed(req, userId, planCooldown)
-  
+
   if (!protectionCheck.allowed) {
     // Retornar informações de cooldown se aplicável
-    const response: any = { 
+    const response: any = {
       error: protectionCheck.reason,
       blocked: true
     }
-    
+
     if (protectionCheck.cooldownRemaining) {
       response.cooldownRemaining = protectionCheck.cooldownRemaining
       response.cooldownTotal = planCooldown || GENERATION_PROTECTION.COOLDOWN_SECONDS
     }
-    
+
     // Banir IP apenas em casos extremos (evitar operações de DB desnecessárias)
     if (protectionCheck.shouldBan && protectionCheck.suspiciousLevel >= 90) {
       const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
-                 req.headers['x-real-ip']?.toString() ||
-                 req.socket?.remoteAddress || 'unknown'
-      
+        req.headers['x-real-ip']?.toString() ||
+        req.socket?.remoteAddress || 'unknown'
+
       // Fazer em background para não atrasar resposta
       prisma.bannedIp.create({
         data: {
@@ -83,36 +83,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           reason: 'Automação detectada na geração de contas',
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 horas
         }
-      }).catch(() => {}) // Ignorar erros
+      }).catch(() => { }) // Ignorar erros
     }
-    
+
     return res.status(429).json(response)
   }
 
   // ===========================================
   // 🛡️ VERIFICAR reCAPTCHA v3
   // ===========================================
-  
+
   const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY
-  
+
   if (recaptchaToken && recaptchaSecretKey) {
     try {
       const captchaResult = await verifyRecaptcha(recaptchaToken, 'generate')
-      
+
       if (!captchaResult.success) {
         const errorCodes = captchaResult.errorCodes || []
-        
+
         // Erros conhecidos do reCAPTCHA que podem ocorrer mesmo com usuários legítimos:
         // - timeout-or-duplicate: token expirado ou já usado (comum em double-clicks)
         // - invalid-input-response: resposta inválida
         // - bad-request: requisição malformada
-        const isTolerableError = errorCodes.some(code => 
+        const isTolerableError = errorCodes.some(code =>
           ['timeout-or-duplicate', 'invalid-input-response', 'bad-request', 'network-error'].includes(code)
         )
-        
+
         if (!isTolerableError) {
           // Erro crítico - bloquear requisição
-          return res.status(403).json({ 
+          return res.status(403).json({
             error: 'Verificação de segurança falhou. Por favor, tente novamente.',
             securityBlock: true
           })
@@ -124,7 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch (error) {
       // Se houver erro na verificação (rede, etc), bloquear em produção
       if (process.env.NODE_ENV === 'production') {
-        return res.status(403).json({ 
+        return res.status(403).json({
           error: 'Erro ao verificar segurança. Tente novamente.',
           securityBlock: true
         })
@@ -133,7 +133,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (recaptchaSecretKey && process.env.NODE_ENV === 'production') {
     // reCAPTCHA obrigatório em produção se configurado
-    return res.status(403).json({ 
+    return res.status(403).json({
       error: 'Verificação de segurança obrigatória.',
       securityBlock: true
     })
@@ -143,14 +143,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // ===========================================
   // 🔒 MARCAR INÍCIO DO PROCESSAMENTO
   // ===========================================
-  
+
   startGeneration(userId)
 
   try {
     // ===========================================
     // 👤 BUSCAR SERVIÇO (USUÁRIO JÁ FOI BUSCADO ACIMA)
     // ===========================================
-    
+
     // Reutilizar usuário já buscado acima, apenas buscar serviço
     const user = userForCooldown
     const service = await prisma.service.findUnique({
@@ -178,7 +178,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ===========================================
     // 📅 VERIFICAR GERAÇÕES GRÁTIS DIÁRIAS
     // ===========================================
-    
+
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const lastFreeGenDate = user.lastFreeGenerationDate ? new Date(user.lastFreeGenerationDate) : null
@@ -189,7 +189,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let useFreeGeneration = false
     let needsResetDailyCounter = false
-    
+
     // Se é um novo dia, marcar para resetar contador (será feito junto com outras operações)
     if (!lastFreeGenDateStart || lastFreeGenDateStart.getTime() !== today.getTime()) {
       needsResetDailyCounter = true
@@ -204,16 +204,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ===========================================
     // 📋 VERIFICAR PLANO (OTIMIZADO - SEM CHAMADA EXTRA AO DB)
     // ===========================================
-    
+
     // Verificar e limpar plano expirado em background (não bloquear)
-    checkAndCleanUserPlan(user.id).catch(() => {})
+    checkAndCleanUserPlan(user.id).catch(() => { })
 
     // Verificar se tem plano ativo usando a função utilitária
     const hasActivePlan = isUserPlanActive(user.planId, user.planExpiresAt)
-    
+
     // Verificar se tem gerações bonus disponíveis
     const hasBonusGenerations = user.bonusGenerations > 0
-    
+
     // Se não tem plano ativo, só pode usar gerações grátis diárias ou bonus
     if (!hasActivePlan && !useFreeGeneration && !hasBonusGenerations) {
       cancelGeneration(userId)
@@ -241,8 +241,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
 
       // Total de gerações permitidas = maxGenerations do plano + bonusGenerations
-      const totalAllowed = user.plan!.maxGenerations === 0 
-        ? Infinity 
+      const totalAllowed = user.plan!.maxGenerations === 0
+        ? Infinity
         : user.plan!.maxGenerations + user.bonusGenerations
 
       if (user.plan!.maxGenerations > 0 && generatedCount >= totalAllowed) {
@@ -280,7 +280,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ===========================================
     // 📦 BUSCAR E RESERVAR ESTOQUE (OPERAÇÃO ATÔMICA OTIMIZADA)
     // ===========================================
-    
+
     // Usar updateMany com take para operação atômica - evita race conditions
     const stock = await prisma.stock.findFirst({
       where: {
@@ -297,11 +297,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ===========================================
     // ✅ GERAR CONTA (TRANSAÇÃO OTIMIZADA)
     // ===========================================
-    
+
     const ip = req.headers['x-forwarded-for']?.toString().split(',')[0].trim() ||
-               req.headers['x-real-ip']?.toString() ||
-               req.socket?.remoteAddress || 'unknown'
-    
+      req.headers['x-real-ip']?.toString() ||
+      req.socket?.remoteAddress || 'unknown'
+
     // Usar transação OTIMIZADA - apenas operações críticas (stock + account)
     // Atualização do usuário será feita FORA da transação para evitar timeout
     const generatedAccount = await prisma.$transaction(async (tx) => {
@@ -335,8 +335,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       prisma.user.update({
         where: { id: user.id },
         data: {
-          dailyFreeGenerations: useFreeGeneration 
-            ? { increment: 1 } 
+          dailyFreeGenerations: useFreeGeneration
+            ? { increment: 1 }
             : (needsResetDailyCounter ? 0 : undefined),
           lastFreeGenerationDate: today
         }
@@ -349,15 +349,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ===========================================
     // 🛡️ REGISTRAR GERAÇÃO E COMPLETAR (BACKGROUND)
     // ===========================================
-    
+
     // Fazer log em background para não atrasar resposta
-    logGeneration(userId, ip, serviceId, service.name).catch(() => {})
+    logGeneration(userId, ip, serviceId, service.name).catch(() => { })
     completeGeneration(userId)
 
     // ===========================================
     // 📤 RETORNAR RESPOSTA
     // ===========================================
-    
+
     // Usar cooldown do plano se disponível, senão usar o padrão
     const planCooldown = user.plan?.generationCooldownSeconds || GENERATION_PROTECTION.COOLDOWN_SECONDS
     const nextCooldown = planCooldown
@@ -372,7 +372,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       isFreeGeneration: useFreeGeneration,
       cooldown: {
         seconds: nextCooldown,
-        message: nextCooldown >= 60 
+        message: nextCooldown >= 60
           ? `Aguarde ${Math.floor(nextCooldown / 60)} minuto(s) antes da próxima geração.`
           : `Aguarde ${nextCooldown} segundos antes da próxima geração.`
       }

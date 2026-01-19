@@ -76,7 +76,7 @@ export default function Home() {
   useEffect(() => {
     axios.get('/api/feedback')
       .then(response => setFeedbacks(response.data.slice(0, 3)))
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   useEffect(() => {
@@ -122,140 +122,125 @@ export default function Home() {
   }, [planPopups])
 
   return (
-    <div className="relative min-h-screen bg-[#01020f] text-white overflow-hidden">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-32 -right-20 w-[520px] h-[520px] bg-gradient-to-br from-indigo-600/30 via-purple-600/20 to-cyan-400/30 blur-[180px] animate-blob" />
-        <div className="absolute -bottom-24 -left-16 w-[480px] h-[480px] bg-gradient-to-br from-cyan-400/25 via-sky-500/15 to-transparent blur-[200px] animate-blob animation-delay-2000" />
-        <div className="absolute inset-0 opacity-15 bg-[radial-gradient(circle_at_1px_1px,_rgba(148,163,184,.35),transparent_40px)]" />
+    <div className="relative min-h-screen bg-[#000000] text-white overflow-hidden font-[Outfit]">
+      {/* Background Ambience */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[radial-gradient(circle,rgba(79,70,229,0.15)_0%,transparent_70%)] blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[800px] h-[600px] bg-[radial-gradient(circle,rgba(236,72,153,0.1)_0%,transparent_70%)] blur-[100px]" />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
       </div>
 
-      <section className="relative z-10 pt-28 pb-16 sm:pt-32 lg:pb-24 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto grid gap-12 lg:grid-cols-[1.15fr_0.85fr] items-center">
-          <div>
-            <div className="flex items-center gap-3 mb-6">
-              <Logo size="sm" showText={false} className="justify-start" />
-              <span className="text-xs uppercase tracking-[0.4em] text-white/60">{t('siteName')}</span>
-            </div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-md text-xs font-semibold uppercase tracking-[0.4em] text-white/70">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              {t('heroBadge')}
-            </div>
-            <h1 className="mt-6 text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight">
-              {t('heroSubtitle')}{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-500 to-cyan-300">
-                {t('heroDescription')}
-              </span>
-            </h1>
-            <p className="mt-6 text-lg sm:text-xl text-white/70 max-w-2xl">
-              {t('heroTrustedBy')}
-            </p>
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Link
-                href={session ? '/dashboard' : '/register'}
-                className="group relative inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-8 py-4 text-base font-semibold shadow-[0_15px_35px_rgba(59,130,246,0.45)] transition-transform hover:-translate-y-1 hover:scale-[1.01]"
-              >
-                <span>{session ? '🚀' : '✨'}</span>
-                <span>{session ? t('dashboard') : t('startNow')}</span>
-                <span className="absolute inset-0 rounded-2xl border border-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Link>
-              <Link
-                href="/plans"
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-8 py-4 text-base font-semibold text-white/80 hover:bg-white/5 transition-colors"
-              >
-                <span>💎</span>
-                <span>{t('viewPlans')}</span>
-              </Link>
-            </div>
-            <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {stats.map((stat) => (
-                <div key={stat.label} className="rounded-2xl border border-white/5 bg-white/5 backdrop-blur-lg p-4">
-                  <p className="text-2xl sm:text-3xl font-black text-white">{stat.value}</p>
-                  <p className="text-xs uppercase tracking-wide text-white/60">{stat.label}</p>
-                  <p className="text-[11px] text-white/40 mt-1">{stat.desc}</p>
-                </div>
-              ))}
-            </div>
+      <nav className="fixed top-0 w-full z-50 border-b border-white/5 bg-black/50 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Logo size="sm" showText={false} />
+            <span className="font-bold text-lg tracking-tight">Kaizen<span className="text-indigo-500">Gens</span></span>
           </div>
-
-          <div className="relative">
-            <div className="absolute inset-0 rounded-[32px] bg-gradient-to-br from-indigo-500/20 via-transparent to-cyan-500/20 blur-3xl" />
-            <div className="relative rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-2xl p-6 sm:p-8 shadow-[0_30px_80px_rgba(2,8,23,0.8)]">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.5em] text-white/60">{t('liveMonitorTitle')}</p>
-                  <p className="text-lg font-semibold text-white/90">{t('liveMonitorDesc')}</p>
-                </div>
-                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-300">
-                  {t('active')}
-                </span>
-              </div>
-              <div className="mt-8 grid grid-cols-3 gap-4">
-                {liveHighlights.map((highlight) => (
-                  <div key={highlight.label} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
-                    <p className="text-2xl font-black text-white">{highlight.value}</p>
-                    <p className="text-xs text-white/60">{highlight.label}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-8 space-y-3 text-sm">
-                <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
-                  <div>
-                    <p className="text-white/80">{t('autoActivation')}</p>
-                    <p className="text-xs text-white/40">{t('autoActivationText')}</p>
-                  </div>
-                  <span className="text-emerald-400 text-xs font-semibold">{t('active')}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
-                  <div>
-                    <p className="text-white/80">{t('paymentConfirmed')}</p>
-                    <p className="text-xs text-white/40">{t('checkingPayment')}</p>
-                  </div>
-                  <span className="text-xs text-white/50">+R$ 129,90</span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-3">
-                  <div>
-                    <p className="text-white/80">{t('availableServices')}</p>
-                    <p className="text-xs text-white/40">{t('accessAllServices')}</p>
-                  </div>
-                  <span className="text-xs text-white/50">58</span>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-4">
+            {!session && (
+              <>
+                <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition-colors">
+                  {t('signIn')}
+                </Link>
+                <Link href="/register" className="text-sm font-medium bg-white text-black px-4 py-2 rounded-full hover:bg-gray-200 transition-colors">
+                  {t('signUp')}
+                </Link>
+              </>
+            )}
+            {session && (
+              <Link href="/dashboard" className="text-sm font-medium bg-indigo-600 text-white px-4 py-2 rounded-full hover:bg-indigo-700 transition-colors">
+                {t('dashboard')}
+              </Link>
+            )}
           </div>
         </div>
-      </section>
+      </nav>
 
-      <section className="relative z-10 pb-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-xs uppercase tracking-[0.6em] text-white/40">{t('partnersTitle')}</p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-4 text-sm font-semibold uppercase tracking-[0.5em] text-white/35">
-            {partners.map((partner) => (
-              <span key={partner}>{partner}</span>
+      <main className="relative z-10 pt-32 pb-20 px-6">
+        <div className="max-w-7xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium mb-8 animate-fade-in">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+            </span>
+            {t('heroBadge')}
+          </div>
+
+          <h1 className="text-5xl sm:text-7xl font-bold tracking-tight mb-8 leading-[1.1]">
+            <span className="block">{t('heroSubtitle')}</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
+              {t('heroDescription')}
+            </span>
+          </h1>
+
+          <p className="max-w-2xl mx-auto text-lg text-gray-400 mb-10 leading-relaxed">
+            {t('heroTrustedBy')}
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+            <Link
+              href={session ? '/dashboard' : '/register'}
+              className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(79,70,229,0.5)]"
+            >
+              {session ? t('dashboard') : t('startNow')}
+            </Link>
+            <Link
+              href="/plans"
+              className="w-full sm:w-auto px-8 py-4 rounded-full glass-panel hover:bg-white/5 transition-colors font-medium"
+            >
+              {t('viewPlans')}
+            </Link>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+            {stats.map((stat, i) => (
+              <div key={i} className="glass-card p-6 rounded-2xl text-center">
+                <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
+                <div className="text-sm text-gray-500 font-medium uppercase tracking-wider">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </main>
+
+      {/* Features Section */}
+      <section className="py-24 relative">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid md:grid-cols-3 gap-8">
+            {features.map((feature, i) => (
+              <div key={i} className="glass-card p-8 rounded-3xl group">
+                <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform duration-300">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-bold mb-3 text-gray-100">{feature.title}</h3>
+                <p className="text-gray-400 leading-relaxed">
+                  {feature.desc}
+                </p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="relative z-10 py-16 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold">
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-400 to-cyan-300">
-                {t('whyChooseUs')}
-              </span>
-            </h2>
-            <p className="mt-4 text-lg text-white/70 max-w-3xl mx-auto">
-              {t('whyChooseUsDesc')}
-            </p>
+      {/* Workflow Section */}
+      <section className="py-24 relative overflow-hidden">
+        <div className="absolute inset-0 bg-indigo-900/10 skew-y-3 transform origin-bottom-left" />
+        <div className="max-w-7xl mx-auto px-6 relative">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold mb-4">{t('workflowDesc')}</h2>
+            <div className="h-1 w-20 bg-indigo-500 mx-auto rounded-full" />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature) => (
-              <div key={feature.title} className="group relative rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-xl p-6 sm:p-8 transition-transform hover:-translate-y-1 hover:border-white/30">
-                <div className="absolute inset-0 rounded-[28px] opacity-0 group-hover:opacity-100 bg-gradient-to-br from-indigo-500/10 via-transparent to-cyan-500/10 transition-opacity" />
-                <div className="relative z-10">
-                  <div className="text-4xl sm:text-5xl mb-4">{feature.icon}</div>
-                  <h3 className="text-xl font-semibold text-white">{feature.title}</h3>
-                  <p className="mt-3 text-sm text-white/60 leading-relaxed">{feature.desc}</p>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {steps.map((step, i) => (
+              <div key={i} className="relative">
+                <div className="glass-panel p-8 rounded-3xl h-full border-t border-white/10">
+                  <span className="text-6xl font-bold text-white/5 absolute top-4 right-4 select-none">
+                    {step.number}
+                  </span>
+                  <h4 className="text-xl font-semibold mb-4 text-indigo-300">{step.title}</h4>
+                  <p className="text-gray-400">{step.desc}</p>
                 </div>
               </div>
             ))}
@@ -263,114 +248,51 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative z-10 py-16 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto rounded-[32px] border border-white/10 bg-white/5 backdrop-blur-2xl p-8 sm:p-12 shadow-[0_30px_80px_rgba(2,8,23,0.65)]">
-          <div className="text-center mb-12">
-            <p className="text-xs uppercase tracking-[0.6em] text-white/50">{t('workflowTitle')}</p>
-            <h3 className="mt-4 text-3xl font-extrabold text-white">{t('workflowDesc')}</h3>
-          </div>
-          <div className="grid gap-6 md:grid-cols-3">
-            {steps.map((step) => (
-              <div key={step.number} className="rounded-3xl border border-white/10 bg-white/5 p-6">
-                <span className="text-xs font-black uppercase tracking-[0.6em] text-white/50">{step.number}</span>
-                <h4 className="mt-4 text-xl font-semibold text-white">{step.title}</h4>
-                <p className="mt-3 text-sm text-white/60">{step.desc}</p>
-              </div>
-            ))}
+      {/* CTA Section */}
+      <section className="py-24 px-6">
+        <div className="max-w-4xl mx-auto glass-card rounded-[3rem] p-12 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10" />
+          <div className="relative z-10">
+            <h2 className="text-4xl font-bold mb-6">{t('readyToStart')}</h2>
+            <p className="text-lg text-gray-400 mb-8 max-w-xl mx-auto">{t('readyToStartDesc')}</p>
+            <div className="flex justify-center gap-4">
+              <Link href="/register" className="px-8 py-3 bg-white text-black rounded-full font-semibold hover:bg-gray-100 transition-colors">
+                {t('createFreeAccount')}
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
-      {feedbacks.length > 0 && (
-        <section className="relative z-10 py-16 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-12">
-              <p className="text-xs uppercase tracking-[0.6em] text-white/50">{t('whatClientsSay')}</p>
-              <h3 className="mt-4 text-3xl font-extrabold">{t('whatClientsSayDesc')}</h3>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {feedbacks.map((feedback) => (
-                <div key={feedback.id} className="rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-xl p-6">
-                  {feedback.rating && (
-                    <div className="flex items-center gap-1 text-yellow-400 text-lg mb-4">
-                      {[...Array(5)].map((_, i) => (
-                        <span key={i}>{i < feedback.rating! ? '★' : '☆'}</span>
-                      ))}
-                    </div>
-                  )}
-                  <p className="text-sm text-white/70 italic mb-4">
-                    “{translatedFeedbacks[feedback.id] || feedback.message}”
-                  </p>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-sky-500 flex items-center justify-center font-semibold">
-                      {feedback.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-white">{feedback.name}</p>
-                      {feedback.user && <p className="text-xs text-white/50">@{feedback.user.username}</p>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="text-center mt-10">
-              <Link
-                href="/feedback"
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/15 px-6 py-3 text-sm font-semibold text-white/80 hover:bg-white/5"
-              >
-                {t('viewAllFeedbacks')} →
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      <section className="relative z-10 py-16 sm:py-24 lg:py-28 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto rounded-[36px] border border-white/10 bg-gradient-to-r from-indigo-600 via-purple-600 to-cyan-500 p-10 text-center shadow-[0_30px_80px_rgba(62,3,83,0.45)]">
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-white">{t('readyToStart')}</h2>
-          <p className="mt-4 text-lg text-white/80">{t('readyToStartDesc')}</p>
-          {!session && (
-            <div className="mt-8 flex flex-wrap justify-center gap-4">
-              <Link
-                href="/plans"
-                className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-base font-semibold text-purple-600 shadow-lg"
-              >
-                💎 {t('viewPlans')}
-              </Link>
-              <Link
-                href="/register"
-                className="inline-flex items-center gap-2 rounded-2xl border border-white/30 px-6 py-3 text-base font-semibold text-white hover:bg-white/10"
-              >
-                ✨ {t('createFreeAccount')}
-              </Link>
-            </div>
-          )}
-        </div>
-      </section>
-
+      {/* Popup Notifications */}
       {currentPopup && (
-        <div className={`fixed bottom-6 left-6 z-30 transition-all duration-300 ${popupVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}>
-          <div className="rounded-3xl border border-white/15 bg-white/10 backdrop-blur-xl px-5 py-4 shadow-[0_20px_45px_rgba(2,8,23,0.6)] max-w-xs">
-            <p className="text-sm font-semibold text-white flex items-center gap-2">
-              <span>{currentPopup.emoji}</span>
-              <span>{currentPopup.name} {t('popupUserActivated')} {t(currentPopup.planKey)}</span>
-            </p>
-            <p className="text-xs text-white/60 mt-1">{currentPopup.price} • {t('popupJustNow')}</p>
+        <div className={`fixed bottom-8 left-8 z-50 transition-all duration-500 transform ${popupVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+          <div className="glass-panel pl-3 pr-6 py-3 rounded-full flex items-center gap-4 shadow-2xl">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-lg shadow-lg">
+              {currentPopup.emoji}
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white">
+                <span className="font-bold text-indigo-300">{currentPopup.name}</span> {t('popupUserActivated')}
+              </p>
+              <p className="text-xs text-gray-400">
+                {t(currentPopup.planKey)} • <span className="text-emerald-400">{currentPopup.price}</span>
+              </p>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Footer Minimal */}
+      <footer className="py-8 text-center text-gray-600 text-sm border-t border-white/5">
+        <p>&copy; {new Date().getFullYear()} Kaizen Gens. All rights reserved.</p>
+      </footer>
 
       <style jsx>{`
-        @keyframes blob {
-          0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-          33% { transform: translate3d(30px, -50px, 0) scale(1.1); }
-          66% { transform: translate3d(-20px, 20px, 0) scale(0.9); }
-        }
-        .animate-blob {
-          animation: blob 10s ease-in-out infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
+        .glass-panel {
+          background: rgba(25, 25, 25, 0.4);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
         }
       `}</style>
     </div>

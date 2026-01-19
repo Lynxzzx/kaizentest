@@ -60,64 +60,21 @@ export default function Dashboard() {
   const [selectedService, setSelectedService] = useState<string>('')
   const [generatedAccount, setGeneratedAccount] = useState<any>(null)
   const [loading, setLoading] = useState(false)
-  
+
   // 📜 HISTÓRICO DE CONTAS
   const [accountHistory, setAccountHistory] = useState<any[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [historyPage, setHistoryPage] = useState(1)
   const [historyPagination, setHistoryPagination] = useState<any>(null)
   const [showHistory, setShowHistory] = useState(false)
-  
+
   // 🛡️ COOLDOWN STATE
   const [cooldownRemaining, setCooldownRemaining] = useState(0)
   const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  
+
   // 🛡️ Google reCAPTCHA v3 (invisível)
   const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
-
-  // Classes de tema para o dashboard
-  const getDashboardThemeClasses = () => {
-    switch (theme) {
-      case 'dark':
-        return 'relative min-h-screen bg-[#050816] text-slate-100 bg-tech-grid py-8 sm:py-10 md:py-14 px-4 sm:px-6 lg:px-8'
-      case 'light':
-        return 'relative min-h-screen bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.12),transparent_55%)] from-slate-50 via-slate-100 to-slate-200 text-slate-900 py-8 sm:py-10 md:py-14 px-4 sm:px-6 lg:px-8'
-      case 'default':
-        return 'relative min-h-screen bg-[#020617] text-slate-100 bg-tech-grid py-8 sm:py-10 md:py-14 px-4 sm:px-6 lg:px-8'
-      default:
-        return 'relative min-h-screen bg-[#050816] text-slate-100 bg-tech-grid py-8 sm:py-10 md:py-14 px-4 sm:px-6 lg:px-8'
-    }
-  }
-
-  const themeClasses = getThemeClasses(theme)
-
-  const getCardClasses = () => {
-    switch (theme) {
-      case 'dark':
-        return 'relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-2xl p-5 sm:p-6 md:p-8 shadow-[0_25px_60px_rgba(15,23,42,0.55)]'
-      case 'light':
-        return 'relative overflow-hidden rounded-[28px] border border-white bg-white/90 backdrop-blur-xl p-5 sm:p-6 md:p-8 shadow-[0_25px_50px_rgba(15,23,42,0.12)]'
-      case 'default':
-        return 'relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-2xl p-5 sm:p-6 md:p-8 shadow-[0_25px_60px_rgba(15,23,42,0.55)]'
-      default:
-        return 'relative overflow-hidden rounded-[28px] border border-white/10 bg-white/5 backdrop-blur-2xl p-5 sm:p-6 md:p-8 shadow-[0_25px_60px_rgba(15,23,42,0.55)]'
-    }
-  }
-
-  const getTextClasses = () => {
-    switch (theme) {
-      case 'dark':
-        return { primary: 'text-slate-50', secondary: 'text-slate-300', muted: 'text-slate-400' }
-      case 'light':
-      case 'default':
-        return { primary: 'text-slate-900', secondary: 'text-slate-600', muted: 'text-slate-500' }
-      default:
-        return { primary: 'text-slate-50', secondary: 'text-slate-300', muted: 'text-slate-400' }
-    }
-  }
-
-  const textClasses = getTextClasses()
 
   const requiresPaidPlan = (service: Service) => (service.allowedPlans?.length ?? 0) > 0
 
@@ -185,7 +142,7 @@ export default function Dashboard() {
       checkCooldown()
       loadAccountHistory(1)
     }
-    
+
     // Limpar timer ao desmontar
     return () => {
       if (cooldownIntervalRef.current) {
@@ -277,7 +234,7 @@ export default function Dashboard() {
     try {
       // Executar reCAPTCHA v3 - aguardar se necessário
       let token = await executeRecaptcha('generate')
-      
+
       // Se não obteve token e não está pronto, aguardar um pouco
       if (!token && !recaptchaReady) {
         await new Promise(resolve => setTimeout(resolve, 1000))
@@ -296,15 +253,15 @@ export default function Dashboard() {
         serviceId: selectedService,
         recaptchaToken: token // 🛡️ Enviar token do reCAPTCHA v3
       })
-      
+
       setGeneratedAccount(response.data)
       toast.success(t('accountGeneratedSuccess'))
       loadUserPlan()
       loadAccountHistory(1) // Recarregar histórico após gerar conta
-      
+
       // 🛡️ RESETAR reCAPTCHA APÓS GERAÇÃO
       setRecaptchaToken(null)
-      
+
       // 🛡️ INICIAR COOLDOWN APÓS GERAÇÃO BEM-SUCEDIDA
       if (response.data.cooldown?.seconds) {
         startCooldownTimer(response.data.cooldown.seconds)
@@ -314,15 +271,15 @@ export default function Dashboard() {
       }
     } catch (error: any) {
       const errorData = error.response?.data
-      
+
       // 🛡️ RESETAR reCAPTCHA EM CASO DE ERRO
       setRecaptchaToken(null)
-      
+
       // 🛡️ SE RECEBER COOLDOWN NA RESPOSTA DE ERRO
       if (errorData?.cooldownRemaining) {
         startCooldownTimer(errorData.cooldownRemaining)
       }
-      
+
       toast.error(errorData?.error || t('errorGeneratingAccount'))
     } finally {
       setLoading(false)
@@ -331,10 +288,10 @@ export default function Dashboard() {
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-          <p className="mt-4 text-gray-600">{t('loading')}</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+          <p className="mt-4 text-gray-500">{t('loading')}</p>
         </div>
       </div>
     )
@@ -345,137 +302,137 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={getDashboardThemeClasses()}>
-      <div className="max-w-7xl mx-auto">
-        <div className={`${getCardClasses()} neon-shadow mb-8`}>
-          <div className="absolute inset-0 bg-gradient-to-r from-sky-500/10 via-purple-500/10 to-cyan-400/10" />
-          <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="min-h-screen bg-black text-gray-100 font-[Outfit] pb-20">
+      {/* Background FX */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[100px]" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/10 blur-[100px]" />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 pt-24 relative z-10">
+
+        {/* Welcome Hero */}
+        <div className="glass-panel rounded-3xl p-8 mb-8 relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent opacity-50" />
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-white/70">{t('welcome')}</p>
-              <h1 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                {session.user.username}
-              </h1>
-              <p className="text-sm text-white/70 max-w-xl">
-                {t('joinTelegram')} · {t('shareYourExperience')}
-              </p>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-xl font-bold">
+                  {session.user.username?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white leading-none mb-1">
+                    {t('welcome')}, {session.user.username}
+                  </h1>
+                  <p className="text-sm text-gray-400">
+                    {t('welcomeDesc') || 'Bem-vindo ao seu painel de controle.'}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href="/plans"
-                className="inline-flex items-center rounded-2xl border border-white/20 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10"
-              >
-                <span className="mr-2">🚀</span>
-                {t('viewPlans')}
+            <div className="flex gap-3">
+              <Link href="/plans" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/20">
+                💎 {t('viewPlans')}
               </Link>
-              <Link
-                href={`/profile/${session.user.username}`}
-                className="inline-flex items-center rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-2 text-sm font-semibold text-white shadow-[0_15px_35px_rgba(99,102,241,0.45)]"
-              >
-                <span className="mr-2">👤</span>
-                {t('viewProfile')}
+              <Link href="/profile" className="px-5 py-2.5 glass-panel hover:bg-white/5 rounded-xl font-medium transition-all">
+                👤 {t('myProfile')}
               </Link>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
-          {/* Plan Card */}
-          <div className={`${getCardClasses()} neon-shadow`}>
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>{t('myPlan')}</h2>
-              <span className="text-3xl sm:text-4xl">📋</span>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+
+          {/* Plan Status Card */}
+          <div className="glass-card rounded-3xl p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">📋</span>
+                {t('myPlan')}
+              </h2>
+              {userPlan?.plan ? (
+                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full uppercase tracking-wider border border-emerald-500/20">
+                  {t('active')}
+                </span>
+              ) : (
+                <span className="px-3 py-1 bg-gray-700 text-gray-300 text-xs font-bold rounded-full uppercase tracking-wider">
+                  {t('free')}
+                </span>
+              )}
             </div>
+
             {userPlan?.plan ? (
-              <div className="space-y-4">
-                <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-purple-50 via-blue-50 to-purple-100 border border-purple-200'} rounded-xl p-6 shadow-lg`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600">{translatePlanName ? translatePlanName(userPlan.plan.name) : userPlan.plan.name}</h3>
-                    <span className="text-2xl">💎</span>
+              <div className="space-y-6">
+                <div className="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                      {translatePlanName ? translatePlanName(userPlan.plan.name) : userPlan.plan.name}
+                    </h3>
                   </div>
-                  <p className={`${textClasses.secondary} mb-4`}>{userPlan.plan.description}</p>
-                  <div className={`flex items-center justify-between pt-4 border-t ${theme === 'dark' ? 'border-white/20' : 'border-purple-200'}`}>
-                    <span className={`text-sm font-medium ${theme === 'dark' ? 'text-purple-300' : 'text-purple-600'}`}>{t('expiresIn')}:</span>
-                    <span className={`text-sm font-bold ${theme === 'dark' ? 'text-purple-200' : 'text-purple-900'}`}>
-                      {userPlan.planExpiresAt
-                        ? format(new Date(userPlan.planExpiresAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })
-                        : t('noExpiration')}
-                    </span>
-                  </div>
+                  <p className="text-gray-400 text-sm">{userPlan.plan.description}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200'} rounded-lg p-3`}>
-                    <p className={textClasses.secondary}>{t('durationLabel')}</p>
-                    <p className={`font-bold ${textClasses.primary}`}>{userPlan.plan.duration} {t('days')}</p>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                    <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">{t('expiresIn')}</p>
+                    <p className="text-lg font-mono text-white">
+                      {userPlan.planExpiresAt
+                        ? format(new Date(userPlan.planExpiresAt), "dd/MM/yyyy", { locale: ptBR })
+                        : 'N/A'}
+                    </p>
                   </div>
-                  <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200'} rounded-lg p-3`}>
-                    <p className={textClasses.secondary}>{t('generationsLabel')}</p>
-                    <p className={`font-bold ${textClasses.primary}`}>
-                      {userPlan.plan.maxGenerations === 0 ? t('unlimitedLabel') : userPlan.plan.maxGenerations}
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                    <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">{t('generationsLabel')}</p>
+                    <p className="text-lg font-mono text-white">
+                      {userPlan.plan.maxGenerations === 0 ? '∞' : userPlan.plan.maxGenerations}
                     </p>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-8">
-                <div className="relative inline-block mb-6">
-                  <div className="absolute inset-0 bg-gradient-to-r from-purple-400 to-blue-400 rounded-full blur-xl opacity-50"></div>
-                  <div className="relative bg-gradient-to-br from-purple-100 to-blue-100 rounded-full p-6 border-4 border-purple-200">
-                    <div className="text-5xl">🆓</div>
+              <div className="text-center py-6">
+                <div className="w-16 h-16 rounded-2xl bg-gray-800 mx-auto mb-4 flex items-center justify-center text-3xl">
+                  🆓
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">{t('freePlanLabel')}</h3>
+                <p className="text-gray-400 text-sm mb-6">{t('youAreUsingFreePlan')}</p>
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 mb-6 text-left">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">{t('dailyGenerations')}</span>
+                    <span className="font-bold text-white">2</span>
                   </div>
                 </div>
-                <h3 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-blue-600 mb-2">
-                  {t('freePlanLabel')}
-                </h3>
-                <p className={`${textClasses.secondary} mb-4`}>{t('youAreUsingFreePlan')}</p>
-                <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200'} rounded-lg p-4 mb-6`}>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className={textClasses.secondary}>{t('dailyGenerations')}</p>
-                      <p className={`font-bold ${textClasses.primary}`}>2 {t('free')}</p>
-                    </div>
-                    <div>
-                      <p className={textClasses.secondary}>{t('status')}</p>
-                      <p className="font-bold text-green-600">{t('active')}</p>
-                    </div>
-                  </div>
-                </div>
-                <a
-                  href="/plans"
-                  className="inline-block bg-gradient-to-r from-purple-600 to-blue-600 text-white px-6 py-3 rounded-lg font-bold hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
-                >
+                <Link href="/plans" className="block w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-500/25 transition-all">
                   {t('upgradeToPremium')}
-                </a>
+                </Link>
               </div>
             )}
           </div>
 
-          {/* Generate Account Card */}
-          <div className={`${getCardClasses()} neon-shadow`}>
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>{t('generateAccount')}</h2>
-              <span className="text-3xl sm:text-4xl">⚡</span>
-            </div>
-            <div className="space-y-3 sm:space-y-4">
+          {/* Generator Card */}
+          <div className="glass-card rounded-3xl p-8 border-t-2 border-t-indigo-500/50 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px]" />
+
+            <h2 className="text-xl font-bold flex items-center gap-2 mb-6 relative z-10">
+              <span className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">⚡</span>
+              {t('generateAccount')}
+            </h2>
+
+            <div className="space-y-6 relative z-10">
               <div>
-                <label className={`block text-sm font-semibold mb-2 ${textClasses.primary}`}>
-                  {t('selectService')}
-                </label>
+                <label className="block text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">{t('selectService')}</label>
                 <select
                   value={selectedService}
                   onChange={(e) => setSelectedService(e.target.value)}
-                  className={`${getThemeClasses(theme).input} w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
-                  style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none"
                 >
-                  <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>{t('selectService')}</option>
+                  <option value="">{t('selectService')}...</option>
                   {services
                     .filter((service) => service._count.stocks > 0)
                     .map((service) => (
-                      <option 
-                        key={service.id} 
-                        value={service.id}
-                        style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}
-                      >
-                        {service.name} ({service._count.stocks} {t('available')}){requiresPaidPlan(service) ? ' - 🔒 Plano pago' : ''}
+                      <option key={service.id} value={service.id}>
+                        {service.name} • {service._count.stocks} {t('available')} {requiresPaidPlan(service) ? '🔒' : ''}
                       </option>
                     ))}
                 </select>
@@ -484,215 +441,178 @@ export default function Dashboard() {
                   if (!chosen || !requiresPaidPlan(chosen)) return null
                   const hasAccess = canAccessService(chosen)
                   return hasAccess ? (
-                    <p className="text-xs text-green-500 mt-2">
-                      Serviço liberado para o seu plano atual.
+                    <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      Liberado no seu plano
                     </p>
                   ) : (
-                    <p className="text-xs text-red-500 mt-2">
-                      Este serviço é exclusivo para planos pagos. Faça upgrade para gerar.
+                    <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                      Exclusivo para planos pagos
                     </p>
                   )
                 })()}
               </div>
-              
-              {/* 🛡️ COOLDOWN DISPLAY */}
+
+              {/* Cooldown Timer UI */}
               {cooldownRemaining > 0 && (
-                <div className={`${theme === 'dark' ? 'bg-orange-500/20 border border-orange-400/30' : 'bg-orange-50 border border-orange-200'} rounded-xl p-4`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="text-3xl animate-pulse">⏳</div>
-                      <p className={`font-semibold ${theme === 'dark' ? 'text-orange-200' : 'text-orange-800'}`}>
-                        Aguarde {formatCooldown(cooldownRemaining)}
-                      </p>
-                    </div>
+                <div className="p-4 rounded-xl bg-orange-500/10 border border-orange-500/20 animate-pulse">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-orange-400 text-xl">⏳</span>
+                    <span className="text-orange-200 font-bold">Aguarde {formatCooldown(cooldownRemaining)}</span>
                   </div>
-                  {/* Progress bar */}
-                  <div className="mt-3 h-2 bg-orange-200/30 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-orange-500 to-red-500 transition-all duration-1000"
+                  <div className="h-1.5 w-full bg-orange-500/20 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-orange-500 transition-all duration-1000 ease-linear"
                       style={{ width: `${((COOLDOWN_SECONDS - cooldownRemaining) / COOLDOWN_SECONDS) * 100}%` }}
                     />
                   </div>
                 </div>
               )}
-              
-              {/* 🛡️ Google reCAPTCHA v3 (invisível) */}
+
               <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="generate" />
-              
+
               <button
                 onClick={handleGenerateAccount}
                 disabled={loading || !selectedService || cooldownRemaining > 0 || !recaptchaConfigured}
-                className={`w-full py-3 sm:py-4 rounded-lg text-sm sm:text-base font-bold transition-all shadow-lg transform touch-manipulation ${
-                  cooldownRemaining > 0 || !recaptchaConfigured
-                    ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-60'
-                    : 'bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
-                }`}
+                className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-[0.98] ${cooldownRemaining > 0 || !recaptchaConfigured
+                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:shadow-indigo-500/25'
+                  }`}
               >
                 {loading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                     {t('generating')}
                   </span>
                 ) : cooldownRemaining > 0 ? (
-                  <span className="flex items-center justify-center">
-                    <span className="mr-2">⏳</span>
-                    Aguarde {formatCooldown(cooldownRemaining)}
-                  </span>
+                  t('waitCooldown') || 'Aguarde o tempo...'
                 ) : (
                   t('generateAccount')
                 )}
               </button>
+
               {!userPlan?.plan && (
-                <div className="text-sm text-center">
-                  <p className="text-red-600 mb-2">
-                    {t('youDontHaveActivePlan')}
-                  </p>
-                  <p className="text-green-600 font-medium">
-                    {t('youHave2FreeGenerations')}
-                  </p>
+                <div className="flex justify-between text-xs px-1">
+                  <span className="text-gray-500">{t('youDontHaveActivePlan')}</span>
+                  <span className="text-emerald-400 font-medium">2 {t('freeGenerations')}</span>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Generated Account */}
+        {/* Generated Account Result */}
         {generatedAccount && (
-          <div className={`${getCardClasses()} neon-shadow animate-slide-up mb-6 sm:mb-8`}>
-            <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${textClasses.primary}`}>{t('accountGeneratedSuccess')}</h2>
-            <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200'} rounded-xl p-6`}>
-              {/* Formato account:pass */}
-              <div className="mb-6">
-                <label className={`block text-sm font-semibold mb-2 ${textClasses.primary}`}>{t('accountFormat')}</label>
-                <div className={`flex items-center gap-2 p-4 ${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white rounded-lg border border-green-100'}`}>
-                  <span className={`font-mono font-bold flex-1 break-all ${textClasses.primary}`}>
+          <div className="animate-slide-up mb-8">
+            <div className="glass-card rounded-3xl p-1 bg-gradient-to-r from-emerald-500/50 to-teal-500/50">
+              <div className="bg-[#0a0a0a] rounded-[22px] p-6 sm:p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl">
+                    ✅
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">{t('accountGeneratedSuccess')}</h3>
+                    <p className="text-sm text-gray-400">Use os dados abaixo para acessar</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                    <label className="text-xs text-gray-500 uppercase tracking-widest block mb-2">{t('emailUser')}</label>
+                    <div className="flex items-center gap-3">
+                      <code className="flex-1 font-mono text-lg text-white truncate">
+                        {generatedAccount.email || generatedAccount.username}
+                      </code>
+                      <button
+                        onClick={() => {
+                          const val = generatedAccount.email || generatedAccount.username
+                          navigator.clipboard.writeText(val)
+                          toast.success('Copiado!')
+                        }}
+                        className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                      >
+                        📋
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-white/5 border border-white/5">
+                    <label className="text-xs text-gray-500 uppercase tracking-widest block mb-2">{t('passwordLabel')}</label>
+                    <div className="flex items-center gap-3">
+                      <code className="flex-1 font-mono text-lg text-white truncate">
+                        {generatedAccount.password}
+                      </code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(generatedAccount.password)
+                          toast.success('Copiado!')
+                        }}
+                        className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                      >
+                        📋
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                  <code className="block w-full font-mono text-emerald-300 text-center break-all select-all">
                     {generatedAccount.email || generatedAccount.username}:{generatedAccount.password}
-                  </span>
-                  <button
-                    onClick={() => {
-                      const fullAccount = `${generatedAccount.email || generatedAccount.username}:${generatedAccount.password}`
-                      navigator.clipboard.writeText(fullAccount)
-                      toast.success(t('copyFullAccount'))
-                    }}
-                    className="flex-shrink-0 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
-                    title={t('copyFullAccount')}
-                  >
-                    📋
-                  </button>
+                  </code>
                 </div>
-              </div>
-
-              {/* Dados separados com botões de copiar */}
-              <div className="space-y-4">
-                <div className={`p-4 ${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white rounded-lg border border-green-100'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`font-semibold ${textClasses.primary}`}>
-                      {generatedAccount.email ? t('emailUser') : t('usernameLabel')}
-                    </span>
-                    <button
-                      onClick={() => {
-                        const account = generatedAccount.email || generatedAccount.username
-                        navigator.clipboard.writeText(account)
-                        toast.success(t('emailUserCopied'))
-                      }}
-                      className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
-                    >
-                      {t('copyButton')}
-                    </button>
-                  </div>
-                  <span className={`font-mono font-bold block break-all ${textClasses.primary}`}>
-                    {generatedAccount.email || generatedAccount.username}
-                  </span>
-                </div>
-                <div className={`p-4 ${theme === 'dark' ? 'bg-white/5 border border-white/10' : 'bg-white rounded-lg border border-green-100'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className={`font-semibold ${textClasses.primary}`}>{t('passwordLabel')}</span>
-                    <button
-                      onClick={() => {
-                        navigator.clipboard.writeText(generatedAccount.password)
-                        toast.success(t('passwordCopied'))
-                      }}
-                      className="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors shadow-sm"
-                    >
-                      {t('copyButton')}
-                    </button>
-                  </div>
-                  <span className={`font-mono font-bold block break-all ${textClasses.primary}`}>
-                    {generatedAccount.password}
-                  </span>
-                </div>
-              </div>
-
-              {/* Mensagem de aviso */}
-              <div className={`mt-6 ${theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-50 border border-blue-200'} rounded-lg p-4`}>
-                <p className={`text-sm mb-2 ${theme === 'dark' ? 'text-blue-200' : 'text-blue-800'}`}>
-                  <strong>{t('importantInfo')}</strong>
-                </p>
-                <p className={`text-sm ${theme === 'dark' ? 'text-blue-300' : 'text-blue-700'}`}>
-                  {t('accountNotWorkingInfo')}
-                </p>
-              </div>
-              <div className={`mt-4 ${theme === 'dark' ? 'bg-yellow-500/20 border border-yellow-400/30' : 'bg-yellow-50 border border-yellow-200'} rounded-lg p-4`}>
-                <p className={`text-sm ${theme === 'dark' ? 'text-yellow-200' : 'text-yellow-800'}`}>
-                  <strong>{t('saveCredentials')}</strong>
-                </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Affiliate Link Card */}
+        {/* Affiliate Section */}
         {userPlan?.affiliateCode && (
-          <div className={`mb-6 sm:mb-8 ${getCardClasses()} neon-shadow`}>
-            <div className="flex items-center justify-between mb-4 sm:mb-6">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl sm:text-4xl">🎁</span>
-                <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>{t('yourAffiliateLink')}</h2>
+          <div className="glass-card rounded-3xl p-8 mb-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/10 blur-[80px]" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-6">
+                <span className="text-3xl">🎁</span>
+                <h2 className="text-xl font-bold text-white">{t('yourAffiliateLink')}</h2>
               </div>
-            </div>
-            <div className="space-y-4">
-              <div className={`${theme === 'dark' ? 'bg-white/5 border border-white/20' : 'bg-white/80 backdrop-blur-sm border border-purple-200'} rounded-xl p-4`}>
-                <p className={`text-sm mb-2 font-semibold ${textClasses.secondary}`}>{t('linkToShare')}</p>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={getAffiliateLink(userPlan.affiliateCode)}
-                    readOnly
-                    className={`${getThemeClasses(theme).input} flex-1 px-3 py-2 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-purple-500`}
-                  />
+
+              <div className="bg-black/40 border border-white/10 rounded-xl p-6 mb-4">
+                <p className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">{t('linkToShare')}</p>
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                  <div className="flex-1 w-full bg-white/5 border border-white/5 rounded-lg px-4 py-3 font-mono text-sm text-gray-300 break-all">
+                    {getAffiliateLink(userPlan.affiliateCode)}
+                  </div>
                   <button
                     onClick={() => copyAffiliateLink(userPlan.affiliateCode!)}
-                    className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg font-semibold whitespace-nowrap"
+                    className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg font-bold hover:shadow-lg hover:shadow-pink-500/20 transition-all text-white whitespace-nowrap"
                   >
                     {t('copyLink')}
                   </button>
                 </div>
               </div>
-              <div className={`${theme === 'dark' ? 'bg-blue-500/20 border border-blue-400/30' : 'bg-blue-50 border border-blue-200'} rounded-lg p-3`}>
-                <p className={`text-xs sm:text-sm ${theme === 'dark' ? 'text-blue-200' : 'text-blue-800'}`}>
+
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                <p className="text-sm text-blue-300 flex items-center gap-2">
+                  <span className="text-lg">💡</span>
                   <strong>{t('affiliateTip')}</strong>
                 </p>
-              </div>
-              <div className="flex justify-center">
                 <Link
                   href="/affiliate"
-                  className={`text-sm font-semibold hover:underline ${theme === 'dark' ? 'text-purple-300 hover:text-purple-200' : 'text-purple-600 hover:text-purple-700'}`}
+                  className="text-sm font-bold text-blue-400 hover:text-blue-300 underline underline-offset-4"
                 >
-                  {t('viewFullAffiliateStats')}
+                  {t('viewFullAffiliateStats')} →
                 </Link>
               </div>
             </div>
           </div>
         )}
 
-        {/* Histórico de Contas Geradas */}
-        <div className={`mt-6 sm:mt-8 ${getCardClasses()} neon-shadow`}>
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-            <h2 className={`text-xl sm:text-2xl font-bold ${textClasses.primary}`}>
-              📜 Histórico de Contas Geradas
+        {/* History Section */}
+        <div className="glass-card rounded-3xl p-8 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <span className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">📜</span>
+              {t('accountHistory') || 'Histórico'}
             </h2>
             <button
               onClick={() => {
@@ -701,182 +621,147 @@ export default function Dashboard() {
                   loadAccountHistory(1)
                 }
               }}
-              className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                showHistory
-                  ? 'bg-red-600 text-white hover:bg-red-700'
-                  : 'bg-primary-600 text-white hover:bg-primary-700'
-              }`}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${showHistory
+                  ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                  : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20'
+                }`}
             >
-              {showHistory ? 'Ocultar' : 'Ver Histórico'}
+              {showHistory ? (t('hide') || 'Ocultar') : (t('viewHistory') || 'Ver Histórico')}
             </button>
           </div>
-          
+
           {showHistory && (
-            <div className="space-y-4">
+            <div className="animate-fade-in">
               {historyLoading ? (
-                <div className="text-center py-8">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary-600"></div>
-                  <p className={`mt-4 ${textClasses.secondary}`}>Carregando histórico...</p>
+                <div className="text-center py-12">
+                  <div className="inline-block w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="mt-4 text-gray-500">Carregando histórico...</p>
                 </div>
               ) : accountHistory.length === 0 ? (
-                <div className={`text-center py-8 ${textClasses.secondary}`}>
-                  <p className="text-lg mb-2">📭</p>
+                <div className="text-center py-12 text-gray-500 bg-white/5 rounded-2xl border border-white/5">
+                  <p className="text-2xl mb-2">📭</p>
                   <p>Nenhuma conta gerada ainda</p>
                 </div>
               ) : (
-                <>
-                  <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                <div className="space-y-3">
+                  <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar space-y-3">
                     {accountHistory.map((account) => (
                       <div
                         key={account.id}
-                        className={`p-4 rounded-lg border ${
-                          theme === 'dark'
-                            ? 'bg-white/5 border-white/10 hover:bg-white/10'
-                            : 'bg-white border-gray-200 hover:bg-gray-50'
-                        } transition-all`}
+                        className="p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1 min-w-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div>
                             <div className="flex items-center gap-2 mb-2">
                               {account.service?.icon && (
-                                <span className="text-2xl">{account.service.icon}</span>
+                                <span className="text-xl">{account.service.icon}</span>
                               )}
-                              <span className={`font-bold ${textClasses.primary}`}>
+                              <span className="font-bold text-white">
                                 {account.service?.name || 'Serviço desconhecido'}
                               </span>
                             </div>
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-sm ${textClasses.secondary}`}>Usuário:</span>
-                                <span className={`font-mono text-sm ${textClasses.primary} break-all`}>
-                                  {account.username}
-                                </span>
+                            <p className="text-xs text-gray-500">
+                              {format(new Date(account.createdAt), "dd 'de' MMM 'às' HH:mm", { locale: ptBR })}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-col gap-2 min-w-[200px]">
+                            <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/5">
+                              <span className="text-xs text-gray-500 w-12">User:</span>
+                              <code className="text-xs font-mono text-emerald-400 flex-1 truncate">{account.username}</code>
+                              <button
+                                onClick={() => { navigator.clipboard.writeText(account.username); toast.success('Copiado!') }}
+                                className="text-gray-400 hover:text-white"
+                              >
+                                📋
+                              </button>
+                            </div>
+                            {account.password && (
+                              <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/5">
+                                <span className="text-xs text-gray-500 w-12">Pass:</span>
+                                <code className="text-xs font-mono text-emerald-400 flex-1 truncate">{account.password}</code>
                                 <button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(account.username)
-                                    toast.success('Usuário copiado!')
-                                  }}
-                                  className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                                  onClick={() => { navigator.clipboard.writeText(account.password); toast.success('Copiado!') }}
+                                  className="text-gray-400 hover:text-white"
                                 >
                                   📋
                                 </button>
                               </div>
-                              {account.email && (
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-sm ${textClasses.secondary}`}>Email:</span>
-                                  <span className={`font-mono text-sm ${textClasses.primary} break-all`}>
-                                    {account.email}
-                                  </span>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(account.email)
-                                      toast.success('Email copiado!')
-                                    }}
-                                    className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
-                                  >
-                                    📋
-                                  </button>
-                                </div>
-                              )}
-                              {account.password && (
-                                <div className="flex items-center gap-2">
-                                  <span className={`text-sm ${textClasses.secondary}`}>Senha:</span>
-                                  <span className={`font-mono text-sm ${textClasses.primary} break-all`}>
-                                    {account.password}
-                                  </span>
-                                  <button
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(account.password)
-                                      toast.success('Senha copiada!')
-                                    }}
-                                    className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
-                                  >
-                                    📋
-                                  </button>
-                                </div>
-                              )}
-                              <div className={`text-xs ${textClasses.muted} mt-2`}>
-                                {format(new Date(account.createdAt), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
-                              </div>
-                            </div>
+                            )}
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
-                  
-                  {/* Paginação */}
-                  {historyPagination && historyPagination.totalPages > 1 && (
-                    <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                      <div className={`text-sm ${textClasses.secondary}`}>
-                        Página {historyPagination.page} de {historyPagination.totalPages} ({historyPagination.total} contas)
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => loadAccountHistory(historyPage - 1)}
-                          disabled={!historyPagination.hasPrev || historyLoading}
-                          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                            !historyPagination.hasPrev || historyLoading
-                              ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-50'
-                              : 'bg-primary-600 text-white hover:bg-primary-700'
-                          }`}
-                        >
-                          ← Anterior
-                        </button>
-                        <button
-                          onClick={() => loadAccountHistory(historyPage + 1)}
-                          disabled={!historyPagination.hasNext || historyLoading}
-                          className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                            !historyPagination.hasNext || historyLoading
-                              ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-50'
-                              : 'bg-primary-600 text-white hover:bg-primary-700'
-                          }`}
-                        >
-                          Próxima →
-                        </button>
-                      </div>
+
+                  {/* Pagination */}
+                  {historyPagination && (historyPagination.hasPrev || historyPagination.hasNext) && (
+                    <div className="flex justify-center gap-4 mt-4 pt-4 border-t border-white/5">
+                      <button
+                        onClick={() => loadAccountHistory(historyPage - 1)}
+                        disabled={!historyPagination.hasPrev || historyLoading}
+                        className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-medium"
+                      >
+                        ← Anterior
+                      </button>
+                      <span className="px-4 py-2 text-sm text-gray-400">
+                        Pág {historyPage} de {historyPagination.totalPages}
+                      </span>
+                      <button
+                        onClick={() => loadAccountHistory(historyPage + 1)}
+                        disabled={!historyPagination.hasNext || historyLoading}
+                        className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed text-sm font-medium"
+                      >
+                        Próxima →
+                      </button>
                     </div>
                   )}
-                </>
+                </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Available Services */}
-        <div className={`mt-6 sm:mt-8 ${getCardClasses()} neon-shadow`}>
-          <h2 className={`text-xl sm:text-2xl font-bold mb-4 sm:mb-6 ${textClasses.primary}`}>{t('availableServices')}</h2>
+        {/* Available Services Grid */}
+        <div className="glass-card rounded-3xl p-8">
+          <h2 className="text-xl font-bold flex items-center gap-2 mb-6">
+            <span className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">🎮</span>
+            {t('availableServices')}
+          </h2>
+
           {services.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {services.map((service) => (
                 <div
                   key={service.id}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    service._count.stocks > 0
-                      ? theme === 'dark' 
-                        ? 'border-green-400/30 bg-green-500/10 hover:bg-green-500/20' 
-                        : 'border-green-200 bg-green-50 hover:bg-green-100'
-                      : theme === 'dark'
-                        ? 'border-red-400/30 bg-red-500/10 opacity-60'
-                        : 'border-red-200 bg-red-50 opacity-60'
-                  }`}
+                  className={`p-4 rounded-xl border transition-all duration-300 group ${service._count.stocks > 0
+                      ? 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10'
+                      : 'bg-red-500/5 border-red-500/10 opacity-75'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className={`font-bold ${textClasses.primary}`}>{service.name}</h3>
-                      <p className={`text-sm ${textClasses.secondary}`}>{service._count.stocks} {t('available')}</p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl group-hover:scale-110 transition-transform">{service.icon || '⚡'}</span>
+                      <div>
+                        <h3 className="font-bold text-white text-sm">{service.name}</h3>
+                        <p className={`text-xs ${service._count.stocks > 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {service._count.stocks} {t('available')}
+                        </p>
+                      </div>
                     </div>
                     {service._count.stocks > 0 ? (
-                      <span className="text-2xl">✅</span>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
                     ) : (
-                      <span className="text-2xl">❌</span>
+                      <div className="w-2 h-2 rounded-full bg-red-500" />
                     )}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className={`${textClasses.secondary} text-center py-8`}>{t('noServicesAvailable')}</p>
+            <div className="text-center py-12 text-gray-500">
+              <p>{t('noServicesAvailable')}</p>
+            </div>
           )}
         </div>
       </div>
