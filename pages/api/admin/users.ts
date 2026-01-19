@@ -27,11 +27,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const users = await prisma.user.findMany({
         where: search
           ? {
-              username: {
-                contains: search,
-                mode: 'insensitive'
-              }
+            username: {
+              contains: search,
+              mode: 'insensitive'
             }
+          }
           : undefined,
         include: {
           plan: true,
@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'PUT') {
-    const { userId, planId, planExpiresAt, isBanned, newPassword, role } = req.body
+    const { userId, planId, planExpiresAt, apiPlanId, apiPlanExpiresAt, isBanned, newPassword, role } = req.body
 
     console.log('🔧 PUT /api/admin/users - Atualizando usuário:', { userId, temNovaSenha: !!newPassword })
 
@@ -94,17 +94,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'UserId is required' })
     }
 
-    // CO_OWNER não pode alterar cargos de admin (OWNER, CO_OWNER, ADMIN)
     if (role !== undefined && session.user.role === 'CO_OWNER') {
       return res.status(403).json({ error: 'Co-Owner não pode alterar cargos de usuários' })
     }
 
-    // Apenas OWNER pode definir cargos de OWNER, CO_OWNER ou ADMIN
     if (role !== undefined && ['OWNER', 'CO_OWNER', 'ADMIN'].includes(role) && session.user.role !== 'OWNER') {
       return res.status(403).json({ error: 'Apenas o Owner pode definir cargos administrativos' })
     }
 
-    // Buscar usuário alvo para o log
     const targetUser = await prisma.user.findUnique({
       where: { id: userId },
       select: { username: true, role: true }
@@ -115,10 +112,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     let computedPlanExpiresAt: Date | null | undefined
+    let computedApiPlanExpiresAt: Date | null | undefined
 
     try {
       const updateData: any = {}
 
+      // --- LOGIC FOR NORMAL PLAN ---
       if (planId !== undefined) {
         updateData.planId = planId || null
 
@@ -126,24 +125,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           planExpiresAt === undefined || planExpiresAt === null || planExpiresAt === ''
 
         if (shouldAutoComputeExpiration && planId) {
-          const plan = await prisma.plan.findUnique({
-            where: { id: planId }
-          })
-
+          const plan = await prisma.plan.findUnique({ where: { id: planId } })
           if (plan) {
-            if (plan.duration > 0) {
-              const expiresAt = new Date()
-              expiresAt.setDate(expiresAt.getDate() + plan.duration)
-              computedPlanExpiresAt = expiresAt
-            } else {
-              computedPlanExpiresAt = null
-            }
+            computedPlanExpiresAt = plan.duration > 0
+              ? new Date(Date.now() + plan.duration * 24 * 60 * 60 * 1000)
+              : null
           }
         }
 
-        if (!planId) {
-          computedPlanExpiresAt = null
-        }
+        if (!planId) computedPlanExpiresAt = null
       }
 
       if (planExpiresAt !== undefined) {
@@ -154,30 +144,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         updateData.planExpiresAt = computedPlanExpiresAt
       }
 
-      if (typeof newPassword === 'string' && newPassword.trim().length > 0) {
-        console.log('🔐 Alterando senha do usuário...')
-        if (newPassword.trim().length < 6) {
-          return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres' })
+      // --- LOGIC FOR API PLAN ---
+      if (apiPlanId !== undefined) {
+        updateData.apiPlanId = apiPlanId || null
+
+        const shouldAutoComputeApiExpiration =
+          apiPlanExpiresAt === undefined || apiPlanExpiresAt === null || apiPlanExpiresAt === ''
+
+        if (shouldAutoComputeApiExpiration && apiPlanId) {
+          const apiPlan = await prisma.plan.findUnique({ where: { id: apiPlanId } })
+          if (apiPlan) {
+            computedApiPlanExpiresAt = apiPlan.duration > 0
+              ? new Date(Date.now() + apiPlan.duration * 24 * 60 * 60 * 1000)
+              : null
+          }
         }
-        const hashedPassword = await hashPassword(newPassword.trim())
-        console.log('✅ Senha hasheada com sucesso')
-        updateData.password = hashedPassword
+
+        if (!apiPlanId) computedApiPlanExpiresAt = null
+      }
+
+      if (apiPlanExpiresAt !== undefined) {
+        computedApiPlanExpiresAt = apiPlanExpiresAt ? new Date(apiPlanExpiresAt) : null
+      }
+
+      if (computedApiPlanExpiresAt !== undefined) {
+        updateData.apiPlanExpiresAt = computedApiPlanExpiresAt
+      }
+
+      // --- OTHER FIELDS ---
+      if (typeof newPassword === 'string' && newPassword.trim().length > 0) {
+        if (newPassword.trim().length < 6) return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres' })
+        updateData.password = await hashPassword(newPassword.trim())
         updateData.passwordResetToken = null
         updateData.passwordResetExpires = null
       }
 
       if (isBanned !== undefined) {
         updateData.isBanned = isBanned
-        if (isBanned) {
-          updateData.bannedAt = new Date()
-          updateData.bannedBy = session.user.id
-        } else {
-          updateData.bannedAt = null
-          updateData.bannedBy = null
-        }
+        updateData.bannedAt = isBanned ? new Date() : null
+        updateData.bannedBy = isBanned ? session.user.id : null
       }
 
-      // Adicionar role se definido (apenas OWNER pode)
       if (role !== undefined && session.user.role === 'OWNER') {
         updateData.role = role
       }
@@ -186,17 +193,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: updateData,
-        include: {
-          plan: true
-        }
+        include: { plan: true } // verify if we need to include apiPlan
       })
 
-      console.log('✅ Usuário atualizado com sucesso:', updatedUser.username)
-      if (updateData.password) {
-        console.log('✅ Nova senha salva no banco de dados')
-      }
-
-      // Registrar log da ação
+      // Logging
       const ipAddress = getIpFromRequest(req)
       const logDetails: any = {}
 
@@ -210,6 +210,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           targetId: userId,
           targetName: targetUser.username,
           details: logDetails,
+          ipAddress
+        })
+      }
+
+      if (apiPlanId !== undefined) {
+        await logAdminAction({
+          userId: session.user.id,
+          action: 'USER_SET_PLAN',
+          targetType: 'User',
+          targetId: userId,
+          targetName: targetUser.username,
+          details: { type: 'API_PLAN', apiPlanId, apiPlanExpiresAt: computedApiPlanExpiresAt },
           ipAddress
         })
       }

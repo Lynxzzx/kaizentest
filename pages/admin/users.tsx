@@ -23,6 +23,8 @@ interface User {
   bonusGenerations: number
   dailyFreeGenerations: number
   lastFreeGenerationDate: string | null
+  apiPlanId?: string | null
+  apiPlanExpiresAt?: string | null
   createdAt: string
   registrationIp: string | null
   lastIp: string | null
@@ -56,7 +58,9 @@ export default function AdminUsers() {
     planId: '',
     apiPlanId: '',
     planExpiresAt: '',
+    apiPlanExpiresAt: '',
     permanentPlan: false,
+    permanentApiPlan: false,
     isBanned: false,
     role: 'USER',
     newPassword: '',
@@ -136,7 +140,7 @@ export default function AdminUsers() {
     try {
       const response = await axios.get('/api/plans')
       // Filtrar apenas planos que contêm "API" no nome
-      const apiPlansList = response.data.filter((plan: Plan) => 
+      const apiPlansList = response.data.filter((plan: Plan) =>
         plan.name.toLowerCase().includes('api')
       )
       setApiPlans(apiPlansList)
@@ -149,13 +153,15 @@ export default function AdminUsers() {
     // Determinar se o plano atual é um plano de API ou normal
     const currentPlan = user.plan
     const isApiPlan = currentPlan?.name?.toLowerCase().includes('api') || false
-    
+
     setEditingUser(user)
     setEditData({
       planId: !isApiPlan ? (currentPlan?.id || '') : '',
-      apiPlanId: isApiPlan ? (currentPlan?.id || '') : '',
+      apiPlanId: user.apiPlanId || '',
       planExpiresAt: user.planExpiresAt ? format(new Date(user.planExpiresAt), 'yyyy-MM-dd') : '',
+      apiPlanExpiresAt: user.apiPlanExpiresAt ? format(new Date(user.apiPlanExpiresAt), 'yyyy-MM-dd') : '',
       permanentPlan: !!currentPlan && !user.planExpiresAt,
+      permanentApiPlan: !!user.apiPlanId && !user.apiPlanExpiresAt,
       isBanned: user.isBanned,
       role: user.role,
       newPassword: '',
@@ -178,17 +184,16 @@ export default function AdminUsers() {
     }
 
     try {
-      // Se foi selecionado um plano de API, usar apiPlanId, senão usar planId
-      const finalPlanId = editData.apiPlanId || editData.planId || null
-      
       await axios.put('/api/admin/users', {
         userId: editingUser.id,
         ...editData,
-        planId: finalPlanId,
+        planId: editData.planId || null,
+        apiPlanId: editData.apiPlanId || null,
         planExpiresAt: editData.permanentPlan ? null : editData.planExpiresAt || null,
+        apiPlanExpiresAt: editData.permanentApiPlan ? null : editData.apiPlanExpiresAt || null,
         newPassword: editData.newPassword || undefined
       })
-      
+
       // Promover usuário se o role mudou
       if (editData.role !== editingUser.role) {
         await axios.put('/api/admin/promote', {
@@ -196,7 +201,7 @@ export default function AdminUsers() {
           role: editData.role
         })
       }
-      
+
       toast.success('Usuário atualizado com sucesso!')
       setEditingUser(null)
       setEditData((prev) => ({ ...prev, newPassword: '', confirmPassword: '' }))
@@ -302,7 +307,7 @@ export default function AdminUsers() {
     setEditData((prev) => ({
       ...prev,
       planId,
-      apiPlanId: '', // Limpar apiPlanId quando selecionar plano normal
+      // Do not clear apiPlanId
       planExpiresAt: computedExpiration,
       permanentPlan: isPermanent
     }))
@@ -325,7 +330,7 @@ export default function AdminUsers() {
       setEditData((prev) => ({
         ...prev,
         apiPlanId,
-        planId: '' // Limpar planId quando selecionar plano de API
+        // Do not clear planId
       }))
       return
     }
@@ -340,15 +345,15 @@ export default function AdminUsers() {
 
     setEditData((prev) => ({
       ...prev,
-      planId: '', // Limpar planId quando selecionar plano de API
+      // Do not clear planId
       apiPlanId,
-      planExpiresAt: computedExpiration,
-      permanentPlan: isPermanent
+      apiPlanExpiresAt: computedExpiration,
+      permanentApiPlan: isPermanent
     }))
   }
 
-  const selectedPlanDetails = plans.find((plan) => plan.id === editData.planId) || 
-                               apiPlans.find((plan) => plan.id === editData.apiPlanId)
+  const selectedPlanDetails = plans.find((plan) => plan.id === editData.planId) ||
+    apiPlans.find((plan) => plan.id === editData.apiPlanId)
 
   const renderUserRows = () => {
     if (tableLoading) {
@@ -383,29 +388,28 @@ export default function AdminUsers() {
           {user.email || '-'}
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
-<span
-                            className={`px-2 py-1 rounded-full text-xs font-bold ${
-                              user.role === 'OWNER'
-                                ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
-                                : user.role === 'CO_OWNER'
-                                ? 'bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200'
-                                : user.role === 'ADMIN'
-                                ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
-                                : user.role === 'MODERATOR'
-                                ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                            }`}
-                          >
-                            {user.role === 'OWNER'
-                              ? '👑 Owner'
-                              : user.role === 'CO_OWNER'
-                              ? '💎 Co-Owner'
-                              : user.role === 'ADMIN'
-                              ? '🔧 Admin'
-                              : user.role === 'MODERATOR'
-                              ? '🛡️ Moderador'
-                              : '👤 Usuário'}
-                          </span>
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-bold ${user.role === 'OWNER'
+              ? 'bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200'
+              : user.role === 'CO_OWNER'
+                ? 'bg-pink-100 dark:bg-pink-900 text-pink-800 dark:text-pink-200'
+                : user.role === 'ADMIN'
+                  ? 'bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200'
+                  : user.role === 'MODERATOR'
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+              }`}
+          >
+            {user.role === 'OWNER'
+              ? '👑 Owner'
+              : user.role === 'CO_OWNER'
+                ? '💎 Co-Owner'
+                : user.role === 'ADMIN'
+                  ? '🔧 Admin'
+                  : user.role === 'MODERATOR'
+                    ? '🛡️ Moderador'
+                    : '👤 Usuário'}
+          </span>
         </td>
         <td className="px-6 py-4 whitespace-nowrap">
           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -559,11 +563,10 @@ export default function AdminUsers() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por nome de usuário"
-            className={`flex-1 md:w-64 px-4 py-2 rounded-md border ${
-              theme === 'dark'
-                ? 'bg-white/5 border-white/20 text-white placeholder-white/50'
-                : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-            }`}
+            className={`flex-1 md:w-64 px-4 py-2 rounded-md border ${theme === 'dark'
+              ? 'bg-white/5 border-white/20 text-white placeholder-white/50'
+              : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+              }`}
           />
           <button
             type="submit"
@@ -593,11 +596,10 @@ export default function AdminUsers() {
                 <select
                   value={editData.planId}
                   onChange={(e) => handlePlanSelection(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-md ${
-                    theme === 'dark'
-                      ? 'bg-white/10 border border-white/20 text-white'
-                      : 'bg-white border border-gray-300 text-gray-900'
-                  }`}
+                  className={`w-full px-3 py-2 rounded-md ${theme === 'dark'
+                    ? 'bg-white/10 border border-white/20 text-white'
+                    : 'bg-white border border-gray-300 text-gray-900'
+                    }`}
                   style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
                 >
                   <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Sem plano normal</option>
@@ -613,11 +615,10 @@ export default function AdminUsers() {
                 <select
                   value={editData.apiPlanId}
                   onChange={(e) => handleApiPlanSelection(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-md ${
-                    theme === 'dark'
-                      ? 'bg-white/10 border border-white/20 text-white'
-                      : 'bg-white border border-gray-300 text-gray-900'
-                  }`}
+                  className={`w-full px-3 py-2 rounded-md ${theme === 'dark'
+                    ? 'bg-white/10 border border-white/20 text-white'
+                    : 'bg-white border border-gray-300 text-gray-900'
+                    }`}
                   style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
                 >
                   <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Sem plano de API</option>
@@ -629,45 +630,73 @@ export default function AdminUsers() {
                 </select>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Data de Expiração do Plano
-              </label>
-              <input
-                type="date"
-                value={editData.planExpiresAt}
-                onChange={(e) =>
-                  setEditData((prev) => ({
-                    ...prev,
-                    planExpiresAt: e.target.value,
-                    permanentPlan: e.target.value ? false : prev.permanentPlan
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100"
-                disabled={editData.permanentPlan}
-              />
-              <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Validade Plano Normal
+                </label>
                 <input
-                  type="checkbox"
-                  checked={editData.permanentPlan}
+                  type="date"
+                  value={editData.planExpiresAt}
                   onChange={(e) =>
                     setEditData((prev) => ({
                       ...prev,
-                      permanentPlan: e.target.checked,
-                      planExpiresAt: e.target.checked ? '' : prev.planExpiresAt
+                      planExpiresAt: e.target.value,
+                      permanentPlan: e.target.value ? false : prev.permanentPlan
                     }))
                   }
-                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100"
+                  disabled={editData.permanentPlan}
                 />
-                Plano permanente (não expira)
-              </label>
-              {selectedPlanDetails && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {selectedPlanDetails.duration > 0
-                    ? `Este plano expira automaticamente em ${selectedPlanDetails.duration} dia${selectedPlanDetails.duration > 1 ? 's' : ''} a partir da data de ativação.`
-                    : 'Este plano é vitalício e não expira automaticamente.'}
-                </p>
-              )}
+                <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={editData.permanentPlan}
+                    onChange={(e) =>
+                      setEditData((prev) => ({
+                        ...prev,
+                        permanentPlan: e.target.checked,
+                        planExpiresAt: e.target.checked ? '' : prev.planExpiresAt
+                      }))
+                    }
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  Permanente
+                </label>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Validade Plano API
+                </label>
+                <input
+                  type="date"
+                  value={editData.apiPlanExpiresAt}
+                  onChange={(e) =>
+                    setEditData((prev) => ({
+                      ...prev,
+                      apiPlanExpiresAt: e.target.value,
+                      permanentApiPlan: e.target.value ? false : prev.permanentApiPlan
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100"
+                  disabled={editData.permanentApiPlan}
+                />
+                <label className="mt-2 flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={editData.permanentApiPlan}
+                    onChange={(e) =>
+                      setEditData((prev) => ({
+                        ...prev,
+                        permanentApiPlan: e.target.checked,
+                        apiPlanExpiresAt: e.target.checked ? '' : prev.apiPlanExpiresAt
+                      }))
+                    }
+                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  Permanente
+                </label>
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -696,11 +725,10 @@ export default function AdminUsers() {
               <select
                 value={editData.role}
                 onChange={(e) => setEditData({ ...editData, role: e.target.value })}
-                className={`w-full px-3 py-2 rounded-md ${
-                  theme === 'dark'
-                    ? 'bg-white/10 border border-white/20 text-white'
-                    : 'bg-white border border-gray-300 text-gray-900'
-                }`}
+                className={`w-full px-3 py-2 rounded-md ${theme === 'dark'
+                  ? 'bg-white/10 border border-white/20 text-white'
+                  : 'bg-white border border-gray-300 text-gray-900'
+                  }`}
                 style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
               >
                 <option value="USER" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>👤 Usuário</option>

@@ -17,9 +17,12 @@ model User {
   password      String
   cpfCnpj       String?   // CPF ou CNPJ para pagamentos
   role          UserRole  @default(USER)
-  planId        String?   @db.ObjectId
-  plan          Plan?     @relation(fields: [planId], references: [id])
+  planId        String?  @db.ObjectId
+  plan          Plan?    @relation("UserPlan", fields: [planId], references: [id])
   planExpiresAt DateTime?
+  apiPlanId     String?  @db.ObjectId
+  apiPlan       Plan?    @relation("UserApiPlan", fields: [apiPlanId], references: [id])
+  apiPlanExpiresAt DateTime?
   asaasCustomerId String? // ID do cliente no Asaas
   affiliateCode String? // Código único do afiliado
   referredBy    String?  @db.ObjectId // ID do usuário que indicou
@@ -113,14 +116,21 @@ model Plan {
   maxGenerations Int    @default(0) // 0 = unlimited
   generationCooldownSeconds Int @default(120) // Cooldown entre gerações em segundos (padrão: 2 minutos)
   isActive    Boolean  @default(true)
+  type        PlanType @default(SITE)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  users       User[]
+  users       User[]   @relation("UserPlan")
+  apiUsers    User[]   @relation("UserApiPlan")
   keys        Key[]
   payments    Payment[]
   raffles     Raffle[] // Planos que podem ser prêmios de sorteios
   serviceAccess ServicePlanAccess[]
   apiKeys     ApiKey[] @relation("ApiPlan")
+}
+
+enum PlanType {
+  SITE
+  API
 }
 
 model Key {
