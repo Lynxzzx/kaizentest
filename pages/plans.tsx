@@ -509,7 +509,7 @@ export default function Plans() {
                   {paymentData?.pixQrCodeImage && (
                     <div className="bg-white p-4 rounded-xl mx-auto w-64 h-64 flex items-center justify-center shadow-lg shadow-green-900/20">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={`data:image/jpeg;base64,${paymentData.pixQrCodeImage}`} alt="QR Code PIX" className="w-full h-full object-contain" />
+                      <img src={paymentData.pixQrCodeImage} alt="QR Code PIX" className="w-full h-full object-contain" />
                     </div>
                   )}
 
