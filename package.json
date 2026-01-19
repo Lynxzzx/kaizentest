@@ -22,7 +22,7 @@
     "next-auth": "^4.24.5",
     "next-i18next": "^15.2.0",
     "nodemailer": "^7.0.10",
-    "qrcode.react": "^3.1.0",
+    "qrcode.react": "^3.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.4.1",

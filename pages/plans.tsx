@@ -5,6 +5,7 @@ import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
 import axios from 'axios'
 import toast from 'react-hot-toast'
+import QRCode from 'qrcode.react'
 
 interface Plan {
   id: string
@@ -506,10 +507,14 @@ export default function Plans() {
                     ) : null}
                   </div>
 
-                  {paymentData?.pixQrCodeImage && (
+                  {paymentData?.pixCopyPaste && (
                     <div className="bg-white p-4 rounded-xl mx-auto w-64 h-64 flex items-center justify-center shadow-lg shadow-green-900/20">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={paymentData.pixQrCodeImage} alt="QR Code PIX" className="w-full h-full object-contain" />
+                      <QRCode
+                        value={paymentData.pixCopyPaste}
+                        size={200}
+                        renderAs="svg"
+                        level="M"
+                      />
                     </div>
                   )}
 

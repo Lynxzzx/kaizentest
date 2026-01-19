@@ -387,10 +387,14 @@ export default function ApiPlans() {
                     ) : null}
                   </div>
 
-                  {paymentData?.pixQrCodeImage && (
+                  {paymentData?.pixCopyPaste && (
                     <div className="bg-white p-4 rounded-xl mx-auto w-64 h-64 flex items-center justify-center shadow-lg shadow-cyan-900/20">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={paymentData.pixQrCodeImage} alt="QR Code PIX" className="w-full h-full object-contain" />
+                      <QRCode
+                        value={paymentData.pixCopyPaste}
+                        size={200}
+                        renderAs="svg"
+                        level="M"
+                      />
                     </div>
                   )}
 
