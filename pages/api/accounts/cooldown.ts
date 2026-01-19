@@ -21,22 +21,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const userId = session.user.id
-  
+
   // Buscar plano do usuário para obter cooldown customizado
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: { plan: true }
   })
-  
+
   const planCooldown = user?.plan?.generationCooldownSeconds
   const cooldownTotal = planCooldown || GENERATION_PROTECTION.COOLDOWN_SECONDS
-  const cooldownRemaining = getCooldownRemaining(userId, planCooldown)
+  const cooldownRemaining = await getCooldownRemaining(userId, planCooldown)
 
   return res.json({
     cooldownRemaining, // em segundos
     cooldownTotal,
     canGenerate: cooldownRemaining === 0,
-    message: cooldownRemaining > 0 
+    message: cooldownRemaining > 0
       ? `Aguarde ${cooldownRemaining} segundos antes de gerar novamente.`
       : 'Você pode gerar agora!'
   })
