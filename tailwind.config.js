@@ -7,6 +7,10 @@ module.exports = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+        heading: ['Outfit', 'sans-serif'],
+      },
       colors: {
         primary: {
           50: '#f0f9ff',

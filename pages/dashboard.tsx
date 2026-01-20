@@ -153,7 +153,8 @@ export default function Dashboard() {
 
   const loadServices = async () => {
     try {
-      const response = await axios.get('/api/services')
+      // Adicionar timestamp para evitar cache
+      const response = await axios.get(`/api/services?_t=${Date.now()}`)
       setServices(response.data)
     } catch (error) {
       toast.error(t('errorLoadingServices'))
@@ -302,7 +303,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-gray-100 font-[Outfit] pb-20">
+    <div className="min-h-screen bg-black text-gray-100 font-sans pb-20 selection:bg-indigo-500/30">
       {/* Background FX */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-indigo-600/10 blur-[100px]" />
@@ -313,50 +314,50 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 relative z-10">
 
         {/* Welcome Hero */}
-        <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 relative overflow-hidden group">
+        <div className="glass-panel rounded-[2rem] p-6 sm:p-10 mb-8 relative overflow-hidden group hover:border-indigo-500/20 transition-all duration-500">
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent opacity-50" />
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 md:gap-6">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
-              <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-lg sm:text-xl font-bold">
+              <div className="flex items-center gap-4 mb-2">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-2xl font-bold shadow-lg shadow-indigo-500/20">
                   {session.user.username?.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white leading-none mb-1">
+                  <h1 className="text-2xl sm:text-3xl font-heading font-bold text-white leading-none mb-1">
                     {t('welcome')}, {session.user.username}
                   </h1>
-                  <p className="text-xs sm:text-sm text-gray-400">
+                  <p className="text-sm text-gray-400">
                     {t('welcomeDesc') || 'Bem-vindo ao seu painel de controle.'}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="flex gap-2 sm:gap-3">
-              <Link href="/plans" className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg sm:rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/20 text-center text-xs sm:text-sm md:text-base whitespace-nowrap">
+            <div className="flex gap-3">
+              <Link href="/plans" className="flex-1 sm:flex-none px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20 text-center text-sm sm:text-base whitespace-nowrap hover:-translate-y-0.5">
                 💎 {t('viewPlans')}
               </Link>
-              <Link href="/profile" className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 glass-panel hover:bg-white/5 rounded-lg sm:rounded-xl font-medium transition-all text-center text-xs sm:text-sm md:text-base whitespace-nowrap">
+              <Link href="/profile" className="flex-1 sm:flex-none px-6 py-3 glass-panel hover:bg-white/5 rounded-xl font-bold transition-all text-center text-sm sm:text-base whitespace-nowrap hover:-translate-y-0.5 border border-white/5">
                 👤 {t('myProfile')}
               </Link>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
 
           {/* Plan Status Card */}
-          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <span className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">📋</span>
+          <div className="glass-card rounded-[2rem] p-8 h-full">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-heading font-bold flex items-center gap-3">
+                <span className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">📋</span>
                 {t('myPlan')}
               </h2>
               {userPlan?.plan ? (
-                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full uppercase tracking-wider border border-emerald-500/20">
+                <span className="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full uppercase tracking-wider border border-emerald-500/20">
                   {t('active')}
                 </span>
               ) : (
-                <span className="px-3 py-1 bg-gray-700 text-gray-300 text-xs font-bold rounded-full uppercase tracking-wider">
+                <span className="px-4 py-1.5 bg-gray-700 text-gray-300 text-xs font-bold rounded-full uppercase tracking-wider">
                   {t('free')}
                 </span>
               )}
@@ -364,9 +365,9 @@ export default function Dashboard() {
 
             {userPlan?.plan ? (
               <div className="space-y-6">
-                <div className="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
+                <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                    <h3 className="text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
                       {translatePlanName ? translatePlanName(userPlan.plan.name) : userPlan.plan.name}
                     </h3>
                   </div>
@@ -374,36 +375,36 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                    <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">{t('expiresIn')}</p>
-                    <p className="text-lg font-mono text-white">
+                  <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
+                    <p className="text-xs text-gray-500 uppercase tracking-widest mb-1 font-bold">{t('expiresIn')}</p>
+                    <p className="text-xl font-mono text-white">
                       {userPlan.planExpiresAt
                         ? format(new Date(userPlan.planExpiresAt), "dd/MM/yyyy", { locale: ptBR })
                         : 'N/A'}
                     </p>
                   </div>
-                  <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
-                    <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">{t('generationsLabel')}</p>
-                    <p className="text-lg font-mono text-white">
+                  <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
+                    <p className="text-xs text-gray-500 uppercase tracking-widest mb-1 font-bold">{t('generationsLabel')}</p>
+                    <p className="text-xl font-mono text-white">
                       {userPlan.plan.maxGenerations === 0 ? '∞' : userPlan.plan.maxGenerations}
                     </p>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-6">
-                <div className="w-16 h-16 rounded-2xl bg-gray-800 mx-auto mb-4 flex items-center justify-center text-3xl">
+              <div className="text-center py-4">
+                <div className="w-20 h-20 rounded-3xl bg-gray-800/50 mx-auto mb-6 flex items-center justify-center text-4xl border border-white/5">
                   🆓
                 </div>
-                <h3 className="text-xl font-bold text-white mb-2">{t('freePlanLabel')}</h3>
-                <p className="text-gray-400 text-sm mb-6">{t('youAreUsingFreePlan')}</p>
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 mb-6 text-left">
+                <h3 className="text-2xl font-heading font-bold text-white mb-2">{t('freePlanLabel')}</h3>
+                <p className="text-gray-400 text-sm mb-8 max-w-xs mx-auto">{t('youAreUsingFreePlan')}</p>
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/5 mb-8 text-left">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400">{t('dailyGenerations')}</span>
-                    <span className="font-bold text-white">2</span>
+                    <span className="text-gray-400 font-medium">{t('dailyGenerations')}</span>
+                    <span className="font-bold text-white text-lg">2</span>
                   </div>
                 </div>
-                <Link href="/plans" className="block w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-500/25 transition-all">
+                <Link href="/plans" className="block w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-1">
                   {t('upgradeToPremium')}
                 </Link>
               </div>
@@ -411,45 +412,51 @@ export default function Dashboard() {
           </div>
 
           {/* Generator Card */}
-          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border-t-2 border-t-indigo-500/50 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px]" />
+          <div className="glass-card rounded-[2rem] p-8 border-t-2 border-t-indigo-500/50 relative overflow-hidden h-full">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 blur-[60px]" />
 
-            <h2 className="text-xl font-bold flex items-center gap-2 mb-6 relative z-10">
-              <span className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">⚡</span>
+            <h2 className="text-2xl font-heading font-bold flex items-center gap-3 mb-8 relative z-10">
+              <span className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">⚡</span>
               {t('generateAccount')}
             </h2>
 
             <div className="space-y-6 relative z-10">
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">{t('selectService')}</label>
-                <select
-                  value={selectedService}
-                  onChange={(e) => setSelectedService(e.target.value)}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none"
-                >
-                  <option value="">{t('selectService')}...</option>
-                  {services
-                    .filter((service) => service._count.stocks > 0)
-                    .map((service) => (
-                      <option key={service.id} value={service.id}>
-                        {service.name} • {service._count.stocks} {t('available')} {requiresPaidPlan(service) ? '🔒' : ''}
-                      </option>
-                    ))}
-                </select>
+                <label className="block text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">{t('selectService')}</label>
+                <div className="relative">
+                  <select
+                    value={selectedService}
+                    onChange={(e) => setSelectedService(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none text-lg font-medium cursor-pointer hover:bg-black/60"
+                  >
+                    <option value="">{t('selectService')}...</option>
+                    {services
+                      .filter((service) => service._count.stocks > 0)
+                      .map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {service.name} • {service._count.stocks} {t('available')} {requiresPaidPlan(service) ? '🔒' : ''}
+                        </option>
+                      ))}
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </div>
+                
                 {selectedService && (() => {
                   const chosen = services.find((service) => service.id === selectedService)
                   if (!chosen || !requiresPaidPlan(chosen)) return null
                   const hasAccess = canAccessService(chosen)
                   return hasAccess ? (
-                    <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <div className="mt-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 text-sm text-emerald-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                       Liberado no seu plano
-                    </p>
+                    </div>
                   ) : (
-                    <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                    <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-sm text-red-400">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                       Exclusivo para planos pagos
-                    </p>
+                    </div>
                   )
                 })()}
               </div>
@@ -475,9 +482,9 @@ export default function Dashboard() {
               <button
                 onClick={handleGenerateAccount}
                 disabled={loading || !selectedService || cooldownRemaining > 0 || !recaptchaConfigured}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-[0.98] ${cooldownRemaining > 0 || !recaptchaConfigured
+                className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-[0.98] shadow-lg ${cooldownRemaining > 0 || !recaptchaConfigured
                   ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:shadow-indigo-500/25'
+                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-indigo-500/25 hover:-translate-y-1'
                   }`}
               >
                 {loading ? (
@@ -493,9 +500,9 @@ export default function Dashboard() {
               </button>
 
               {!userPlan?.plan && (
-                <div className="flex justify-between text-xs px-1">
-                  <span className="text-gray-500">{t('youDontHaveActivePlan')}</span>
-                  <span className="text-emerald-400 font-medium">2 {t('freeGenerations')}</span>
+                <div className="flex justify-between text-xs px-2 py-2 bg-white/5 rounded-lg">
+                  <span className="text-gray-400">{t('youDontHaveActivePlan')}</span>
+                  <span className="text-emerald-400 font-bold">2 {t('freeGenerations')}</span>
                 </div>
               )}
             </div>
