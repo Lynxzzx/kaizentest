@@ -5,6 +5,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600&display=swap');
 
 @layer base {
+
+  /* Mobile-first fixes */
+  html {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
   body {
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -12,6 +19,20 @@
     background: #000000;
     color: #e2e8f0;
     overflow-x: hidden;
+    width: 100%;
+    position: relative;
+  }
+
+  /* Prevenir zoom em inputs no iOS */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Garantir que elementos não ultrapassem a viewport */
+  * {
+    max-width: 100%;
   }
 }
 

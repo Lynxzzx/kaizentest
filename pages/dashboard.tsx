@@ -304,48 +304,48 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-black text-gray-100 font-[Outfit] pb-20">
       {/* Background FX */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[100px]" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/10 blur-[100px]" />
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-indigo-600/10 blur-[100px]" />
+        <div className="absolute bottom-0 left-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-purple-600/10 blur-[100px]" />
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 pt-24 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 relative z-10">
 
         {/* Welcome Hero */}
-        <div className="glass-panel rounded-3xl p-8 mb-8 relative overflow-hidden group">
+        <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent opacity-50" />
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-xl font-bold">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-lg sm:text-xl font-bold">
                   {session.user.username?.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white leading-none mb-1">
+                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white leading-none mb-1">
                     {t('welcome')}, {session.user.username}
                   </h1>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-400">
                     {t('welcomeDesc') || 'Bem-vindo ao seu painel de controle.'}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="flex gap-3">
-              <Link href="/plans" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/20">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full md:w-auto">
+              <Link href="/plans" className="px-4 sm:px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/20 text-center text-sm sm:text-base">
                 💎 {t('viewPlans')}
               </Link>
-              <Link href="/profile" className="px-5 py-2.5 glass-panel hover:bg-white/5 rounded-xl font-medium transition-all">
+              <Link href="/profile" className="px-4 sm:px-5 py-2.5 glass-panel hover:bg-white/5 rounded-xl font-medium transition-all text-center text-sm sm:text-base">
                 👤 {t('myProfile')}
               </Link>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
 
           {/* Plan Status Card */}
-          <div className="glass-card rounded-3xl p-8">
+          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <span className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">📋</span>
@@ -411,7 +411,7 @@ export default function Dashboard() {
           </div>
 
           {/* Generator Card */}
-          <div className="glass-card rounded-3xl p-8 border-t-2 border-t-indigo-500/50 relative overflow-hidden">
+          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border-t-2 border-t-indigo-500/50 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px]" />
 
             <h2 className="text-xl font-bold flex items-center gap-2 mb-6 relative z-10">
@@ -476,8 +476,8 @@ export default function Dashboard() {
                 onClick={handleGenerateAccount}
                 disabled={loading || !selectedService || cooldownRemaining > 0 || !recaptchaConfigured}
                 className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-[0.98] ${cooldownRemaining > 0 || !recaptchaConfigured
-                    ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:shadow-indigo-500/25'
+                  ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:shadow-indigo-500/25'
                   }`}
               >
                 {loading ? (
@@ -568,7 +568,7 @@ export default function Dashboard() {
 
         {/* Affiliate Section */}
         {userPlan?.affiliateCode && (
-          <div className="glass-card rounded-3xl p-8 mb-8 relative overflow-hidden">
+          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-pink-500/10 blur-[80px]" />
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-6">
@@ -608,7 +608,7 @@ export default function Dashboard() {
         )}
 
         {/* History Section */}
-        <div className="glass-card rounded-3xl p-8 mb-8">
+        <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">📜</span>
@@ -622,8 +622,8 @@ export default function Dashboard() {
                 }
               }}
               className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${showHistory
-                  ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                  : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20'
+                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
+                : 'bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20'
                 }`}
             >
               {showHistory ? (t('hide') || 'Ocultar') : (t('viewHistory') || 'Ver Histórico')}
@@ -723,20 +723,20 @@ export default function Dashboard() {
         </div>
 
         {/* Available Services Grid */}
-        <div className="glass-card rounded-3xl p-8">
+        <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8">
           <h2 className="text-xl font-bold flex items-center gap-2 mb-6">
             <span className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">🎮</span>
             {t('availableServices')}
           </h2>
 
           {services.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {services.map((service) => (
                 <div
                   key={service.id}
                   className={`p-4 rounded-xl border transition-all duration-300 group ${service._count.stocks > 0
-                      ? 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10'
-                      : 'bg-red-500/5 border-red-500/10 opacity-75'
+                    ? 'bg-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-500/10'
+                    : 'bg-red-500/5 border-red-500/10 opacity-75'
                     }`}
                 >
                   <div className="flex items-center justify-between">
