@@ -315,7 +315,7 @@ export default function Dashboard() {
         {/* Welcome Hero */}
         <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent opacity-50" />
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 md:gap-6">
             <div>
               <div className="flex items-center gap-2 sm:gap-3 mb-2">
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-lg sm:text-xl font-bold">
@@ -331,18 +331,18 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full md:w-auto">
-              <Link href="/plans" className="px-4 sm:px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/20 text-center text-sm sm:text-base">
+            <div className="flex gap-2 sm:gap-3">
+              <Link href="/plans" className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg sm:rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/20 text-center text-xs sm:text-sm md:text-base whitespace-nowrap">
                 💎 {t('viewPlans')}
               </Link>
-              <Link href="/profile" className="px-4 sm:px-5 py-2.5 glass-panel hover:bg-white/5 rounded-xl font-medium transition-all text-center text-sm sm:text-base">
+              <Link href="/profile" className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 glass-panel hover:bg-white/5 rounded-lg sm:rounded-xl font-medium transition-all text-center text-xs sm:text-sm md:text-base whitespace-nowrap">
                 👤 {t('myProfile')}
               </Link>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
 
           {/* Plan Status Card */}
           <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8">
@@ -578,27 +578,27 @@ export default function Dashboard() {
 
               <div className="bg-black/40 border border-white/10 rounded-xl p-6 mb-4">
                 <p className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">{t('linkToShare')}</p>
-                <div className="flex flex-col sm:flex-row items-center gap-3">
-                  <div className="flex-1 w-full bg-white/5 border border-white/5 rounded-lg px-4 py-3 font-mono text-sm text-gray-300 break-all">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <div className="flex-1 min-w-0 bg-white/5 border border-white/5 rounded-lg px-3 sm:px-4 py-2 sm:py-3 font-mono text-xs sm:text-sm text-gray-300 truncate">
                     {getAffiliateLink(userPlan.affiliateCode)}
                   </div>
                   <button
                     onClick={() => copyAffiliateLink(userPlan.affiliateCode!)}
-                    className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg font-bold hover:shadow-lg hover:shadow-pink-500/20 transition-all text-white whitespace-nowrap"
+                    className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-pink-600 to-purple-600 rounded-lg font-bold hover:shadow-lg hover:shadow-pink-500/20 transition-all text-white whitespace-nowrap text-xs sm:text-sm md:text-base"
                   >
-                    {t('copyLink')}
+                    📋 {t('copyLink')}
                   </button>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                <p className="text-sm text-blue-300 flex items-center gap-2">
-                  <span className="text-lg">💡</span>
+              <div className="flex items-center justify-between gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+                <p className="text-xs sm:text-sm text-blue-300 flex items-center gap-2">
+                  <span className="text-base sm:text-lg">💡</span>
                   <strong>{t('affiliateTip')}</strong>
                 </p>
                 <Link
                   href="/affiliate"
-                  className="text-sm font-bold text-blue-400 hover:text-blue-300 underline underline-offset-4"
+                  className="text-xs sm:text-sm font-bold text-blue-400 hover:text-blue-300 underline underline-offset-4 whitespace-nowrap"
                 >
                   {t('viewFullAffiliateStats')} →
                 </Link>
