@@ -423,25 +423,51 @@ export default function Dashboard() {
             <div className="space-y-6 relative z-10">
               <div>
                 <label className="block text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">{t('selectService')}</label>
-                <div className="relative">
-                  <select
-                    value={selectedService}
-                    onChange={(e) => setSelectedService(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-5 py-4 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none text-lg font-medium cursor-pointer hover:bg-black/60"
-                  >
-                    <option value="">{t('selectService')}...</option>
-                    {services
-                      .filter((service) => service._count.stocks > 0)
-                      .map((service) => (
-                        <option key={service.id} value={service.id}>
-                          {service.name} • {service._count.stocks} {t('available')} {requiresPaidPlan(service) ? '🔒' : ''}
-                        </option>
-                      ))}
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                  </div>
+                {/* Grid de Serviços (Lado a lado no mobile) */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                  {services
+                    .filter((service) => service._count.stocks > 0)
+                    .map((service) => (
+                      <button
+                        key={service.id}
+                        onClick={() => setSelectedService(service.id)}
+                        className={`
+                          relative p-3 rounded-xl border transition-all text-left flex flex-col justify-between group h-24
+                          ${selectedService === service.id
+                            ? 'bg-indigo-600/20 border-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.2)]'
+                            : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'
+                          }
+                        `}
+                      >
+                        <span className={`font-bold text-sm leading-tight line-clamp-2 ${selectedService === service.id ? 'text-white' : 'text-gray-300'}`}>
+                          {service.name}
+                        </span>
+                        
+                        <div className="flex items-end justify-between w-full mt-2">
+                          <span className={`text-xs font-mono font-medium px-2 py-0.5 rounded-full ${
+                            service._count.stocks > 10 
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                          }`}>
+                            {service._count.stocks} un.
+                          </span>
+                          
+                          {requiresPaidPlan(service) && (
+                            <span className="text-xs" title="Plano Pago">🔒</span>
+                          )}
+                        </div>
+
+                        {selectedService === service.id && (
+                          <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_#6366f1]" />
+                        )}
+                      </button>
+                    ))}
                 </div>
+                {services.filter(s => s._count.stocks > 0).length === 0 && (
+                  <div className="text-center py-8 text-gray-500 text-sm bg-white/5 rounded-xl border border-white/5 border-dashed">
+                    Nenhum serviço com estoque no momento.
+                  </div>
+                )}
                 
                 {selectedService && (() => {
                   const chosen = services.find((service) => service.id === selectedService)
