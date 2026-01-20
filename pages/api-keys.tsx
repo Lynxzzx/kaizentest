@@ -6,6 +6,7 @@ import { useTheme } from '@/contexts/ThemeContext'
 import Layout from '@/components/Layout'
 import axios from 'axios'
 import toast from 'react-hot-toast'
+import { Dialog } from '@headlessui/react'
 
 interface ApiKey {
   id: string
@@ -22,6 +23,21 @@ interface ApiKey {
   }
 }
 
+interface UserData {
+  plan?: {
+    id: string
+    name: string
+    maxGenerations: number
+  }
+  planExpiresAt?: string
+  apiPlan?: {
+    id: string
+    name: string
+    maxGenerations: number
+  }
+  apiPlanExpiresAt?: string
+}
+
 export default function ApiKeys() {
   const { t } = useTranslation()
   const { data: session } = useSession()
@@ -29,6 +45,13 @@ export default function ApiKeys() {
   const { theme } = useTheme()
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [loading, setLoading] = useState(true)
+  const [userData, setUserData] = useState<UserData | null>(null)
+  
+  // Modal states
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [newKeyName, setNewKeyName] = useState('')
+  const [selectedPlanId, setSelectedPlanId] = useState('')
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     if (!session) {
@@ -36,7 +59,8 @@ export default function ApiKeys() {
       return
     }
 
-    loadApiKeys()
+    Promise.all([loadApiKeys(), loadUserData()])
+      .finally(() => setLoading(false))
   }, [session])
 
   const loadApiKeys = async () => {
@@ -45,8 +69,15 @@ export default function ApiKeys() {
       setApiKeys(response.data)
     } catch (error) {
       toast.error('Erro ao carregar API keys')
-    } finally {
-      setLoading(false)
+    }
+  }
+
+  const loadUserData = async () => {
+    try {
+      const response = await axios.get('/api/users/me')
+      setUserData(response.data)
+    } catch (error) {
+      console.error('Erro ao carregar dados do usuário:', error)
     }
   }
 
@@ -62,10 +93,58 @@ export default function ApiKeys() {
     }
   }
 
+  const handleCreateKey = async () => {
+    if (!selectedPlanId) {
+      toast.error('Selecione um plano')
+      return
+    }
+
+    setCreating(true)
+    try {
+      await axios.post('/api/api-keys', {
+        planId: selectedPlanId,
+        name: newKeyName || 'Minha API Key'
+      })
+      toast.success('API Key criada com sucesso!')
+      setIsCreateModalOpen(false)
+      setNewKeyName('')
+      loadApiKeys()
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao criar API key')
+    } finally {
+      setCreating(false)
+    }
+  }
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     toast.success('Copiado para a área de transferência!')
   }
+
+  const getActivePlans = () => {
+    const plans = []
+    const now = new Date()
+
+    if (userData?.plan && userData.planExpiresAt && new Date(userData.planExpiresAt) > now) {
+      plans.push({ ...userData.plan, source: 'Plano Principal' })
+    }
+
+    if (userData?.apiPlan && userData.apiPlanExpiresAt && new Date(userData.apiPlanExpiresAt) > now) {
+      plans.push({ ...userData.apiPlan, source: 'Plano de API' })
+    }
+
+    return plans
+  }
+
+  const activePlans = getActivePlans()
+  const hasActivePlans = activePlans.length > 0
+
+  // Auto-select plan if only one exists when opening modal
+  useEffect(() => {
+    if (isCreateModalOpen && activePlans.length === 1) {
+      setSelectedPlanId(activePlans[0].id)
+    }
+  }, [isCreateModalOpen, activePlans])
 
   if (loading) {
     return (
@@ -86,10 +165,10 @@ export default function ApiKeys() {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-4xl font-bold text-white">🔑 Minhas API Keys</h1>
             <button
-              onClick={() => router.push('/api-plans')}
+              onClick={() => hasActivePlans ? setIsCreateModalOpen(true) : router.push('/api-plans')}
               className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
             >
-              + Nova API Key
+              {hasActivePlans ? '+ Nova API Key' : 'Assinar Plano de API'}
             </button>
           </div>
 
@@ -99,10 +178,10 @@ export default function ApiKeys() {
                 Você ainda não possui nenhuma API Key.
               </p>
               <button
-                onClick={() => router.push('/api-plans')}
+                onClick={() => hasActivePlans ? setIsCreateModalOpen(true) : router.push('/api-plans')}
                 className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
               >
-                Assinar Plano de API
+                {hasActivePlans ? 'Gerar Minha Primeira Key' : 'Assinar Plano de API'}
               </button>
             </div>
           ) : (
@@ -192,6 +271,71 @@ export default function ApiKeys() {
           )}
         </div>
       </div>
+
+      {/* Modal de Criação de Key */}
+      <Dialog
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/70" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="mx-auto max-w-sm rounded-2xl bg-slate-800 p-6 border border-white/10 shadow-xl w-full">
+            <Dialog.Title className="text-lg font-bold text-white mb-4">Nova API Key</Dialog.Title>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  Nome da Key (Opcional)
+                </label>
+                <input
+                  type="text"
+                  value={newKeyName}
+                  onChange={(e) => setNewKeyName(e.target.value)}
+                  placeholder="Ex: Integração Site"
+                  className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
+                />
+              </div>
+
+              {activePlans.length > 1 && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Plano Associado
+                  </label>
+                  <select
+                    value={selectedPlanId}
+                    onChange={(e) => setSelectedPlanId(e.target.value)}
+                    className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-500"
+                  >
+                    <option value="">Selecione um plano</option>
+                    {activePlans.map(plan => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.name} ({plan.source})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setIsCreateModalOpen(false)}
+                  className="flex-1 px-4 py-2 rounded-lg bg-white/5 text-slate-300 hover:bg-white/10 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreateKey}
+                  disabled={creating}
+                  className="flex-1 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {creating ? 'Criando...' : 'Criar Key'}
+                </button>
+              </div>
+            </div>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
     </Layout>
   )
 }

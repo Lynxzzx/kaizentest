@@ -17,7 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     include: {
-      plan: true
+      plan: true,
+      apiPlan: true
     }
   })
 
@@ -32,6 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     role: user.role,
     plan: user.plan,
     planExpiresAt: user.planExpiresAt,
+    apiPlan: user.apiPlan,
+    apiPlanExpiresAt: user.apiPlanExpiresAt,
     affiliateCode: user.affiliateCode,
     theme: user.theme || 'dark'
   })
