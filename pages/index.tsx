@@ -289,7 +289,7 @@ export default function Home() {
       {/* Footer Minimal */}
       <footer className="py-12 text-center text-gray-600 text-sm border-t border-white/5 bg-black/50 backdrop-blur-sm">
         <div className="flex items-center justify-center gap-2 mb-4 opacity-50 hover:opacity-100 transition-opacity">
-          <Logo size="xs" showText={false} />
+          <Logo size="sm" showText={false} />
           <span className="font-heading font-bold">Kaizen Gens</span>
         </div>
         <p>&copy; {new Date().getFullYear()} Kaizen Gens. All rights reserved.</p>
