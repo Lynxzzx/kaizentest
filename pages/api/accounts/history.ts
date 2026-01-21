@@ -16,15 +16,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     const page = parseInt(req.query.page as string) || 1
-    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100) // Máximo 100 por página
+    const requestedLimit = parseInt(req.query.limit as string) || 5
+    const limit = Math.min(requestedLimit, 5)
     const skip = (page - 1) * limit
+    const now = new Date()
+    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000)
 
     // Buscar contas geradas com paginação otimizada
     // Usar select específico para reduzir dados transferidos
     const [accounts, total] = await Promise.all([
       prisma.generatedAccount.findMany({
         where: {
-          userId: session.user.id
+          userId: session.user.id,
+          createdAt: {
+            gte: twoHoursAgo
+          }
         },
         select: {
           id: true,
@@ -53,7 +59,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }),
       prisma.generatedAccount.count({
         where: {
-          userId: session.user.id
+          userId: session.user.id,
+          createdAt: {
+            gte: twoHoursAgo
+          }
         }
       })
     ])

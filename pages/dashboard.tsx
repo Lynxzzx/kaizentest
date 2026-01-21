@@ -177,7 +177,7 @@ export default function Dashboard() {
   const loadAccountHistory = async (page: number = 1) => {
     setHistoryLoading(true)
     try {
-      const response = await axios.get(`/api/accounts/history?page=${page}&limit=20`)
+      const response = await axios.get(`/api/accounts/history?page=${page}&limit=5`)
       setAccountHistory(response.data.accounts)
       setHistoryPagination(response.data.pagination)
       setHistoryPage(page)
@@ -642,10 +642,10 @@ export default function Dashboard() {
 
         {/* History Section */}
         <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">📜</span>
-              {t('accountHistory') || 'Histórico'}
+              Últimas contas geradas
             </h2>
             <button
               onClick={() => {
@@ -662,6 +662,7 @@ export default function Dashboard() {
               {showHistory ? (t('hide') || 'Ocultar') : (t('viewHistory') || 'Ver Histórico')}
             </button>
           </div>
+          <p className="text-xs text-gray-400 mb-6">Mostrando até 5 contas geradas. Expira em 2 horas após a geração.</p>
 
           {showHistory && (
             <div className="animate-fade-in">
@@ -681,7 +682,7 @@ export default function Dashboard() {
                     {accountHistory.map((account) => (
                       <div
                         key={account.id}
-                        className="p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+                        className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10 transition-all shadow-sm"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div>
@@ -698,8 +699,8 @@ export default function Dashboard() {
                             </p>
                           </div>
 
-                          <div className="flex flex-col gap-2 min-w-[200px]">
-                            <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/5">
+                          <div className="flex flex-col gap-2 min-w-[220px]">
+                            <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/10">
                               <span className="text-xs text-gray-500 w-12">User:</span>
                               <code className="text-xs font-mono text-emerald-400 flex-1 truncate">{account.username}</code>
                               <button
@@ -710,7 +711,7 @@ export default function Dashboard() {
                               </button>
                             </div>
                             {account.password && (
-                              <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/5">
+                              <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/10">
                                 <span className="text-xs text-gray-500 w-12">Pass:</span>
                                 <code className="text-xs font-mono text-emerald-400 flex-1 truncate">{account.password}</code>
                                 <button
@@ -721,6 +722,28 @@ export default function Dashboard() {
                                 </button>
                               </div>
                             )}
+                            <div className="flex items-center justify-between">
+                              <button
+                                onClick={() => {
+                                  const val = `${account.username}:${account.password || ''}`
+                                  navigator.clipboard.writeText(val)
+                                  toast.success('Copiado!')
+                                }}
+                                className="px-3 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 text-xs"
+                              >
+                                Copiar credenciais
+                              </button>
+                              <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs">
+                                Expira em {(() => {
+                                  const expiry = new Date(new Date(account.createdAt).getTime() + 2 * 60 * 60 * 1000)
+                                  const diff = expiry.getTime() - Date.now()
+                                  if (diff <= 0) return 'expirada'
+                                  const h = Math.floor(diff / (60 * 60 * 1000))
+                                  const m = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000))
+                                  return h > 0 ? `${h}h ${m}m` : `${m}m`
+                                })()}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
