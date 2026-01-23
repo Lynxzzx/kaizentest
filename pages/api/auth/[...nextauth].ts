@@ -36,7 +36,8 @@ export const authOptions: NextAuthOptions = {
           if (recaptchaSecretKey && credentials?.recaptchaToken) {
             const recaptcha = await verifyRecaptcha(String(credentials.recaptchaToken), 'login')
             if (!recaptcha.success) {
-              throw new Error('Verificação de segurança falhou')
+              // Soft-fail: não bloquear login por reCAPTCHA, apenas registrar
+              console.warn('⚠️ reCAPTCHA v3 falhou no authorize (login), prosseguindo:', recaptcha.errorCodes)
             }
           }
 

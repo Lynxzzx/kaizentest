@@ -100,7 +100,6 @@ export default function Login() {
       try {
         const validateResponse = await axios.post('/api/auth/validate-login', {
           username: username.trim(),
-          recaptchaToken: token,
           honeypot,
           formStartTime: formStartTimeRef.current
         })

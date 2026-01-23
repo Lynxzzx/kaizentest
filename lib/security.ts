@@ -782,24 +782,11 @@ export async function validateRegisterRequest(
         reason: 'reCAPTCHA v3 falhou',
         metadata: { errorCodes: recaptchaResult.errorCodes, score: recaptchaResult.score }
       })
-      
-      return {
-        allowed: false,
-        reason: 'Verificação de segurança falhou. Por favor, tente novamente.',
-        warnings: [],
-        botScore: 80,
-        recaptchaScore
-      }
+      warnings.push('Falha na verificação reCAPTCHA')
     }
     // reCAPTCHA v3 passou - sucesso!
   } else if (process.env.RECAPTCHA_SECRET_KEY && process.env.NODE_ENV === 'production') {
-    // reCAPTCHA obrigatório em produção se configurado
-    return {
-      allowed: false,
-      reason: 'Verificação de segurança obrigatória.',
-      warnings: [],
-      botScore: 50
-    }
+    warnings.push('Verificação reCAPTCHA não realizada')
   }
   
   // Registro de tentativa bem-sucedida (validações passaram)
@@ -935,24 +922,11 @@ export async function validateLoginRequest(
         reason: 'reCAPTCHA v3 falhou',
         metadata: { errorCodes: recaptchaResult.errorCodes, score: recaptchaResult.score }
       })
-      
-      return {
-        allowed: false,
-        reason: 'Verificação de segurança falhou. Por favor, tente novamente.',
-        warnings: [],
-        botScore: 80,
-        recaptchaScore
-      }
+      warnings.push('Falha na verificação reCAPTCHA')
     }
     // reCAPTCHA v3 passou - sucesso!
   } else if (process.env.RECAPTCHA_SECRET_KEY && process.env.NODE_ENV === 'production') {
-    // reCAPTCHA obrigatório em produção se configurado
-    return {
-      allowed: false,
-      reason: 'Verificação de segurança obrigatória.',
-      warnings: [],
-      botScore: 50
-    }
+    warnings.push('Verificação reCAPTCHA não realizada')
   }
   
   return {
@@ -1090,4 +1064,3 @@ export function getBlockedIps(): { ip: string; type: string; blockedUntil: Date 
   
   return blocked
 }
-
