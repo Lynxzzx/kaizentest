@@ -120,7 +120,7 @@ export default function ApiPlans() {
     }
 
     if (method === 'PIX') {
-      setPendingPayment({ plan, method })
+      setPendingPayment({ plan, method: 'PIX' })
       setShowEmailModal(true)
       return
     }
