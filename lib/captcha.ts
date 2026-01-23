@@ -15,26 +15,29 @@ const CAPTCHA_CONFIG = {
   HEIGHT: 60,
 }
 
-// Armazenamento em memória dos CAPTCHAs (em produção, usar Redis)
-interface CaptchaEntry {
-  code: string
-  createdAt: number
-  attempts: number
+// Validação stateless usando HMAC assinado (evita problemas de instância/cluster)
+function getSecret(): string {
+  return process.env.CAPTCHA_SECRET || process.env.NEXTAUTH_SECRET || 'dev-captcha-secret'
 }
-
-const captchaStore: Map<string, CaptchaEntry> = new Map()
-
-// Limpar CAPTCHAs expirados periodicamente
-setInterval(() => {
-  const now = Date.now()
-  const expireTime = CAPTCHA_CONFIG.EXPIRE_MINUTES * 60 * 1000
-  
-  for (const [key, value] of captchaStore.entries()) {
-    if (now - value.createdAt > expireTime) {
-      captchaStore.delete(key)
-    }
+function signCode(code: string, createdAt: number): string {
+  const hmac = crypto.createHmac('sha256', getSecret())
+  hmac.update(`${code}:${createdAt}`)
+  return hmac.digest('hex')
+}
+function encodeId(createdAt: number, signature: string): string {
+  const payload = JSON.stringify({ t: createdAt, s: signature })
+  return Buffer.from(payload).toString('base64url')
+}
+function decodeId(id: string): { createdAt: number; signature: string } | null {
+  try {
+    const raw = Buffer.from(id, 'base64url').toString('utf8')
+    const obj = JSON.parse(raw)
+    if (typeof obj?.t !== 'number' || typeof obj?.s !== 'string') return null
+    return { createdAt: obj.t, signature: obj.s }
+  } catch {
+    return null
   }
-}, 60 * 1000) // A cada minuto
+}
 
 /**
  * Gerar código aleatório do CAPTCHA
@@ -156,16 +159,11 @@ function generateSvgImage(code: string): string {
  * Criar novo CAPTCHA
  */
 export function createCaptcha(): { id: string; svg: string; dataUrl: string } {
-  const id = generateCaptchaId()
   const code = generateCode()
   const svg = generateSvgImage(code)
-  
-  // Armazenar
-  captchaStore.set(id, {
-    code,
-    createdAt: Date.now(),
-    attempts: 0
-  })
+  const createdAt = Date.now()
+  const signature = signCode(code, createdAt)
+  const id = encodeId(createdAt, signature)
   
   // Converter SVG para data URL
   const base64 = Buffer.from(svg).toString('base64')
@@ -181,41 +179,20 @@ export function validateCaptcha(id: string, userInput: string): { valid: boolean
   if (!id || !userInput) {
     return { valid: false, error: 'CAPTCHA não fornecido' }
   }
-  
-  const entry = captchaStore.get(id)
-  
-  if (!entry) {
-    return { valid: false, error: 'CAPTCHA expirado ou inválido. Atualize a página.' }
+  const parsed = decodeId(id)
+  if (!parsed) {
+    return { valid: false, error: 'CAPTCHA inválido. Atualize a página.' }
   }
-  
-  // Verificar expiração
   const now = Date.now()
   const expireTime = CAPTCHA_CONFIG.EXPIRE_MINUTES * 60 * 1000
-  
-  if (now - entry.createdAt > expireTime) {
-    captchaStore.delete(id)
+  if (now - parsed.createdAt > expireTime) {
     return { valid: false, error: 'CAPTCHA expirado. Atualize a página.' }
   }
-  
-  // Incrementar tentativas
-  entry.attempts++
-  
-  // Máximo de 3 tentativas por CAPTCHA
-  if (entry.attempts > 3) {
-    captchaStore.delete(id)
-    return { valid: false, error: 'Muitas tentativas. Atualize o CAPTCHA.' }
-  }
-  
-  // Comparar (case-insensitive)
-  const isValid = entry.code.toUpperCase() === userInput.trim().toUpperCase()
-  
-  if (isValid) {
-    // Remover CAPTCHA usado
-    captchaStore.delete(id)
+  const input = userInput.trim().toUpperCase()
+  const expectedSig = signCode(input, parsed.createdAt)
+  if (expectedSig === parsed.signature) {
     return { valid: true }
   }
-  
-  captchaStore.set(id, entry)
   return { valid: false, error: 'CAPTCHA incorreto. Tente novamente.' }
 }
 
@@ -223,24 +200,17 @@ export function validateCaptcha(id: string, userInput: string): { valid: boolean
  * Invalidar CAPTCHA (após uso ou erro)
  */
 export function invalidateCaptcha(id: string): void {
-  captchaStore.delete(id)
+  // Stateless: nada a invalidar
 }
 
 /**
  * Verificar se um CAPTCHA existe e é válido
  */
 export function captchaExists(id: string): boolean {
-  const entry = captchaStore.get(id)
-  if (!entry) return false
-  
+  const parsed = decodeId(id)
+  if (!parsed) return false
   const now = Date.now()
   const expireTime = CAPTCHA_CONFIG.EXPIRE_MINUTES * 60 * 1000
-  
-  if (now - entry.createdAt > expireTime) {
-    captchaStore.delete(id)
-    return false
-  }
-  
-  return true
+  return now - parsed.createdAt <= expireTime
 }
 
