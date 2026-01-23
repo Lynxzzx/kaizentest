@@ -515,15 +515,17 @@ export default function Dashboard() {
                 </div>
               )}
 
-              <VisualCaptcha
-                onValidated={() => {}}
-                value={captchaValue}
-                onChange={setCaptchaValue}
-                captchaId={captchaId}
-                onCaptchaIdChange={setCaptchaId}
-                error={captchaError || undefined}
-                theme={theme === 'dark' ? 'dark' : 'light'}
-              />
+              {selectedService && (
+                <VisualCaptcha
+                  onValidated={() => {}}
+                  value={captchaValue}
+                  onChange={setCaptchaValue}
+                  captchaId={captchaId}
+                  onCaptchaIdChange={setCaptchaId}
+                  error={captchaError || undefined}
+                  theme={theme === 'dark' ? 'dark' : 'light'}
+                />
+              )}
 
               <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="generate" />
 

@@ -5,7 +5,6 @@ import {
   getUserAgent,
   resetLoginAttempts
 } from '@/lib/security'
-import { validateCaptcha } from '@/lib/captcha'
 
 /**
  * API para validar requisição de login antes de autenticar
@@ -29,8 +28,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { 
       username, 
-      captchaId,
-      captchaCode,
       recaptchaToken,
       honeypot, 
       formStartTime,
@@ -47,18 +44,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!sanitizedUsername) {
       return res.status(400).json({ error: 'Username é obrigatório' })
-    }
-
-    if (!captchaId || !captchaCode) {
-      return res.status(400).json({ error: 'CAPTCHA é obrigatório' })
-    }
-
-    const captchaResult = validateCaptcha(captchaId, String(captchaCode))
-    if (!captchaResult.valid) {
-      return res.status(403).json({ 
-        error: captchaResult.error || 'CAPTCHA inválido',
-        securityBlock: true
-      })
     }
 
     // Validação de segurança completa
