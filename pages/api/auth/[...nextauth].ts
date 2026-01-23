@@ -2,6 +2,8 @@ import NextAuth, { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import { verifyPassword } from '@/lib/auth'
+import { validateCaptcha } from '@/lib/captcha'
+import { verifyRecaptcha } from '@/lib/security'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -9,12 +11,33 @@ export const authOptions: NextAuthOptions = {
       name: 'Credentials',
       credentials: {
         username: { label: 'Username', type: 'text' },
-        password: { label: 'Password', type: 'password' }
+        password: { label: 'Password', type: 'password' },
+        captchaId: { label: 'CaptchaId', type: 'text' },
+        captchaCode: { label: 'CaptchaCode', type: 'text' },
+        recaptchaToken: { label: 'RecaptchaToken', type: 'text' }
       },
       async authorize(credentials) {
         try {
           if (!credentials?.username || !credentials?.password) {
             throw new Error('Username and password required')
+          }
+
+          // 🔐 Validação de CAPTCHA visual (server-side)
+          if (!credentials?.captchaId || !credentials?.captchaCode) {
+            throw new Error('CAPTCHA é obrigatório')
+          }
+          const captchaResult = validateCaptcha(String(credentials.captchaId), String(credentials.captchaCode))
+          if (!captchaResult.valid) {
+            throw new Error(captchaResult.error || 'CAPTCHA inválido')
+          }
+
+          // 🛡️ Verificação reCAPTCHA v3 (se configurado)
+          const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY
+          if (recaptchaSecretKey && credentials?.recaptchaToken) {
+            const recaptcha = await verifyRecaptcha(String(credentials.recaptchaToken), 'login')
+            if (!recaptcha.success) {
+              throw new Error('Verificação de segurança falhou')
+            }
           }
 
           const identifier = credentials.username.trim()

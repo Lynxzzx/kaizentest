@@ -11,6 +11,7 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
 import { useReCaptcha } from '@/components/ReCaptcha'
 import ReCaptcha from '@/components/ReCaptcha'
+import VisualCaptcha, { useCaptcha } from '@/components/VisualCaptcha'
 
 interface ServicePlanRule {
   planId: string
@@ -75,6 +76,14 @@ export default function Dashboard() {
   // 🛡️ Google reCAPTCHA v3 (invisível)
   const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const {
+    captchaId,
+    setCaptchaId,
+    captchaValue,
+    setCaptchaValue,
+    captchaError,
+    setCaptchaError
+  } = useCaptcha()
 
   const requiresPaidPlan = (service: Service) => (service.allowedPlans?.length ?? 0) > 0
 
@@ -206,6 +215,12 @@ export default function Dashboard() {
       return
     }
 
+    if (!captchaId || !captchaValue) {
+      setCaptchaError('Por favor, digite o código da imagem')
+      toast.error('Verifique o CAPTCHA.')
+      return
+    }
+
     // 🛡️ VERIFICAR COOLDOWN NO FRONTEND
     if (cooldownRemaining > 0) {
       toast.error(`Aguarde ${formatCooldown(cooldownRemaining)} antes de gerar novamente.`)
@@ -224,35 +239,31 @@ export default function Dashboard() {
       return
     }
 
-    // 🛡️ VERIFICAR reCAPTCHA v3
-    if (!recaptchaConfigured) {
-      toast.error('Verificação de segurança não configurada. Entre em contato com o suporte.')
-      return
-    }
+    // 🛡️ Executar reCAPTCHA v3 se configurado; caso contrário, prosseguir apenas com CAPTCHA visual
 
     setLoading(true)
 
     try {
       // Executar reCAPTCHA v3 - aguardar se necessário
-      let token = await executeRecaptcha('generate')
+      let token: string | null = null
+      if (recaptchaConfigured) {
+        token = await executeRecaptcha('generate')
+      }
 
       // Se não obteve token e não está pronto, aguardar um pouco
-      if (!token && !recaptchaReady) {
+      if (recaptchaConfigured && !token && !recaptchaReady) {
         await new Promise(resolve => setTimeout(resolve, 1000))
         token = await executeRecaptcha('generate')
       }
 
-      if (!token) {
-        toast.error('Erro ao verificar segurança. Por favor, recarregue a página e tente novamente.')
-        setLoading(false)
-        return
-      }
-      setRecaptchaToken(token)
+      if (token) setRecaptchaToken(token)
 
       // Continuar com a requisição
       const response = await axios.post('/api/accounts/generate', {
         serviceId: selectedService,
-        recaptchaToken: token // 🛡️ Enviar token do reCAPTCHA v3
+        captchaId,
+        captchaCode: captchaValue,
+        recaptchaToken: token // 🛡️ Enviar token do reCAPTCHA v3 (se existir)
       })
 
       setGeneratedAccount(response.data)
@@ -262,6 +273,7 @@ export default function Dashboard() {
 
       // 🛡️ RESETAR reCAPTCHA APÓS GERAÇÃO
       setRecaptchaToken(null)
+      setCaptchaError(null)
 
       // 🛡️ INICIAR COOLDOWN APÓS GERAÇÃO BEM-SUCEDIDA
       if (response.data.cooldown?.seconds) {
@@ -503,11 +515,21 @@ export default function Dashboard() {
                 </div>
               )}
 
+              <VisualCaptcha
+                onValidated={() => {}}
+                value={captchaValue}
+                onChange={setCaptchaValue}
+                captchaId={captchaId}
+                onCaptchaIdChange={setCaptchaId}
+                error={captchaError || undefined}
+                theme={theme === 'dark' ? 'dark' : 'light'}
+              />
+
               <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="generate" />
 
               <button
                 onClick={handleGenerateAccount}
-                disabled={loading || !selectedService || cooldownRemaining > 0 || !recaptchaConfigured}
+                disabled={loading || !selectedService || cooldownRemaining > 0}
                 className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-[0.98] shadow-lg ${cooldownRemaining > 0 || !recaptchaConfigured
                   ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-indigo-500/25 hover:-translate-y-1'

@@ -8,6 +8,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import ReCaptcha, { useReCaptcha, ReCaptchaBadge } from '@/components/ReCaptcha'
+import VisualCaptcha, { useCaptcha } from '@/components/VisualCaptcha'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -26,6 +27,14 @@ export default function Login() {
   // 🛡️ Google reCAPTCHA v3 (invisível)
   const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const {
+    captchaId,
+    setCaptchaId,
+    captchaValue,
+    setCaptchaValue,
+    captchaError,
+    setCaptchaError
+  } = useCaptcha()
 
   // Resetar tempo quando o componente monta
   useEffect(() => {
@@ -51,6 +60,12 @@ export default function Login() {
       return
     }
 
+    if (!captchaId || !captchaValue) {
+      setCaptchaError('Por favor, digite o código da imagem')
+      toast.error('Verifique o CAPTCHA.')
+      return
+    }
+
     if (!username.trim()) {
       toast.error('Digite seu username')
       return
@@ -65,32 +80,28 @@ export default function Login() {
 
     try {
       // 🛡️ Executar reCAPTCHA v3
-      if (!recaptchaConfigured) {
-        toast.error('Verificação de segurança não configurada. Entre em contato com o suporte.')
-        setLoading(false)
-        return
-      }
+      // Executar reCAPTCHA se estiver configurado; caso contrário, prosseguir apenas com CAPTCHA visual
 
       // Executar reCAPTCHA v3 - aguardar se necessário
-      let token = await executeRecaptcha('login')
+      let token: string | null = null
+      if (recaptchaConfigured) {
+        token = await executeRecaptcha('login')
+      }
       
       // Se não obteve token e não está pronto, aguardar um pouco
-      if (!token && !recaptchaReady) {
+      if (recaptchaConfigured && !token && !recaptchaReady) {
         await new Promise(resolve => setTimeout(resolve, 1000))
         token = await executeRecaptcha('login')
       }
 
-      if (!token) {
-        toast.error('Erro ao verificar segurança. Por favor, recarregue a página e tente novamente.')
-        setLoading(false)
-        return
-      }
-      setRecaptchaToken(token)
+      if (token) setRecaptchaToken(token)
 
       // 🛡️ SEGURANÇA: Validar requisição antes de autenticar
       try {
         const validateResponse = await axios.post('/api/auth/validate-login', {
           username: username.trim(),
+          captchaId,
+          captchaCode: captchaValue,
           recaptchaToken: token,
           honeypot,
           formStartTime: formStartTimeRef.current
@@ -101,6 +112,7 @@ export default function Login() {
           setRecaptchaToken(null)
           return
         }
+        setCaptchaError(null)
       } catch (validateError: any) {
         if (validateError.response?.status === 403) {
           // Bloqueado por segurança
@@ -116,7 +128,10 @@ export default function Login() {
       const result = await signIn('credentials', {
         redirect: false,
         username: username.trim(),
-        password
+        password,
+        captchaId,
+        captchaCode: captchaValue,
+        recaptchaToken
       })
 
       if (result?.error) {
@@ -164,6 +179,7 @@ export default function Login() {
       setLoading(false)
     }
   }
+
 
   return (
     <div className={`min-h-screen flex items-center justify-center ${themeClasses.bg} py-12 px-4 sm:px-6 lg:px-8`}>
@@ -250,6 +266,16 @@ export default function Login() {
               />
             </div>
 
+            <VisualCaptcha
+              onValidated={() => {}}
+              value={captchaValue}
+              onChange={setCaptchaValue}
+              captchaId={captchaId}
+              onCaptchaIdChange={setCaptchaId}
+              error={captchaError || undefined}
+              theme={theme === 'dark' ? 'dark' : 'light'}
+            />
+
             {/* 🛡️ Google reCAPTCHA v3 (invisível) */}
             <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="login" />
 
@@ -272,7 +298,7 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading || !recaptchaConfigured}
+              disabled={loading}
               className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (
