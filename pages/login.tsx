@@ -100,8 +100,6 @@ export default function Login() {
       try {
         const validateResponse = await axios.post('/api/auth/validate-login', {
           username: username.trim(),
-          captchaId,
-          captchaCode: captchaValue,
           recaptchaToken: token,
           honeypot,
           formStartTime: formStartTimeRef.current
@@ -135,8 +133,12 @@ export default function Login() {
       })
 
       if (result?.error) {
-        setLoginAttempts(prev => prev + 1)
-        toast.error(t('invalidCredentials'))
+        const errMsg = typeof result.error === 'string' ? result.error : t('invalidCredentials')
+        toast.error(errMsg)
+        // Incrementar tentativas somente se for erro de credenciais
+        if (errMsg.toLowerCase().includes('invalid credentials') || errMsg.toLowerCase().includes('credenciais')) {
+          setLoginAttempts(prev => prev + 1)
+        }
         // Resetar reCAPTCHA após erro
         setRecaptchaToken(null)
       } else {
