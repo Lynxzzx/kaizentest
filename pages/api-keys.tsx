@@ -47,6 +47,7 @@ export default function ApiKeys() {
   const { data: session } = useSession()
   const router = useRouter()
   const { theme } = useTheme()
+  const apiOffline = true
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [loading, setLoading] = useState(true)
   const [userData, setUserData] = useState<UserData | null>(null)
@@ -98,6 +99,8 @@ export default function ApiKeys() {
   }
 
   const handleCreateKey = async () => {
+    toast.error('Serviço de API temporariamente offline. Em breve voltamos.')
+    return
     if (!selectedPlanId) {
       toast.error('Selecione um plano')
       return
@@ -168,10 +171,11 @@ export default function ApiKeys() {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-4xl font-bold text-white">🔑 Developer API</h1>
             <button
-              onClick={() => hasActivePlans ? setIsCreateModalOpen(true) : router.push('/api-plans')}
+              onClick={() => toast.error('Serviço de API temporariamente offline. Em breve voltamos.')}
               className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+              disabled={apiOffline}
             >
-              {hasActivePlans ? '+ Nova API Key' : 'Assinar Plano de API'}
+              Indisponível
             </button>
           </div>
 
@@ -202,10 +206,11 @@ export default function ApiKeys() {
                       Você ainda não possui nenhuma API Key.
                     </p>
                     <button
-                      onClick={() => hasActivePlans ? setIsCreateModalOpen(true) : router.push('/api-plans')}
+                      onClick={() => toast.error('Serviço de API temporariamente offline. Em breve voltamos.')}
                       className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                      disabled={apiOffline}
                     >
-                      {hasActivePlans ? 'Gerar Minha Primeira Key' : 'Assinar Plano de API'}
+                      Indisponível
                     </button>
                   </div>
                 ) : (

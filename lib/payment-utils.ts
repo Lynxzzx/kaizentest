@@ -169,50 +169,7 @@ export async function settlePaymentAsPaid(
   })
   
   if (plan && plan.name.toLowerCase().includes('api')) {
-    try {
-      const { generateApiKey } = await import('@/lib/api-key-utils')
-      
-      // Verificar se já existe API key para este plano
-      const existingKey = await prisma.apiKey.findFirst({
-        where: {
-          userId: payment.userId,
-          planId: payment.planId,
-          isActive: true
-        }
-      })
-      
-      if (!existingKey) {
-        // Determinar rate limit baseado no plano
-        let rateLimit = 60
-        let isCommercial = false
-        let priorityStock = false
-        
-        if (plan.name.toLowerCase().includes('pro')) {
-          rateLimit = 120
-          isCommercial = true
-          priorityStock = true
-        } else if (plan.name.toLowerCase().includes('creator')) {
-          rateLimit = 90
-          isCommercial = true
-        }
-        
-        await prisma.apiKey.create({
-          data: {
-            key: generateApiKey(),
-            userId: payment.userId,
-            planId: payment.planId,
-            monthlyGenerations: plan.maxGenerations || 0,
-            rateLimit,
-            isCommercial,
-            priorityStock
-          }
-        })
-        console.log('✅ [settlePaymentAsPaid] API key criada automaticamente para plano de API')
-      }
-    } catch (error) {
-      console.error('❌ [settlePaymentAsPaid] Erro ao criar API key automaticamente:', error)
-      // Não falhar a ativação do plano se criar API key falhar
-    }
+    return expiresAt
   }
   
   return expiresAt

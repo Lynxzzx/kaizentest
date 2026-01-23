@@ -40,6 +40,7 @@ export default function ApiPlans() {
   const { t } = useTranslation()
   const { data: session } = useSession()
   const router = useRouter()
+  const apiOffline = true
   const [plans, setPlans] = useState<Plan[]>([])
   const [loading, setLoading] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'CRYPTO' | 'CARD' | null>(null)
@@ -110,6 +111,8 @@ export default function ApiPlans() {
 
 
   const handlePayment = async (plan: Plan, method: 'PIX' | 'CRYPTO' | 'CARD') => {
+    toast.error('Serviço de API temporariamente offline. Em breve voltamos.')
+    return
     if (!session) {
       toast.error(t('loginToContinue'))
       router.push('/login?redirect=/api-plans')
@@ -266,22 +269,25 @@ export default function ApiPlans() {
 
                 <div className="space-y-2">
                   <button
-                    onClick={() => handlePayment(plan, 'PIX')}
+                    onClick={() => toast.error('Serviço de API temporariamente offline. Em breve voltamos.')}
                     className="w-full py-2.5 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold text-sm hover:contrast-125 transition-all"
+                    disabled={apiOffline}
                   >
-                    {t('payViaPix')}
+                    Indisponível
                   </button>
                   <button
-                    onClick={() => handlePayment(plan, 'CRYPTO')}
+                    onClick={() => toast.error('Serviço de API temporariamente offline. Em breve voltamos.')}
                     className="w-full py-2.5 rounded-lg bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold text-sm hover:contrast-125 transition-all"
+                    disabled={apiOffline}
                   >
-                    Crypto
+                    Indisponível
                   </button>
                   <button
-                    onClick={() => handlePayment(plan, 'CARD')}
+                    onClick={() => toast.error('Serviço de API temporariamente offline. Em breve voltamos.')}
                     className="w-full py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm hover:contrast-125 transition-all"
+                    disabled={apiOffline}
                   >
-                    Card
+                    Indisponível
                   </button>
                 </div>
               </div>

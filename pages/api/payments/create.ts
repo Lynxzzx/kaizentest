@@ -33,6 +33,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Plan not found' })
     }
 
+    if (plan.name.toLowerCase().includes('api')) {
+      return res.status(503).json({ error: 'API offline', message: 'Compra de planos de API indisponível no momento.' })
+    }
+
     let appliedCoupon: any = null
     let discountAmount = 0
     let finalAmount = plan.price

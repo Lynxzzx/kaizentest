@@ -7,6 +7,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  return res.status(503).json({ error: 'API offline', message: 'Serviço de API temporariamente offline. Em breve voltamos.' })
+
   // Autenticação por API Key
   const apiKey = req.headers['x-api-key'] as string || req.body.apiKey || req.query.apiKey as string
 

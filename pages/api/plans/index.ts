@@ -7,6 +7,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const session = await getServerSession(req, res, authOptions)
 
   if (req.method === 'GET') {
+    // Se for solicitação de planos de API, retornar offline
+    const type = (req.query.type as string | undefined)?.toUpperCase()
+    if (type === 'API') {
+      return res.status(503).json({ error: 'API offline', message: 'Planos de API indisponíveis no momento.' })
+    }
     const plans = await prisma.plan.findMany({
       where: { isActive: true },
       orderBy: { price: 'asc' }
