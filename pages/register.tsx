@@ -139,7 +139,10 @@ export default function Register() {
       const loginResult = await signIn('credentials', {
         redirect: false,
         username,
-        password
+        password,
+        captchaId,
+        captchaCode: captchaValue,
+        recaptchaToken
       })
 
       if (loginResult?.error) {
