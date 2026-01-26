@@ -919,49 +919,29 @@ export async function validateLoginRequest(
     }
   }
   
-  // 4. Verificação de CAPTCHA
+  // 4. Google reCAPTCHA v3 (invisível)
   let recaptchaScore: number | undefined
   if (data.recaptchaToken) {
-    const hasTurnstile = !!process.env.TURNSTILE_SECRET_KEY
-    if (hasTurnstile) {
-      const tsResult = await verifyTurnstile(data.recaptchaToken)
-      if (!tsResult.success) {
-        await logSecurityEvent({
-          type: 'bot_detected',
-          ip,
-          userAgent,
-          username: data.username,
-          success: false,
-          reason: 'Turnstile falhou',
-          metadata: { errorCodes: tsResult.errorCodes }
-        })
-        return {
-          allowed: false,
-          reason: 'Verificação de segurança falhou. Por favor, tente novamente.',
-          warnings: [],
-          botScore: 80
-        }
-      }
-    } else {
-      const recaptchaResult = await verifyRecaptcha(data.recaptchaToken, 'login')
-      recaptchaScore = recaptchaResult.score
-      if (!recaptchaResult.success) {
-        await logSecurityEvent({
-          type: 'bot_detected',
-          ip,
-          userAgent,
-          username: data.username,
-          success: false,
-          reason: 'reCAPTCHA v3 falhou',
-          metadata: { errorCodes: recaptchaResult.errorCodes, score: recaptchaResult.score }
-        })
-        return {
-          allowed: false,
-          reason: 'Verificação de segurança falhou. Por favor, tente novamente.',
-          warnings: [],
-          botScore: 80,
-          recaptchaScore
-        }
+    const recaptchaResult = await verifyRecaptcha(data.recaptchaToken, 'login')
+    recaptchaScore = recaptchaResult.score
+    
+    if (!recaptchaResult.success) {
+      await logSecurityEvent({
+        type: 'bot_detected',
+        ip,
+        userAgent,
+        username: data.username,
+        success: false,
+        reason: 'reCAPTCHA v3 falhou',
+        metadata: { errorCodes: recaptchaResult.errorCodes, score: recaptchaResult.score }
+      })
+      
+      return {
+        allowed: false,
+        reason: 'Verificação de segurança falhou. Por favor, tente novamente.',
+        warnings: [],
+        botScore: 80,
+        recaptchaScore
       }
     }
   } else if (process.env.RECAPTCHA_SECRET_KEY && process.env.NODE_ENV === 'production') {

@@ -8,7 +8,6 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import ReCaptcha, { useReCaptcha, ReCaptchaBadge } from '@/components/ReCaptcha'
-import TurnstileCheckbox, { useTurnstile } from '@/components/TurnstileCheckbox'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -27,15 +26,6 @@ export default function Login() {
   // 🛡️ Google reCAPTCHA v3 (invisível)
   const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
-  const {
-    token: turnstileToken,
-    isVerified: turnstileVerified,
-    isExpired: turnstileExpired,
-    handleVerify: handleTurnstileVerify,
-    handleExpire: handleTurnstileExpire,
-    handleError: handleTurnstileError,
-    reset: resetTurnstile
-  } = useTurnstile()
 
   // Resetar tempo quando o componente monta
   useEffect(() => {
@@ -74,34 +64,28 @@ export default function Login() {
     setLoading(true)
 
     try {
-      let tokenToUse: string | null = null
-      if (turnstileVerified && turnstileToken) {
-        tokenToUse = turnstileToken
-      } else {
-        if (!recaptchaConfigured) {
-          toast.error('Verificação de segurança não configurada. Entre em contato com o suporte.')
-          setLoading(false)
-          return
-        }
-        let token = await executeRecaptcha('login')
-        if (!token && !recaptchaReady) {
-          await new Promise(resolve => setTimeout(resolve, 1000))
-          token = await executeRecaptcha('login')
-        }
-        if (!token) {
-          toast.error('Erro ao verificar segurança. Por favor, recarregue a página e tente novamente.')
-          setLoading(false)
-          return
-        }
-        setRecaptchaToken(token)
-        tokenToUse = token
+      if (!recaptchaConfigured) {
+        toast.error('Verificação de segurança não configurada. Entre em contato com o suporte.')
+        setLoading(false)
+        return
       }
+      let token = await executeRecaptcha('login')
+      if (!token && !recaptchaReady) {
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        token = await executeRecaptcha('login')
+      }
+      if (!token) {
+        toast.error('Erro ao verificar segurança. Por favor, recarregue a página e tente novamente.')
+        setLoading(false)
+        return
+      }
+      setRecaptchaToken(token)
 
       // 🛡️ SEGURANÇA: Validar requisição antes de autenticar
       try {
         const validateResponse = await axios.post('/api/auth/validate-login', {
           username: username.trim(),
-          recaptchaToken: tokenToUse,
+          recaptchaToken: token,
           honeypot,
           formStartTime: formStartTimeRef.current
         })
@@ -109,7 +93,6 @@ export default function Login() {
         if (!validateResponse.data.allowed && validateResponse.status !== 200) {
           toast.error(validateResponse.data.error || 'Verificação de segurança falhou.')
           setRecaptchaToken(null)
-          resetTurnstile()
           return
         }
       } catch (validateError: any) {
@@ -117,7 +100,6 @@ export default function Login() {
           // Bloqueado por segurança
           toast.error(validateError.response.data.error || 'Acesso temporariamente bloqueado.')
           setRecaptchaToken(null)
-          resetTurnstile()
           return
         }
         // Se a validação falhar por outro motivo, continuar com o login
@@ -136,7 +118,6 @@ export default function Login() {
         toast.error(t('invalidCredentials'))
         // Resetar reCAPTCHA após erro
         setRecaptchaToken(null)
-        resetTurnstile()
       } else {
         // Login bem-sucedido - resetar tentativas no servidor
         try {
@@ -155,7 +136,6 @@ export default function Login() {
       console.error('Login error:', error)
       setLoginAttempts(prev => prev + 1)
       setRecaptchaToken(null)
-      resetTurnstile()
       
       let errorMessage = t('errorLoggingIn')
       
@@ -270,17 +250,6 @@ export default function Login() {
             {/* 🛡️ Badge do reCAPTCHA */}
             <ReCaptchaBadge />
 
-            {/* Captcha visível (Turnstile) */}
-            <div className="mt-3">
-              <TurnstileCheckbox
-                onVerify={handleTurnstileVerify}
-                onExpire={handleTurnstileExpire}
-                onError={handleTurnstileError}
-                theme="auto"
-                size="normal"
-              />
-            </div>
-
             <div className="flex justify-end">
               <Link href="/forgot-password" className="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:underline">
                 Esqueceu sua senha?
@@ -297,7 +266,7 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading || (!turnstileVerified && !recaptchaConfigured)}
+              disabled={loading || !recaptchaConfigured}
               className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (
