@@ -2,7 +2,6 @@ import NextAuth, { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import { verifyPassword } from '@/lib/auth'
-import { BUILD_TIME } from '@/lib/build-info'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -12,12 +11,8 @@ export const authOptions: NextAuthOptions = {
         username: { label: 'Username', type: 'text' },
         password: { label: 'Password', type: 'password' }
       },
-      async authorize(credentials, req) {
+      async authorize(credentials) {
         try {
-          // Capturar IP
-          const ip = req?.headers?.['x-forwarded-for'] || (req as any)?.socket?.remoteAddress || 'unknown'
-          const ipAddress = Array.isArray(ip) ? ip[0] : (typeof ip === 'string' ? ip.split(',')[0] : 'unknown')
-
           if (!credentials?.username || !credentials?.password) {
             throw new Error('Username and password required')
           }
@@ -68,17 +63,6 @@ export const authOptions: NextAuthOptions = {
 
           if (!user) {
             console.log('❌ Usuário não encontrado após todas as tentativas')
-            // Log failed attempt
-            await prisma.securityLog.create({
-              data: {
-                type: 'login_attempt',
-                ip: ipAddress,
-                username: identifier,
-                success: false,
-                reason: 'User not found',
-                metadata: JSON.stringify({ identifier, isEmail })
-              }
-            })
             console.log('💡 Dica: Verifique se o username no banco está exatamente como:', identifier)
             throw new Error('Invalid credentials')
           }
@@ -90,37 +74,15 @@ export const authOptions: NextAuthOptions = {
 
           if (!isValid) {
             console.log('❌ Senha inválida')
-             // Log failed attempt (wrong password)
-             await prisma.securityLog.create({
-              data: {
-                type: 'login_attempt',
-                ip: ipAddress,
-                username: user.username,
-                success: false,
-                reason: 'Invalid password',
-                metadata: JSON.stringify({ identifier })
-              }
-            })
             throw new Error('Invalid credentials')
           }
 
           console.log('✅ Login bem-sucedido:', user.username)
 
-          // Log successful login
-          await prisma.securityLog.create({
-            data: {
-              type: 'login_attempt',
-              ip: ipAddress,
-              username: user.username,
-              success: true
-            }
-          })
-
           return {
             id: user.id,
             username: user.username,
-            role: user.role,
-            tokenVersion: user.tokenVersion
+            role: user.role
           }
         } catch (error: any) {
           console.error('❌ NextAuth authorize error:', error.message)
@@ -139,57 +101,17 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.username = user.username
         token.role = user.role
-        token.tokenVersion = user.tokenVersion || 0
       }
-
-      // Validar sessão a cada requisição
-      if (token?.id) {
-        // Verificar se houve novo deploy (apenas para Lynx)
-        const isLynx = (token.username as string)?.toLowerCase() === 'lynx';
-        if (isLynx && typeof token.iat === 'number' && typeof BUILD_TIME === 'number' && BUILD_TIME > 0) {
-          // Se o token foi emitido antes do último deploy (com 10s de tolerância)
-          if (token.iat < (BUILD_TIME - 10)) {
-            console.log(`🔒 Novo deploy detectado. Forçando re-login para Lynx. (Build: ${BUILD_TIME}, Token: ${token.iat})`)
-            return { ...token, error: 'NewDeployLogout' }
-          }
-        }
-
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.id as string },
-            select: { tokenVersion: true }
-          })
-          
-          const dbVersion = dbUser?.tokenVersion || 0
-          const tokenVersion = token.tokenVersion || 0
-
-          console.log(`🔍 Validando sessão para ${token.username}: DB v${dbVersion} vs Token v${tokenVersion}`)
-
-          // Se o usuário não existir ou a versão do token mudou, invalida a sessão
-          if (!dbUser || dbVersion !== tokenVersion) {
-            console.log(`❌ Sessão inválida para ${token.username}: Versão do token incompatível (DB: ${dbVersion}, Token: ${tokenVersion})`)
-            return { ...token, error: 'RefreshAccessTokenError' } // Retorna token inválido
-          }
-        } catch (error) {
-          console.error('Error validating session:', error)
-        }
-      }
-
       return token
     },
     async session({ session, token }) {
-      if (!token || token.error) {
-        console.log('⚠️ Sessão rejeitada devido a erro no token')
-        return null as any // Retorna null para invalidar a sessão no frontend
+      if (token) {
+        session.user = {
+          id: token.id as string,
+          username: token.username as string,
+          role: token.role as string
+        }
       }
-
-      session.user = {
-        id: token.id as string,
-        username: token.username as string,
-        role: token.role as string,
-        tokenVersion: token.tokenVersion as number
-      }
-      
       return session
     }
   },

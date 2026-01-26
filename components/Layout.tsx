@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState, useEffect } from 'react'
+import { ReactNode, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/router'
@@ -6,27 +6,24 @@ import { useTranslation } from '@/lib/i18n-helper'
 import Logo from './Logo'
 import BroadcastBanner from './BroadcastBanner'
 import MaintenanceBanner from './MaintenanceBanner'
+import { Outfit } from 'next/font/google'
 
 interface LayoutProps {
   children: ReactNode
 }
 
+const outfit = Outfit({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap'
+})
+
 export default function Layout({ children }: LayoutProps) {
-  const { data: session, status } = useSession()
+  const { data: session } = useSession()
   const { t, locale, changeLanguage } = useTranslation()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isAdminRoute = router.pathname.startsWith('/admin')
-
-  // Efeito para logout forçado se a sessão estiver inválida
-  useEffect(() => {
-    // Se o status for unauthenticated mas a página exigir auth, o middleware ou a página devem tratar
-    // Mas se o token falhou na renovação (tokenVersion mismatch), session será null/undefined
-    if (status === 'unauthenticated' && router.pathname !== '/login' && router.pathname !== '/register' && router.pathname !== '/') {
-       // Opcional: Redirecionar para login?
-       // Depende da página. Deixaremos que as páginas individuais ou middleware tratem o redirecionamento
-    }
-  }, [status, router])
 
   const navigationLinks = useMemo(() => {
     if (!session) return []
@@ -67,7 +64,7 @@ export default function Layout({ children }: LayoutProps) {
   }
 
   return (
-    <div className={`min-h-screen bg-black font-[Outfit] text-gray-100 ${isAdminRoute ? 'admin-shell' : ''}`}>
+    <div className={`min-h-screen bg-black text-gray-100 ${isAdminRoute ? 'admin-shell' : ''} ${outfit.className}`}>
       {/* Global Background Effects - Shared across all pages via Layout */}
       {!isAdminRoute && (
         <div className="fixed inset-0 pointer-events-none z-0">

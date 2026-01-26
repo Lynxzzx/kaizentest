@@ -944,6 +944,7 @@ export async function validateLoginRequest(
         recaptchaScore
       }
     }
+    // reCAPTCHA v3 passou - sucesso!
   } else if (process.env.RECAPTCHA_SECRET_KEY && process.env.NODE_ENV === 'production') {
     // reCAPTCHA obrigatório em produção se configurado
     return {
@@ -1089,3 +1090,4 @@ export function getBlockedIps(): { ip: string; type: string; blockedUntil: Date 
   
   return blocked
 }
+

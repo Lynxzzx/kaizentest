@@ -45,7 +45,6 @@ model User {
   theme         String?  @default("dark") // Tema: dark, light, default
   passwordResetToken String?
   passwordResetExpires DateTime?
-  tokenVersion  Int      @default(0) // Versão do token para invalidação de sessão
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   generatedAccounts GeneratedAccount[]

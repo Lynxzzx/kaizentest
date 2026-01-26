@@ -2,8 +2,6 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
-import { logAdminAction, getIpFromRequest } from '@/lib/admin-log'
-import { AdminAction } from '@prisma/client'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -96,21 +94,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
     }
-
-    // Log admin action
-    await logAdminAction({
-      userId: session.user.id,
-      action: AdminAction.RAFFLE_DRAW,
-      targetType: 'RAFFLE',
-      targetId: raffleId,
-      targetName: raffle.title,
-      details: {
-        winnerId: winner.id,
-        winnerUsername: winner.username,
-        prize: raffle.prize
-      },
-      ipAddress: getIpFromRequest(req)
-    })
 
     return res.status(200).json({
       message: 'Sorteio realizado com sucesso!',

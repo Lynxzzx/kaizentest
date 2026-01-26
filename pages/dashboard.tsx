@@ -9,8 +9,6 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
-import { useReCaptcha } from '@/components/ReCaptcha'
-import ReCaptcha from '@/components/ReCaptcha'
 
 interface ServicePlanRule {
   planId: string
@@ -72,9 +70,11 @@ export default function Dashboard() {
   const [cooldownRemaining, setCooldownRemaining] = useState(0)
   const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // 🛡️ Google reCAPTCHA v3 (invisível)
-  const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
-  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  // 🔐 CAPTCHA de digitação (somente para geração)
+  const [captchaId, setCaptchaId] = useState<string | null>(null)
+  const [captchaImage, setCaptchaImage] = useState<string | null>(null)
+  const [captchaInput, setCaptchaInput] = useState<string>('')
+  const [showCaptchaModal, setShowCaptchaModal] = useState(false)
 
   const requiresPaidPlan = (service: Service) => (service.allowedPlans?.length ?? 0) > 0
 
@@ -224,44 +224,35 @@ export default function Dashboard() {
       return
     }
 
-    // 🛡️ VERIFICAR reCAPTCHA v3
-    if (!recaptchaConfigured) {
-      toast.error('Verificação de segurança não configurada. Entre em contato com o suporte.')
-      return
-    }
-
     setLoading(true)
 
     try {
-      // Executar reCAPTCHA v3 - aguardar se necessário
-      let token = await executeRecaptcha('generate')
-
-      // Se não obteve token e não está pronto, aguardar um pouco
-      if (!token && !recaptchaReady) {
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        token = await executeRecaptcha('generate')
-      }
-
-      if (!token) {
-        toast.error('Erro ao verificar segurança. Por favor, recarregue a página e tente novamente.')
+      // Abrir CAPTCHA antes de enviar
+      if (!captchaId || !captchaImage) {
+        const { data } = await axios.get('/api/auth/captcha')
+        setCaptchaId(data.id)
+        setCaptchaImage(data.image)
+        setCaptchaInput('')
+        setShowCaptchaModal(true)
         setLoading(false)
         return
       }
-      setRecaptchaToken(token)
 
-      // Continuar com a requisição
+      // Enviar geração com CAPTCHA
       const response = await axios.post('/api/accounts/generate', {
         serviceId: selectedService,
-        recaptchaToken: token // 🛡️ Enviar token do reCAPTCHA v3
+        captchaId,
+        captchaCode: captchaInput
       })
 
       setGeneratedAccount(response.data)
       toast.success(t('accountGeneratedSuccess'))
       loadUserPlan()
       loadAccountHistory(1) // Recarregar histórico após gerar conta
-
-      // 🛡️ RESETAR reCAPTCHA APÓS GERAÇÃO
-      setRecaptchaToken(null)
+      setCaptchaId(null)
+      setCaptchaImage(null)
+      setCaptchaInput('')
+      setShowCaptchaModal(false)
 
       // 🛡️ INICIAR COOLDOWN APÓS GERAÇÃO BEM-SUCEDIDA
       if (response.data.cooldown?.seconds) {
@@ -273,8 +264,10 @@ export default function Dashboard() {
     } catch (error: any) {
       const errorData = error.response?.data
 
-      // 🛡️ RESETAR reCAPTCHA EM CASO DE ERRO
-      setRecaptchaToken(null)
+      // Em caso de erro, solicitar novo CAPTCHA
+      setCaptchaId(null)
+      setCaptchaImage(null)
+      setCaptchaInput('')
 
       // 🛡️ SE RECEBER COOLDOWN NA RESPOSTA DE ERRO
       if (errorData?.cooldownRemaining) {
@@ -303,7 +296,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-gray-100 font-[Outfit] pb-20">
+    <div className="min-h-screen bg-black text-gray-100 pb-20">
       {/* Background FX */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-indigo-600/10 blur-[100px]" />
@@ -471,12 +464,10 @@ export default function Dashboard() {
                 </div>
               )}
 
-              <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="generate" />
-
               <button
                 onClick={handleGenerateAccount}
-                disabled={loading || !selectedService || cooldownRemaining > 0 || !recaptchaConfigured}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-[0.98] ${cooldownRemaining > 0 || !recaptchaConfigured
+                disabled={loading || !selectedService || cooldownRemaining > 0}
+                className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-[0.98] ${cooldownRemaining > 0
                   ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:shadow-indigo-500/25'
                   }`}
@@ -764,6 +755,91 @@ export default function Dashboard() {
               <p>{t('noServicesAvailable')}</p>
             </div>
           )}
+        </div>
+      </div>
+      <CaptchaModal
+        open={showCaptchaModal}
+        image={captchaImage}
+        value={captchaInput}
+        onChange={setCaptchaInput}
+        onRefresh={async () => {
+          try {
+            const { data } = await axios.get('/api/auth/captcha')
+            setCaptchaId(data.id)
+            setCaptchaImage(data.image)
+            setCaptchaInput('')
+          } catch {
+            toast.error('Erro ao atualizar CAPTCHA. Tente novamente.')
+          }
+        }}
+        onConfirm={handleGenerateAccount}
+        onClose={() => {
+          setShowCaptchaModal(false)
+          setCaptchaId(null)
+          setCaptchaImage(null)
+          setCaptchaInput('')
+        }}
+      />
+    </div>
+  )
+}
+
+function CaptchaModal({
+  open,
+  image,
+  value,
+  onChange,
+  onRefresh,
+  onConfirm,
+  onClose
+}: {
+  open: boolean
+  image: string | null
+  value: string
+  onChange: (v: string) => void
+  onRefresh: () => void
+  onConfirm: () => void
+  onClose: () => void
+}) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70">
+      <div className="w-full max-w-md bg-[#0a0a0a] border border-white/10 rounded-2xl p-6">
+        <h3 className="text-lg font-bold text-white mb-4">Verificação</h3>
+        <p className="text-sm text-gray-400 mb-4">Digite os caracteres exibidos para continuar.</p>
+        <div className="flex items-center gap-3 mb-4">
+          {image ? (
+            <img src={image} alt="CAPTCHA" className="rounded-md border border-white/10" />
+          ) : (
+            <div className="w-[200px] h-[60px] rounded-md bg-white/10 animate-pulse" />
+          )}
+          <button
+            onClick={onRefresh}
+            className="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10"
+          >
+            Atualizar
+          </button>
+        </div>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+          placeholder="Digite os caracteres (A-Z, 2-9)"
+        />
+        <div className="flex justify-end gap-2 mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700"
+          >
+            Confirmar
+          </button>
         </div>
       </div>
     </div>

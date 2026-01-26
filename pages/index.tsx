@@ -122,7 +122,7 @@ export default function Home() {
   }, [planPopups])
 
   return (
-    <div className="relative min-h-screen bg-[#000000] text-white overflow-hidden font-[Outfit]">
+    <div className="relative min-h-screen bg-[#000000] text-white overflow-hidden">
       {/* Background Ambience */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-[radial-gradient(circle,rgba(79,70,229,0.15)_0%,transparent_70%)] blur-[120px]" />

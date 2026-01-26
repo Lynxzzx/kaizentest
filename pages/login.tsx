@@ -64,16 +64,22 @@ export default function Login() {
     setLoading(true)
 
     try {
+      // 🛡️ Executar reCAPTCHA v3
       if (!recaptchaConfigured) {
         toast.error('Verificação de segurança não configurada. Entre em contato com o suporte.')
         setLoading(false)
         return
       }
+
+      // Executar reCAPTCHA v3 - aguardar se necessário
       let token = await executeRecaptcha('login')
+      
+      // Se não obteve token e não está pronto, aguardar um pouco
       if (!token && !recaptchaReady) {
         await new Promise(resolve => setTimeout(resolve, 1000))
         token = await executeRecaptcha('login')
       }
+
       if (!token) {
         toast.error('Erro ao verificar segurança. Por favor, recarregue a página e tente novamente.')
         setLoading(false)

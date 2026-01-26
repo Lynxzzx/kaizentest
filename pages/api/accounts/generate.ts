@@ -12,7 +12,7 @@ import {
   getCooldownRemaining,
   GENERATION_PROTECTION
 } from '@/lib/generation-protection'
-import { verifyRecaptcha } from '@/lib/security'
+import { validateCaptcha } from '@/lib/captcha'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // ===========================================
@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Obter sessão de forma assíncrona
   const sessionPromise = getServerSession(req, res, authOptions)
 
-  const { serviceId, recaptchaToken } = req.body
+  const { serviceId, captchaId, captchaCode } = req.body
 
   if (!serviceId) {
     return res.status(400).json({ error: 'ServiceId is required' })
@@ -90,53 +90,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   // ===========================================
-  // 🛡️ VERIFICAR reCAPTCHA v3
+  // 🔐 VALIDAR CAPTCHA DE DIGITAÇÃO (OBRIGATÓRIO PARA GERAÇÃO)
   // ===========================================
-
-  const recaptchaSecretKey = process.env.RECAPTCHA_SECRET_KEY
-
-  if (recaptchaToken && recaptchaSecretKey) {
-    try {
-      const captchaResult = await verifyRecaptcha(recaptchaToken, 'generate')
-
-      if (!captchaResult.success) {
-        const errorCodes = captchaResult.errorCodes || []
-
-        // Erros conhecidos do reCAPTCHA que podem ocorrer mesmo com usuários legítimos:
-        // - timeout-or-duplicate: token expirado ou já usado (comum em double-clicks)
-        // - invalid-input-response: resposta inválida
-        // - bad-request: requisição malformada
-        const isTolerableError = errorCodes.some(code =>
-          ['timeout-or-duplicate', 'invalid-input-response', 'bad-request', 'network-error'].includes(code)
-        )
-
-        if (!isTolerableError) {
-          // Erro crítico - bloquear requisição
-          return res.status(403).json({
-            error: 'Verificação de segurança falhou. Por favor, tente novamente.',
-            securityBlock: true
-          })
-        } else {
-          // Erro tolerável - permitir requisição mas avisar
-          console.warn('⚠️ reCAPTCHA retornou erro tolerável, permitindo requisição:', errorCodes)
-        }
-      }
-    } catch (error) {
-      // Se houver erro na verificação (rede, etc), bloquear em produção
-      if (process.env.NODE_ENV === 'production') {
-        return res.status(403).json({
-          error: 'Erro ao verificar segurança. Tente novamente.',
-          securityBlock: true
-        })
-      }
-      console.warn('⚠️ Erro ao verificar reCAPTCHA:', error)
-    }
-  } else if (recaptchaSecretKey && process.env.NODE_ENV === 'production') {
-    // reCAPTCHA obrigatório em produção se configurado
-    return res.status(403).json({
-      error: 'Verificação de segurança obrigatória.',
-      securityBlock: true
-    })
+  if (!captchaId || !captchaCode) {
+    return res.status(400).json({ error: 'CAPTCHA obrigatório para gerar conta.' })
+  }
+  const captchaResult = validateCaptcha(captchaId, captchaCode)
+  if (!captchaResult.valid) {
+    return res.status(403).json({ error: captchaResult.error || 'CAPTCHA inválido.' })
   }
 
 
