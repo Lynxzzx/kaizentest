@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials'
 import { prisma } from '@/lib/prisma'
 import { verifyPassword } from '@/lib/auth'
 import { validateCaptcha } from '@/lib/captcha'
-import { verifyRecaptcha } from '@/lib/security'
+import { verifyRecaptcha, getClientIp, getUserAgent, logSecurityEvent } from '@/lib/security'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -16,7 +16,7 @@ export const authOptions: NextAuthOptions = {
         captchaCode: { label: 'CaptchaCode', type: 'text' },
         recaptchaToken: { label: 'RecaptchaToken', type: 'text' }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         try {
           if (!credentials?.username || !credentials?.password) {
             throw new Error('Username and password required')
@@ -46,6 +46,9 @@ export const authOptions: NextAuthOptions = {
           const isEmail = identifier.includes('@')
 
           console.log('🔐 Tentativa de login:', { identifier, isEmail })
+          
+          const ip = req ? getClientIp(req as any) : 'unknown'
+          const userAgent = req ? getUserAgent(req as any) : undefined
 
           // Primeiro tentar busca exata por username
           let user = await prisma.user.findUnique({
@@ -88,6 +91,14 @@ export const authOptions: NextAuthOptions = {
           if (!user) {
             console.log('❌ Usuário não encontrado após todas as tentativas')
             console.log('💡 Dica: Verifique se o username no banco está exatamente como:', identifier)
+            await logSecurityEvent({
+              type: 'login_attempt',
+              ip,
+              userAgent,
+              username: identifier,
+              success: false,
+              reason: 'Usuário não encontrado'
+            })
             throw new Error('Invalid credentials')
           }
 
@@ -98,10 +109,39 @@ export const authOptions: NextAuthOptions = {
 
           if (!isValid) {
             console.log('❌ Senha inválida')
+            await logSecurityEvent({
+              type: 'login_attempt',
+              ip,
+              userAgent,
+              username: identifier,
+              success: false,
+              reason: 'Senha inválida'
+            })
             throw new Error('Invalid credentials')
           }
 
           console.log('✅ Login bem-sucedido:', user.username)
+          
+          // Atualizar último IP e data de login
+          try {
+            await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                lastIp: ip,
+                lastIpAt: new Date()
+              }
+            })
+          } catch (e) {}
+          
+          // Registrar log de sucesso
+          await logSecurityEvent({
+            type: 'login_attempt',
+            ip,
+            userAgent,
+            username: user.username,
+            success: true,
+            reason: 'Login bem-sucedido'
+          })
 
           return {
             id: user.id,

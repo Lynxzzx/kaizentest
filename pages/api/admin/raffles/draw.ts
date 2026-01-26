@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { logAdminAction, getIpFromRequest } from '@/lib/admin-log'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -103,6 +104,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         username: winner.username,
         email: winner.email
       }
+    })
+    
+    // Log administrativo do sorteio
+    await logAdminAction({
+      userId: session.user.id,
+      action: 'RAFFLE_DRAW',
+      targetType: 'Raffle',
+      targetId: raffleId,
+      targetName: updatedRaffle.title,
+      details: {
+        winnerId: winner.id,
+        winnerUsername: winner.username
+      },
+      ipAddress: getIpFromRequest(req)
     })
   } catch (error: any) {
     console.error('Error drawing raffle:', error)

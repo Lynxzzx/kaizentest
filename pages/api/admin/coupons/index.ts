@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { logAdminAction, getIpFromRequest } from '@/lib/admin-log'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -66,6 +67,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           expiresAt: expiresAt ? new Date(expiresAt) : null,
           createdById: session.user.id
         }
+      })
+
+      await logAdminAction({
+        userId: session.user.id,
+        action: 'COUPON_CREATE',
+        targetType: 'Coupon',
+        targetId: coupon.id,
+        targetName: coupon.code,
+        details: {
+          discountType,
+          discountValue: Number(discountValue),
+          maxUses: maxUses ? Number(maxUses) : null,
+          expiresAt: expiresAt ? new Date(expiresAt) : null
+        },
+        ipAddress: getIpFromRequest(req)
       })
 
       return res.status(201).json(coupon)
