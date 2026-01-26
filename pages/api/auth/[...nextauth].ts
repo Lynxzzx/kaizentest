@@ -15,7 +15,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials, req) {
         try {
           // Capturar IP
-          const ip = req?.headers?.['x-forwarded-for'] || req?.socket?.remoteAddress || 'unknown'
+          const ip = req?.headers?.['x-forwarded-for'] || (req as any)?.socket?.remoteAddress || 'unknown'
           const ipAddress = Array.isArray(ip) ? ip[0] : (typeof ip === 'string' ? ip.split(',')[0] : 'unknown')
 
           if (!credentials?.username || !credentials?.password) {
