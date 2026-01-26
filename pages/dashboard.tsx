@@ -11,7 +11,6 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
 import { useReCaptcha } from '@/components/ReCaptcha'
 import ReCaptcha from '@/components/ReCaptcha'
-import VisualCaptcha, { useCaptcha } from '@/components/VisualCaptcha'
 
 interface ServicePlanRule {
   planId: string
@@ -76,14 +75,6 @@ export default function Dashboard() {
   // 🛡️ Google reCAPTCHA v3 (invisível)
   const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
-  const {
-    captchaId,
-    setCaptchaId,
-    captchaValue,
-    setCaptchaValue,
-    captchaError,
-    setCaptchaError
-  } = useCaptcha()
 
   const requiresPaidPlan = (service: Service) => (service.allowedPlans?.length ?? 0) > 0
 
@@ -186,7 +177,7 @@ export default function Dashboard() {
   const loadAccountHistory = async (page: number = 1) => {
     setHistoryLoading(true)
     try {
-      const response = await axios.get(`/api/accounts/history?page=${page}&limit=5`)
+      const response = await axios.get(`/api/accounts/history?page=${page}&limit=20`)
       setAccountHistory(response.data.accounts)
       setHistoryPagination(response.data.pagination)
       setHistoryPage(page)
@@ -215,12 +206,6 @@ export default function Dashboard() {
       return
     }
 
-    if (!captchaId || !captchaValue) {
-      setCaptchaError('Por favor, digite o código da imagem')
-      toast.error('Verifique o CAPTCHA.')
-      return
-    }
-
     // 🛡️ VERIFICAR COOLDOWN NO FRONTEND
     if (cooldownRemaining > 0) {
       toast.error(`Aguarde ${formatCooldown(cooldownRemaining)} antes de gerar novamente.`)
@@ -239,31 +224,35 @@ export default function Dashboard() {
       return
     }
 
-    // 🛡️ Executar reCAPTCHA v3 se configurado; caso contrário, prosseguir apenas com CAPTCHA visual
+    // 🛡️ VERIFICAR reCAPTCHA v3
+    if (!recaptchaConfigured) {
+      toast.error('Verificação de segurança não configurada. Entre em contato com o suporte.')
+      return
+    }
 
     setLoading(true)
 
     try {
       // Executar reCAPTCHA v3 - aguardar se necessário
-      let token: string | null = null
-      if (recaptchaConfigured) {
-        token = await executeRecaptcha('generate')
-      }
+      let token = await executeRecaptcha('generate')
 
       // Se não obteve token e não está pronto, aguardar um pouco
-      if (recaptchaConfigured && !token && !recaptchaReady) {
+      if (!token && !recaptchaReady) {
         await new Promise(resolve => setTimeout(resolve, 1000))
         token = await executeRecaptcha('generate')
       }
 
-      if (token) setRecaptchaToken(token)
+      if (!token) {
+        toast.error('Erro ao verificar segurança. Por favor, recarregue a página e tente novamente.')
+        setLoading(false)
+        return
+      }
+      setRecaptchaToken(token)
 
       // Continuar com a requisição
       const response = await axios.post('/api/accounts/generate', {
         serviceId: selectedService,
-        captchaId,
-        captchaCode: captchaValue,
-        recaptchaToken: token // 🛡️ Enviar token do reCAPTCHA v3 (se existir)
+        recaptchaToken: token // 🛡️ Enviar token do reCAPTCHA v3
       })
 
       setGeneratedAccount(response.data)
@@ -273,7 +262,6 @@ export default function Dashboard() {
 
       // 🛡️ RESETAR reCAPTCHA APÓS GERAÇÃO
       setRecaptchaToken(null)
-      setCaptchaError(null)
 
       // 🛡️ INICIAR COOLDOWN APÓS GERAÇÃO BEM-SUCEDIDA
       if (response.data.cooldown?.seconds) {
@@ -315,7 +303,7 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-gray-100 font-sans pb-20 selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-black text-gray-100 font-[Outfit] pb-20">
       {/* Background FX */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-indigo-600/10 blur-[100px]" />
@@ -326,50 +314,50 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 sm:pt-24 relative z-10">
 
         {/* Welcome Hero */}
-        <div className="glass-panel rounded-[2rem] p-6 sm:p-10 mb-8 relative overflow-hidden group hover:border-indigo-500/20 transition-all duration-500">
+        <div className="glass-panel rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 relative overflow-hidden group">
           <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent opacity-50" />
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 md:gap-6">
             <div>
-              <div className="flex items-center gap-4 mb-2">
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-2xl font-bold shadow-lg shadow-indigo-500/20">
+              <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-lg sm:text-xl font-bold">
                   {session.user.username?.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h1 className="text-2xl sm:text-3xl font-heading font-bold text-white leading-none mb-1">
+                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white leading-none mb-1">
                     {t('welcome')}, {session.user.username}
                   </h1>
-                  <p className="text-sm text-gray-400">
+                  <p className="text-xs sm:text-sm text-gray-400">
                     {t('welcomeDesc') || 'Bem-vindo ao seu painel de controle.'}
                   </p>
                 </div>
               </div>
             </div>
-            <div className="flex gap-3">
-              <Link href="/plans" className="flex-1 sm:flex-none px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-bold transition-all shadow-lg shadow-indigo-500/20 text-center text-sm sm:text-base whitespace-nowrap hover:-translate-y-0.5">
+            <div className="flex gap-2 sm:gap-3">
+              <Link href="/plans" className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 bg-indigo-600 hover:bg-indigo-700 rounded-lg sm:rounded-xl font-medium transition-all shadow-lg shadow-indigo-500/20 text-center text-xs sm:text-sm md:text-base whitespace-nowrap">
                 💎 {t('viewPlans')}
               </Link>
-              <Link href="/profile" className="flex-1 sm:flex-none px-6 py-3 glass-panel hover:bg-white/5 rounded-xl font-bold transition-all text-center text-sm sm:text-base whitespace-nowrap hover:-translate-y-0.5 border border-white/5">
+              <Link href="/profile" className="px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 glass-panel hover:bg-white/5 rounded-lg sm:rounded-xl font-medium transition-all text-center text-xs sm:text-sm md:text-base whitespace-nowrap">
                 👤 {t('myProfile')}
               </Link>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 mb-6 sm:mb-8">
 
           {/* Plan Status Card */}
-          <div className="glass-card rounded-[2rem] p-8 h-full">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="text-2xl font-heading font-bold flex items-center gap-3">
-                <span className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">📋</span>
+          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <span className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">📋</span>
                 {t('myPlan')}
               </h2>
               {userPlan?.plan ? (
-                <span className="px-4 py-1.5 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full uppercase tracking-wider border border-emerald-500/20">
+                <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-xs font-bold rounded-full uppercase tracking-wider border border-emerald-500/20">
                   {t('active')}
                 </span>
               ) : (
-                <span className="px-4 py-1.5 bg-gray-700 text-gray-300 text-xs font-bold rounded-full uppercase tracking-wider">
+                <span className="px-3 py-1 bg-gray-700 text-gray-300 text-xs font-bold rounded-full uppercase tracking-wider">
                   {t('free')}
                 </span>
               )}
@@ -377,9 +365,9 @@ export default function Dashboard() {
 
             {userPlan?.plan ? (
               <div className="space-y-6">
-                <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
+                <div className="p-5 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-3xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                    <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
                       {translatePlanName ? translatePlanName(userPlan.plan.name) : userPlan.plan.name}
                     </h3>
                   </div>
@@ -387,36 +375,36 @@ export default function Dashboard() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
-                    <p className="text-xs text-gray-500 uppercase tracking-widest mb-1 font-bold">{t('expiresIn')}</p>
-                    <p className="text-xl font-mono text-white">
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                    <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">{t('expiresIn')}</p>
+                    <p className="text-lg font-mono text-white">
                       {userPlan.planExpiresAt
                         ? format(new Date(userPlan.planExpiresAt), "dd/MM/yyyy", { locale: ptBR })
                         : 'N/A'}
                     </p>
                   </div>
-                  <div className="p-5 rounded-2xl bg-white/5 border border-white/5">
-                    <p className="text-xs text-gray-500 uppercase tracking-widest mb-1 font-bold">{t('generationsLabel')}</p>
-                    <p className="text-xl font-mono text-white">
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/5">
+                    <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">{t('generationsLabel')}</p>
+                    <p className="text-lg font-mono text-white">
                       {userPlan.plan.maxGenerations === 0 ? '∞' : userPlan.plan.maxGenerations}
                     </p>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-4">
-                <div className="w-20 h-20 rounded-3xl bg-gray-800/50 mx-auto mb-6 flex items-center justify-center text-4xl border border-white/5">
+              <div className="text-center py-6">
+                <div className="w-16 h-16 rounded-2xl bg-gray-800 mx-auto mb-4 flex items-center justify-center text-3xl">
                   🆓
                 </div>
-                <h3 className="text-2xl font-heading font-bold text-white mb-2">{t('freePlanLabel')}</h3>
-                <p className="text-gray-400 text-sm mb-8 max-w-xs mx-auto">{t('youAreUsingFreePlan')}</p>
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/5 mb-8 text-left">
+                <h3 className="text-xl font-bold text-white mb-2">{t('freePlanLabel')}</h3>
+                <p className="text-gray-400 text-sm mb-6">{t('youAreUsingFreePlan')}</p>
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/5 mb-6 text-left">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-400 font-medium">{t('dailyGenerations')}</span>
-                    <span className="font-bold text-white text-lg">2</span>
+                    <span className="text-gray-400">{t('dailyGenerations')}</span>
+                    <span className="font-bold text-white">2</span>
                   </div>
                 </div>
-                <Link href="/plans" className="block w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-500/25 transition-all hover:-translate-y-1">
+                <Link href="/plans" className="block w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl font-bold hover:shadow-lg hover:shadow-indigo-500/25 transition-all">
                   {t('upgradeToPremium')}
                 </Link>
               </div>
@@ -424,77 +412,45 @@ export default function Dashboard() {
           </div>
 
           {/* Generator Card */}
-          <div className="glass-card rounded-[2rem] p-8 border-t-2 border-t-indigo-500/50 relative overflow-hidden h-full">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 blur-[60px]" />
+          <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 border-t-2 border-t-indigo-500/50 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-[50px]" />
 
-            <h2 className="text-2xl font-heading font-bold flex items-center gap-3 mb-8 relative z-10">
-              <span className="w-10 h-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">⚡</span>
+            <h2 className="text-xl font-bold flex items-center gap-2 mb-6 relative z-10">
+              <span className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">⚡</span>
               {t('generateAccount')}
             </h2>
 
             <div className="space-y-6 relative z-10">
               <div>
-                <label className="block text-xs font-bold text-gray-500 mb-3 uppercase tracking-wider">{t('selectService')}</label>
-                {/* Grid de Serviços (Lado a lado no mobile) */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                <label className="block text-sm font-medium text-gray-400 mb-2 uppercase tracking-wider">{t('selectService')}</label>
+                <select
+                  value={selectedService}
+                  onChange={(e) => setSelectedService(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none"
+                >
+                  <option value="">{t('selectService')}...</option>
                   {services
                     .filter((service) => service._count.stocks > 0)
                     .map((service) => (
-                      <button
-                        key={service.id}
-                        onClick={() => setSelectedService(service.id)}
-                        className={`
-                          relative p-3 rounded-xl border transition-all text-left flex flex-col justify-between group h-24
-                          ${selectedService === service.id
-                            ? 'bg-indigo-600/20 border-indigo-500 shadow-[0_0_15px_rgba(79,70,229,0.2)]'
-                            : 'bg-white/5 border-white/5 hover:bg-white/10 hover:border-white/20'
-                          }
-                        `}
-                      >
-                        <span className={`font-bold text-sm leading-tight line-clamp-2 ${selectedService === service.id ? 'text-white' : 'text-gray-300'}`}>
-                          {service.name}
-                        </span>
-                        
-                        <div className="flex items-end justify-between w-full mt-2">
-                          <span className={`text-xs font-mono font-medium px-2 py-0.5 rounded-full ${
-                            service._count.stocks > 10 
-                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                          }`}>
-                            {service._count.stocks} un.
-                          </span>
-                          
-                          {requiresPaidPlan(service) && (
-                            <span className="text-xs" title="Plano Pago">🔒</span>
-                          )}
-                        </div>
-
-                        {selectedService === service.id && (
-                          <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_#6366f1]" />
-                        )}
-                      </button>
+                      <option key={service.id} value={service.id}>
+                        {service.name} • {service._count.stocks} {t('available')} {requiresPaidPlan(service) ? '🔒' : ''}
+                      </option>
                     ))}
-                </div>
-                {services.filter(s => s._count.stocks > 0).length === 0 && (
-                  <div className="text-center py-8 text-gray-500 text-sm bg-white/5 rounded-xl border border-white/5 border-dashed">
-                    Nenhum serviço com estoque no momento.
-                  </div>
-                )}
-                
+                </select>
                 {selectedService && (() => {
                   const chosen = services.find((service) => service.id === selectedService)
                   if (!chosen || !requiresPaidPlan(chosen)) return null
                   const hasAccess = canAccessService(chosen)
                   return hasAccess ? (
-                    <div className="mt-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 text-sm text-emerald-400">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    <p className="text-xs text-emerald-400 mt-2 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                       Liberado no seu plano
-                    </div>
+                    </p>
                   ) : (
-                    <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-sm text-red-400">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                    <p className="text-xs text-red-400 mt-2 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span>
                       Exclusivo para planos pagos
-                    </div>
+                    </p>
                   )
                 })()}
               </div>
@@ -515,26 +471,14 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {selectedService && (
-                <VisualCaptcha
-                  onValidated={() => {}}
-                  value={captchaValue}
-                  onChange={setCaptchaValue}
-                  captchaId={captchaId}
-                  onCaptchaIdChange={setCaptchaId}
-                  error={captchaError || undefined}
-                  theme={theme === 'dark' ? 'dark' : 'light'}
-                />
-              )}
-
               <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="generate" />
 
               <button
                 onClick={handleGenerateAccount}
-                disabled={loading || !selectedService || cooldownRemaining > 0}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-[0.98] shadow-lg ${cooldownRemaining > 0 || !recaptchaConfigured
+                disabled={loading || !selectedService || cooldownRemaining > 0 || !recaptchaConfigured}
+                className={`w-full py-4 rounded-xl font-bold text-lg transition-all transform active:scale-[0.98] ${cooldownRemaining > 0 || !recaptchaConfigured
                   ? 'bg-gray-800 text-gray-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-indigo-500/25 hover:-translate-y-1'
+                  : 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-lg hover:shadow-indigo-500/25'
                   }`}
               >
                 {loading ? (
@@ -550,9 +494,9 @@ export default function Dashboard() {
               </button>
 
               {!userPlan?.plan && (
-                <div className="flex justify-between text-xs px-2 py-2 bg-white/5 rounded-lg">
-                  <span className="text-gray-400">{t('youDontHaveActivePlan')}</span>
-                  <span className="text-emerald-400 font-bold">2 {t('freeGenerations')}</span>
+                <div className="flex justify-between text-xs px-1">
+                  <span className="text-gray-500">{t('youDontHaveActivePlan')}</span>
+                  <span className="text-emerald-400 font-medium">2 {t('freeGenerations')}</span>
                 </div>
               )}
             </div>
@@ -666,10 +610,10 @@ export default function Dashboard() {
 
         {/* History Section */}
         <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8">
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <span className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">📜</span>
-              Últimas contas geradas
+              {t('accountHistory') || 'Histórico'}
             </h2>
             <button
               onClick={() => {
@@ -686,7 +630,6 @@ export default function Dashboard() {
               {showHistory ? (t('hide') || 'Ocultar') : (t('viewHistory') || 'Ver Histórico')}
             </button>
           </div>
-          <p className="text-xs text-gray-400 mb-6">Mostrando até 5 contas geradas. Expira em 2 horas após a geração.</p>
 
           {showHistory && (
             <div className="animate-fade-in">
@@ -706,7 +649,7 @@ export default function Dashboard() {
                     {accountHistory.map((account) => (
                       <div
                         key={account.id}
-                        className="p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 hover:bg-white/10 transition-all shadow-sm"
+                        className="p-4 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                           <div>
@@ -723,8 +666,8 @@ export default function Dashboard() {
                             </p>
                           </div>
 
-                          <div className="flex flex-col gap-2 min-w-[220px]">
-                            <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/10">
+                          <div className="flex flex-col gap-2 min-w-[200px]">
+                            <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/5">
                               <span className="text-xs text-gray-500 w-12">User:</span>
                               <code className="text-xs font-mono text-emerald-400 flex-1 truncate">{account.username}</code>
                               <button
@@ -735,7 +678,7 @@ export default function Dashboard() {
                               </button>
                             </div>
                             {account.password && (
-                              <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/10">
+                              <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/5">
                                 <span className="text-xs text-gray-500 w-12">Pass:</span>
                                 <code className="text-xs font-mono text-emerald-400 flex-1 truncate">{account.password}</code>
                                 <button
@@ -746,28 +689,6 @@ export default function Dashboard() {
                                 </button>
                               </div>
                             )}
-                            <div className="flex items-center justify-between">
-                              <button
-                                onClick={() => {
-                                  const val = `${account.username}:${account.password || ''}`
-                                  navigator.clipboard.writeText(val)
-                                  toast.success('Copiado!')
-                                }}
-                                className="px-3 py-1 rounded-lg bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 text-xs"
-                              >
-                                Copiar credenciais
-                              </button>
-                              <span className="px-2 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs">
-                                Expira em {(() => {
-                                  const expiry = new Date(new Date(account.createdAt).getTime() + 2 * 60 * 60 * 1000)
-                                  const diff = expiry.getTime() - Date.now()
-                                  if (diff <= 0) return 'expirada'
-                                  const h = Math.floor(diff / (60 * 60 * 1000))
-                                  const m = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000))
-                                  return h > 0 ? `${h}h ${m}m` : `${m}m`
-                                })()}
-                              </span>
-                            </div>
                           </div>
                         </div>
                       </div>

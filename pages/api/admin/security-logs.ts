@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { limit = '100', type, ip, username, startDate, endDate } = req.query
+    const { limit = '100', type, ip } = req.query
 
     const where: any = {}
     
@@ -39,20 +39,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     if (ip && typeof ip === 'string') {
       where.ip = ip
-    }
-    
-    if (username && typeof username === 'string') {
-      where.username = username
-    }
-    
-    if (startDate || endDate) {
-      where.createdAt = {}
-      if (startDate && typeof startDate === 'string') {
-        where.createdAt.gte = new Date(startDate)
-      }
-      if (endDate && typeof endDate === 'string') {
-        where.createdAt.lte = new Date(endDate)
-      }
     }
 
     const logs = await prisma.securityLog.findMany({

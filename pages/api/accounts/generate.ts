@@ -13,7 +13,6 @@ import {
   GENERATION_PROTECTION
 } from '@/lib/generation-protection'
 import { verifyRecaptcha } from '@/lib/security'
-import { validateCaptcha } from '@/lib/captcha'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // ===========================================
@@ -27,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Obter sessão de forma assíncrona
   const sessionPromise = getServerSession(req, res, authOptions)
 
-  const { serviceId, captchaId, captchaCode, recaptchaToken } = req.body
+  const { serviceId, recaptchaToken } = req.body
 
   if (!serviceId) {
     return res.status(400).json({ error: 'ServiceId is required' })
@@ -88,18 +87,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     return res.status(429).json(response)
-  }
-
-  if (!captchaId || !captchaCode) {
-    return res.status(400).json({ error: 'CAPTCHA é obrigatório' })
-  }
-
-  const captchaResult = validateCaptcha(captchaId, String(captchaCode))
-  if (!captchaResult.valid) {
-    return res.status(403).json({
-      error: captchaResult.error || 'CAPTCHA inválido',
-      securityBlock: true
-    })
   }
 
   // ===========================================

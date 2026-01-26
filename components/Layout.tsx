@@ -12,11 +12,21 @@ interface LayoutProps {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const { t, locale, changeLanguage } = useTranslation()
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const isAdminRoute = router.pathname.startsWith('/admin')
+
+  // Efeito para logout forçado se a sessão estiver inválida
+  useEffect(() => {
+    // Se o status for unauthenticated mas a página exigir auth, o middleware ou a página devem tratar
+    // Mas se o token falhou na renovação (tokenVersion mismatch), session será null/undefined
+    if (status === 'unauthenticated' && router.pathname !== '/login' && router.pathname !== '/register' && router.pathname !== '/') {
+       // Opcional: Redirecionar para login?
+       // Depende da página. Deixaremos que as páginas individuais ou middleware tratem o redirecionamento
+    }
+  }, [status, router])
 
   const navigationLinks = useMemo(() => {
     if (!session) return []

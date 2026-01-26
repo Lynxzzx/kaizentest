@@ -7,7 +7,6 @@ import {
   getUserAgent,
   logSecurityEvent
 } from '@/lib/security'
-import { validateCaptcha } from '@/lib/captcha'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -35,26 +34,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       password, 
       deviceFingerprint, 
       affiliateRef,
-      captchaId,
-      captchaCode,
       recaptchaToken,
       honeypot,
       formStartTime
     } = req.body
 
     const sanitizedUsername = typeof username === 'string' ? username.trim() : ''
-
-    if (!captchaId || !captchaCode) {
-      return res.status(400).json({ error: 'CAPTCHA é obrigatório' })
-    }
-
-    const captchaResult = validateCaptcha(captchaId, String(captchaCode))
-    if (!captchaResult.valid) {
-      return res.status(403).json({
-        error: captchaResult.error || 'CAPTCHA inválido',
-        securityBlock: true
-      })
-    }
 
     // ================================================
     // 🛡️ VALIDAÇÃO DE SEGURANÇA COMPLETA

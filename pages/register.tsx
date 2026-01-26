@@ -9,7 +9,6 @@ import axios from 'axios'
 import { getStoredDeviceFingerprint } from '@/lib/device-fingerprint'
 import toast from 'react-hot-toast'
 import ReCaptcha, { useReCaptcha, ReCaptchaBadge } from '@/components/ReCaptcha'
-import VisualCaptcha, { useCaptcha } from '@/components/VisualCaptcha'
 
 export default function Register() {
   const { t } = useTranslation()
@@ -30,14 +29,6 @@ export default function Register() {
   // 🛡️ Google reCAPTCHA v3 (invisível)
   const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
-  const {
-    captchaId,
-    setCaptchaId,
-    captchaValue,
-    setCaptchaValue,
-    captchaError,
-    setCaptchaError
-  } = useCaptcha()
 
   // Capturar parâmetro ref da URL
   useEffect(() => {
@@ -58,12 +49,6 @@ export default function Register() {
     if (honeypot) {
       console.log('🚫 Honeypot triggered')
       toast.error('Verificação de segurança falhou. Por favor, tente novamente.')
-      return
-    }
-
-    if (!captchaId || !captchaValue) {
-      setCaptchaError('Por favor, digite o código da imagem')
-      toast.error('Verifique o CAPTCHA.')
       return
     }
 
@@ -92,21 +77,27 @@ export default function Register() {
 
     try {
       // 🛡️ Executar reCAPTCHA v3
-      // Executar reCAPTCHA se estiver configurado; caso contrário, prosseguir apenas com CAPTCHA visual
+      if (!recaptchaConfigured) {
+        toast.error('Verificação de segurança não configurada. Entre em contato com o suporte.')
+        setLoading(false)
+        return
+      }
 
       // Executar reCAPTCHA v3 - aguardar se necessário
-      let token: string | null = null
-      if (recaptchaConfigured) {
-        token = await executeRecaptcha('register')
-      }
+      let token = await executeRecaptcha('register')
       
       // Se não obteve token e não está pronto, aguardar um pouco
-      if (recaptchaConfigured && !token && !recaptchaReady) {
+      if (!token && !recaptchaReady) {
         await new Promise(resolve => setTimeout(resolve, 1000))
         token = await executeRecaptcha('register')
       }
 
-      if (token) setRecaptchaToken(token)
+      if (!token) {
+        toast.error('Erro ao verificar segurança. Por favor, recarregue a página e tente novamente.')
+        setLoading(false)
+        return
+      }
+      setRecaptchaToken(token)
 
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000)
@@ -121,8 +112,6 @@ export default function Register() {
         deviceFingerprint,
         affiliateRef: affiliateRef || null,
         // 🛡️ Dados de segurança
-        captchaId,
-        captchaCode: captchaValue,
         recaptchaToken: token,
         honeypot,
         formStartTime: formStartTimeRef.current
@@ -132,17 +121,13 @@ export default function Register() {
       })
 
       clearTimeout(timeoutId)
-      setCaptchaError(null)
       
       toast.success(t('accountCreatedSuccess'))
       
       const loginResult = await signIn('credentials', {
         redirect: false,
         username,
-        password,
-        captchaId,
-        captchaCode: captchaValue,
-        recaptchaToken
+        password
       })
 
       if (loginResult?.error) {
@@ -292,16 +277,6 @@ export default function Register() {
               />
             </div>
 
-            <VisualCaptcha
-              onValidated={() => {}}
-              value={captchaValue}
-              onChange={setCaptchaValue}
-              captchaId={captchaId}
-              onCaptchaIdChange={setCaptchaId}
-              error={captchaError || undefined}
-              theme={theme === 'dark' ? 'dark' : 'light'}
-            />
-
             {/* 🛡️ Google reCAPTCHA v3 (invisível) */}
             <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="register" />
 
@@ -318,7 +293,7 @@ export default function Register() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !recaptchaConfigured}
               className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {loading ? (

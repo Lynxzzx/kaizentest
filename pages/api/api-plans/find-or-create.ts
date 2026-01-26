@@ -28,8 +28,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  return res.status(503).json({ error: 'API offline', message: 'Criação/atualização de planos de API indisponível.' })
-
   const { planId } = req.body // planId é o ID estático (api-starter, api-creator, etc)
 
   if (!planId || !API_PLANS_MAP[planId]) {

@@ -38,18 +38,40 @@ function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   }, [])
 
   return (
-    <SessionProvider session={session}>
+    <SessionProvider session={session} refetchInterval={5 * 60} refetchOnWindowFocus={true}>
       <ThemeProvider>
         <ChristmasProvider>
-          <Layout>
-            <Component {...pageProps} />
-            <Toaster position="top-right" />
-          </Layout>
+          <AuthHandler>
+            <Layout>
+              <Component {...pageProps} />
+              <Toaster position="top-right" />
+            </Layout>
+          </AuthHandler>
           <ChristmasEffects />
         </ChristmasProvider>
       </ThemeProvider>
     </SessionProvider>
   )
+}
+
+// Componente auxiliar para lidar com lógica de autenticação global
+import { useSession, signOut } from 'next-auth/react'
+
+function AuthHandler({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession()
+
+  useEffect(() => {
+    // Se a sessão estiver autenticada mas o usuário estiver vazio (devido ao erro no token), força logout
+    if (status === 'authenticated' && !session) {
+      console.log('⚠️ Sessão corrompida ou invalidada detectada (session is null). Forçando logout...')
+      signOut({ callbackUrl: '/login' })
+    }
+    
+    // Fallback: Se status for unauthenticated mas estavamos logados antes (detectado via localStorage ou cookie se quisessemos ser mais robustos)
+    // Mas aqui vamos confiar no retorno nulo da session
+  }, [session, status])
+
+  return <>{children}</>
 }
 
 export default App

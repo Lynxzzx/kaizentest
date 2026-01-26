@@ -2,7 +2,6 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
-import { logAdminAction, getIpFromRequest } from '@/lib/admin-log'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -70,21 +69,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
       }
-    })
-    
-    // Log administrativo da criação
-    await logAdminAction({
-      userId: session.user.id,
-      action: 'RAFFLE_CREATE',
-      targetType: 'Raffle',
-      targetId: raffle.id,
-      targetName: raffle.title,
-      details: {
-        prizeType,
-        prizePlanId,
-        endDate: endDateObj.toISOString()
-      },
-      ipAddress: getIpFromRequest(req)
     })
 
     return res.status(201).json(raffle)
