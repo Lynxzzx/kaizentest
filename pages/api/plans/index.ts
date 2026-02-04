@@ -9,7 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'GET') {
     const type = typeof req.query.type === 'string' ? req.query.type.toUpperCase() : null
     if (type === 'API') {
-      let apiPlans = await prisma.plan.findMany({
+      const apiPlans = await prisma.plan.findMany({
         where: {
           isActive: true,
           OR: [
@@ -19,69 +19,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         orderBy: { price: 'asc' }
       })
-      if (apiPlans.length === 0) {
-        const defaults = [
-          { name: 'API KAIZEN STARTER', price: 79.90, duration: 30, maxGenerations: 1500 },
-          { name: 'API KAIZEN CREATOR', price: 149.90, duration: 30, maxGenerations: 5000 },
-          { name: 'API KAIZEN PRO',     price: 299.90, duration: 30, maxGenerations: 15000 }
-        ]
-        await prisma.plan.createMany({
-          data: defaults.map(d => ({
-            name: d.name,
-            description: d.name,
-            price: d.price,
-            duration: d.duration,
-            maxGenerations: d.maxGenerations,
-            isActive: true,
-            type: 'API'
-          }))
-        })
-        apiPlans = await prisma.plan.findMany({
-          where: {
-            isActive: true,
-            OR: [
-              { type: 'API' },
-              { name: { contains: 'API', mode: 'insensitive' } }
-            ]
-          },
-          orderBy: { price: 'asc' }
-        })
-      }
       return res.json(apiPlans)
     }
     if (type === 'SITE') {
-      let sitePlans = await prisma.plan.findMany({
+      const sitePlans = await prisma.plan.findMany({
         where: {
           isActive: true,
-          NOT: { type: 'API' }
+          OR: [
+            { type: 'SITE' },
+            { NOT: { name: { contains: 'API', mode: 'insensitive' } } }
+          ]
         },
         orderBy: { price: 'asc' }
       })
-      if (sitePlans.length === 0) {
-        const defaults = [
-          { name: 'KAIZEN DAILY',    description: 'Plano Diário',    price: 5.00,  duration: 1,  maxGenerations: 0 },
-          { name: 'KAIZEN MONTHLY',  description: 'Plano Mensal',    price: 12.50, duration: 30, maxGenerations: 0 },
-          { name: 'KAIZEN LIFETIME', description: 'Plano Vitalício', price: 20.00, duration: 0,  maxGenerations: 0 }
-        ]
-        await prisma.plan.createMany({
-          data: defaults.map(d => ({
-            name: d.name,
-            description: d.description,
-            price: d.price,
-            duration: d.duration,
-            maxGenerations: d.maxGenerations,
-            isActive: true,
-            type: 'SITE'
-          }))
-        })
-        sitePlans = await prisma.plan.findMany({
-          where: {
-            isActive: true,
-            NOT: { type: 'API' }
-          },
-          orderBy: { price: 'asc' }
-        })
-      }
       return res.json(sitePlans)
     }
     const plans = await prisma.plan.findMany({
