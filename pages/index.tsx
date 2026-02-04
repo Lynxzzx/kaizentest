@@ -163,19 +163,23 @@ export default function Home() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
             </span>
-            {t('heroBadge')}
+            {locale === 'pt-BR' ? 'MAIOR gerador de contas do PLANETA' : t('heroBadge')}
           </div>
 
           <h1 className="text-5xl sm:text-7xl font-bold tracking-tight mb-8 leading-[1.1]">
-            <span className="block">{t('heroSubtitle')}</span>
+            <span className="block">
+              {locale === 'pt-BR' ? 'Somos o MAIOR gerador de contas do planeta' : t('heroSubtitle')}
+            </span>
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
-              {t('heroDescription')}
+              {locale === 'pt-BR' ? 'Atividade constante. Super ativo. Sem enrolação.' : t('heroDescription')}
             </span>
           </h1>
 
-          <p className="max-w-2xl mx-auto text-lg text-gray-400 mb-10 leading-relaxed">
-            {t('heroTrustedBy')}
-          </p>
+          <div className="max-w-3xl mx-auto mb-12">
+            <p className="text-lg text-gray-400 leading-relaxed">
+              {locale === 'pt-BR' ? 'Operação 24/7 em escala global. Centenas de milhares de credenciais geradas com qualidade premium.' : t('heroTrustedBy')}
+            </p>
+          </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
             <Link
@@ -190,6 +194,16 @@ export default function Home() {
             >
               {t('viewPlans')}
             </Link>
+          </div>
+
+          <div className="max-w-5xl mx-auto mb-16">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 items-center opacity-80">
+              {partners.map((p, i) => (
+                <div key={i} className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs sm:text-sm text-gray-300 text-center">
+                  {p}
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Stats Grid */}
@@ -219,6 +233,23 @@ export default function Home() {
                 </p>
               </div>
             ))}
+          </div>
+          <div className="mt-16 grid md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30">
+              <p className="text-sm text-indigo-300 mb-2">Diferencial</p>
+              <h4 className="text-2xl font-bold text-white mb-2">Atividade constante</h4>
+              <p className="text-gray-300">Infra confiável e filas otimizadas para gerar credenciais em ritmo de produção, o dia todo.</p>
+            </div>
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30">
+              <p className="text-sm text-emerald-300 mb-2">Escala</p>
+              <h4 className="text-2xl font-bold text-white mb-2">Operação global</h4>
+              <p className="text-gray-300">Latência baixa e disponibilidade alta, atendendo usuários em dezenas de países.</p>
+            </div>
+            <div className="p-6 rounded-3xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-500/30">
+              <p className="text-sm text-pink-300 mb-2">Qualidade</p>
+              <h4 className="text-2xl font-bold text-white mb-2">UX premium</h4>
+              <p className="text-gray-300">Experiência refinada com design moderno, animações sutis e foco em conversão.</p>
+            </div>
           </div>
         </div>
       </section>
@@ -250,10 +281,10 @@ export default function Home() {
 
       {/* CTA Section */}
       <section className="py-24 px-6">
-        <div className="max-w-4xl mx-auto glass-card rounded-[3rem] p-12 text-center relative overflow-hidden">
+        <div className="max-w-5xl mx-auto glass-card rounded-[3rem] p-12 text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-indigo-500/10 to-purple-500/10" />
           <div className="relative z-10">
-            <h2 className="text-4xl font-bold mb-6">{t('readyToStart')}</h2>
+            <h2 className="text-5xl font-bold mb-6">{locale === 'pt-BR' ? 'Pronto para gerar em nível planetário?' : t('readyToStart')}</h2>
             <p className="text-lg text-gray-400 mb-8 max-w-xl mx-auto">{t('readyToStartDesc')}</p>
             <div className="flex justify-center gap-4">
               <Link href="/register" className="px-8 py-3 bg-white text-black rounded-full font-semibold hover:bg-gray-100 transition-colors">
