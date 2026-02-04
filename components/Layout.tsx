@@ -1,4 +1,4 @@
-import { ReactNode, useMemo, useState } from 'react'
+import { ReactNode, useMemo, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/router'
@@ -63,6 +63,30 @@ export default function Layout({ children }: LayoutProps) {
       }`
   }
 
+  // 🌍 Detectar idioma pela região e aplicar automaticamente (uma vez)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const stored = window.localStorage.getItem('preferredLocale')
+    if (stored) return
+    ;(async () => {
+      try {
+        const res = await fetch('/api/geo')
+        const data = await res.json()
+        const suggested = data?.suggestedLocale as string
+        if (suggested && suggested !== locale) {
+          changeLanguage(suggested)
+          window.localStorage.setItem('preferredLocale', suggested)
+        }
+      } catch {}
+    })()
+  }, [locale, changeLanguage])
+
+  const languages: Array<{ code: 'pt-BR' | 'en' | 'es'; label: string; flag: string; title: string }> = [
+    { code: 'pt-BR', label: 'Português', flag: 'br', title: 'Português (Brasil)' },
+    { code: 'en', label: 'English', flag: 'us', title: 'English (US)' },
+    { code: 'es', label: 'Español', flag: 'es', title: 'Español (ES)' }
+  ]
+
   return (
     <div className={`min-h-screen bg-black text-gray-100 ${isAdminRoute ? 'admin-shell' : ''} ${outfit.className}`}>
       {/* Global Background Effects - Shared across all pages via Layout */}
@@ -100,18 +124,31 @@ export default function Layout({ children }: LayoutProps) {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Language Switcher */}
-              <div className="hidden sm:flex items-center bg-white/5 rounded-lg p-1 border border-white/5">
-                {['pt-BR', 'en', 'es'].map((lang) => (
+              {/* Language Switcher - Visível e com bandeiras */}
+              <div className="flex items-center bg-white/5 rounded-xl px-2 py-1 border border-white/10">
+                {languages.map((lang) => (
                   <button
-                    key={lang}
-                    onClick={() => changeLanguage(lang)}
-                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${locale === lang
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'text-gray-400 hover:text-white'
-                      }`}
+                    key={lang.code}
+                    onClick={() => {
+                      changeLanguage(lang.code)
+                      if (typeof window !== 'undefined') {
+                        window.localStorage.setItem('preferredLocale', lang.code)
+                      }
+                    }}
+                    className={`flex items-center gap-2 px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                      locale === lang.code ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                    title={lang.title}
+                    aria-label={lang.title}
                   >
-                    {lang === 'pt-BR' ? '🇧🇷' : lang === 'en' ? '🇺🇸' : '🇪🇸'}
+                    <img
+                      src={`https://flagcdn.com/24x18/${lang.flag}.png`}
+                      alt={lang.title}
+                      width={24}
+                      height={18}
+                      className="rounded-[3px] border border-white/10"
+                    />
+                    <span className="hidden sm:inline">{lang.label}</span>
                   </button>
                 ))}
               </div>
