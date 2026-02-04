@@ -785,7 +785,7 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
     console.error('='.repeat(80))
     console.error('❌ ERRO - PagSeguro CARTÃO')
     console.error('='.repeat(80))
-    console.error('📡 URL:', `${apiUrl}/charges`)
+    console.error('📡 URL:', `${apiUrl}/orders`)
     console.error('🌐 Ambiente:', apiUrl.includes('sandbox') ? 'SANDBOX' : 'PRODUÇÃO')
     
     if (error.response) {
@@ -825,7 +825,67 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
         // Mapear erros comuns do cartão
         const cardError = new Error(mapCardErrorMessage(errorCode, errorDescription))
         cardError.name = 'PagSeguroCardError'
-        throw cardError
+        // Fallback: tentar endpoint /charges quando /orders recusar a estrutura
+        try {
+          console.warn('⚠️ Tentando fallback via /charges...')
+          const headers: any = {
+            'Authorization': `Bearer ${key}`,
+            'App-Token': key,
+            'Content-Type': 'application/json'
+          }
+          const sellerEmail = await getPagSeguroSellerEmail()
+          if (sellerEmail) headers['X-Seller-Email'] = sellerEmail
+          const valueInCents = Math.round(data.amount * 100)
+          const customerData: any = {
+            name: data.customer.name,
+            email: data.customer.email.trim(),
+            tax_id: data.customer.tax_id.replace(/\D/g, '')
+          }
+          const chargeBody: any = {
+            reference_id: data.reference_id,
+            description: data.description,
+            amount: {
+              value: valueInCents,
+              currency: 'BRL'
+            },
+            payment_method: {
+              type: 'CREDIT_CARD',
+              installments: data.installments || 1,
+              capture: true,
+              card: {
+                number: data.card.number.replace(/\D/g, ''),
+                exp_month: data.card.exp_month.padStart(2, '0'),
+                exp_year: data.card.exp_year,
+                security_code: data.card.security_code,
+                holder: { name: data.card.holder.name.toUpperCase() }
+              }
+            },
+            customer: customerData
+          }
+          console.log('📤 Fallback REQUEST /charges')
+          const response = await axios.post(
+            `${apiUrl}/charges`,
+            chargeBody,
+            { headers }
+          )
+          console.log('📥 Fallback RESPONSE /charges:', response.status)
+          const charge = response.data
+          const paymentStatus = charge.status
+          const chargeId = charge.id
+          const orderId = charge.order_id || charge.order?.id
+          return {
+            id: chargeId || orderId,
+            orderId: orderId,
+            status: paymentStatus,
+            paid: paymentStatus === 'PAID' || paymentStatus === 'AUTHORIZED',
+            message: getCardPaymentStatusMessage(paymentStatus),
+            paymentMethod: charge.payment_method,
+            createdAt: charge.created_at
+          }
+        } catch (fallbackError: any) {
+          console.error('❌ Fallback /charges falhou:', fallbackError.response?.data || fallbackError.message)
+          throw cardError
+        }
       }
     }
 
@@ -864,4 +924,3 @@ function getCardPaymentStatusMessage(status: string): string {
   
   return statusMap[status] || 'Processando pagamento...'
 }
-
