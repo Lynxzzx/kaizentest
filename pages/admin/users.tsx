@@ -129,7 +129,7 @@ export default function AdminUsers() {
 
   const loadPlans = async () => {
     try {
-      const response = await axios.get('/api/plans')
+      const response = await axios.get('/api/plans?type=SITE')
       setPlans(response.data)
     } catch (error) {
       toast.error('Erro ao carregar planos')
@@ -138,12 +138,8 @@ export default function AdminUsers() {
 
   const loadApiPlans = async () => {
     try {
-      const response = await axios.get('/api/plans')
-      // Filtrar apenas planos que contêm "API" no nome
-      const apiPlansList = response.data.filter((plan: Plan) =>
-        plan.name.toLowerCase().includes('api')
-      )
-      setApiPlans(apiPlansList)
+      const response = await axios.get('/api/plans?type=API')
+      setApiPlans(response.data)
     } catch (error) {
       toast.error('Erro ao carregar planos de API')
     }

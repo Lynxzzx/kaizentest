@@ -29,6 +29,13 @@ export default function ApiKeys() {
   const { theme } = useTheme()
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [loading, setLoading] = useState(true)
+  const [apiPlans, setApiPlans] = useState<Array<{ id: string; name: string }>>([])
+  const [createForm, setCreateForm] = useState({
+    planId: '',
+    usageType: 'SITE' as 'SITE' | 'BOT',
+    identifier: ''
+  })
+  const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     if (!session) {
@@ -37,6 +44,7 @@ export default function ApiKeys() {
     }
 
     loadApiKeys()
+    loadApiPlans()
   }, [session])
 
   const loadApiKeys = async () => {
@@ -47,6 +55,35 @@ export default function ApiKeys() {
       toast.error('Erro ao carregar API keys')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadApiPlans = async () => {
+    try {
+      const response = await axios.get('/api/plans?type=API')
+      setApiPlans(response.data.map((p: any) => ({ id: p.id, name: p.name })))
+    } catch {}
+  }
+
+  const handleCreate = async () => {
+    if (!createForm.planId) {
+      toast.error('Selecione um plano de API')
+      return
+    }
+    setCreating(true)
+    try {
+      const response = await axios.post('/api/api-keys', {
+        planId: createForm.planId,
+        usageType: createForm.usageType,
+        identifier: createForm.identifier
+      })
+      toast.success('API key criada com sucesso!')
+      setCreateForm({ planId: '', usageType: 'SITE', identifier: '' })
+      loadApiKeys()
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao criar API key')
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -85,12 +122,72 @@ export default function ApiKeys() {
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-4xl font-bold text-white">🔑 Minhas API Keys</h1>
-            <button
-              onClick={() => router.push('/api-plans')}
-              className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-            >
-              + Nova API Key
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => router.push('/api-plans')}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+              >
+                Assinar Plano de API
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 mb-8">
+            <h2 className="text-xl font-bold text-white mb-4">Criar API Key</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Plano de API</label>
+                <select
+                  value={createForm.planId}
+                  onChange={(e) => setCreateForm({ ...createForm, planId: e.target.value })}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500/50 outline-none"
+                >
+                  <option value="">Selecione...</option>
+                  {apiPlans.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">Tipo de uso</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCreateForm({ ...createForm, usageType: 'SITE' })}
+                    className={`px-4 py-2 rounded-lg text-sm ${createForm.usageType === 'SITE' ? 'bg-purple-600 text-white' : 'bg-white/10 text-slate-300'}`}
+                  >
+                    Site
+                  </button>
+                  <button
+                    onClick={() => setCreateForm({ ...createForm, usageType: 'BOT' })}
+                    className={`px-4 py-2 rounded-lg text-sm ${createForm.usageType === 'BOT' ? 'bg-purple-600 text-white' : 'bg-white/10 text-slate-300'}`}
+                  >
+                    Bot
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-300 mb-1">
+                  {createForm.usageType === 'SITE' ? 'Domínio (opcional)' : 'Nome do Bot (opcional)'}
+                </label>
+                <input
+                  value={createForm.identifier}
+                  onChange={(e) => setCreateForm({ ...createForm, identifier: e.target.value })}
+                  placeholder={createForm.usageType === 'SITE' ? 'ex: meuapp.com' : 'ex: @meubot'}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500/50 outline-none"
+                />
+              </div>
+            </div>
+            <div className="mt-4">
+              <button
+                onClick={handleCreate}
+                disabled={creating}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {creating ? 'Criando...' : 'Criar API Key'}
+              </button>
+            </div>
           </div>
 
           {apiKeys.length === 0 ? (

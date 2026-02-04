@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     // Criar nova API key
-    const { planId, name } = req.body
+    const { planId, name, usageType, identifier } = req.body
 
     if (!planId) {
       return res.status(400).json({ error: 'planId is required' })
@@ -63,12 +63,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
 
+    // Construir nome amigável com tipo de uso
+    let computedName: string | undefined = name || undefined
+    const normalizedUsage = typeof usageType === 'string' ? usageType.toUpperCase() : null
+    const idLabel = typeof identifier === 'string' && identifier.trim().length > 0 ? identifier.trim() : undefined
+    if (!computedName) {
+      if (normalizedUsage === 'BOT' && idLabel) {
+        computedName = `bot:${idLabel}`
+      } else if (normalizedUsage === 'BOT') {
+        computedName = 'bot:unnamed'
+      } else if (normalizedUsage === 'SITE' && idLabel) {
+        computedName = `site:${idLabel}`
+      } else if (normalizedUsage === 'SITE') {
+        computedName = 'site:unknown'
+      }
+    }
+
     const apiKey = await prisma.apiKey.create({
       data: {
         key: generateApiKey(),
         userId: session.user.id,
         planId: planId,
-        name: name || undefined,
+        name: computedName,
         monthlyGenerations: plan.maxGenerations || 0,
         rateLimit: 60 // Padrão, pode ser customizado por plano
       },
