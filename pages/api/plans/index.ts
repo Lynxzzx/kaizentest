@@ -10,7 +10,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const type = typeof req.query.type === 'string' ? req.query.type.toUpperCase() : null
     if (type === 'API') {
       let apiPlans = await prisma.plan.findMany({
-        where: { isActive: true, type: 'API' },
+        where: {
+          isActive: true,
+          OR: [
+            { type: 'API' },
+            { name: { contains: 'API', mode: 'insensitive' } }
+          ]
+        },
         orderBy: { price: 'asc' }
       })
       if (apiPlans.length === 0) {
@@ -31,7 +37,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }))
         })
         apiPlans = await prisma.plan.findMany({
-          where: { isActive: true, type: 'API' },
+          where: {
+            isActive: true,
+            OR: [
+              { type: 'API' },
+              { name: { contains: 'API', mode: 'insensitive' } }
+            ]
+          },
           orderBy: { price: 'asc' }
         })
       }
@@ -39,7 +51,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     if (type === 'SITE') {
       const sitePlans = await prisma.plan.findMany({
-        where: { isActive: true, type: 'SITE' },
+        where: {
+          isActive: true,
+          NOT: { type: 'API' }
+        },
         orderBy: { price: 'asc' }
       })
       return res.json(sitePlans)
