@@ -44,6 +44,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(404).json({ error: 'Pagamento não encontrado' })
     }
 
+    // ========================================
+    // VERIFICAR PAGAMENTOS CARTÃO (PagSeguro)
+    // ========================================
+    if (payment.method === 'CARD' && payment.asaasId) {
+      try {
+        console.log(`🔍 [check-status] Verificando CARTÃO ${payment.id}...`)
+        const pagSeguroOrder = await getPagSeguroPayment(payment.asaasId)
+        const orderStatus = pagSeguroOrder?.status
+        const chargeStatus = pagSeguroOrder?.charges?.[0]?.status
+        const normalizedOrderStatus = typeof orderStatus === 'string' ? orderStatus.toUpperCase() : ''
+        const normalizedChargeStatus = typeof chargeStatus === 'string' ? chargeStatus.toUpperCase() : ''
+        const isPaid = ['PAID', 'AUTHORIZED', 'APPROVED'].some(s =>
+          normalizedOrderStatus === s || normalizedChargeStatus === s
+        )
+
+        if (isPaid) {
+          console.log(`✅ [check-status] CARTÃO ${payment.id} está CONFIRMADO! Ativando...`)
+          const paidAt = pagSeguroOrder?.charges?.[0]?.paid_at
+            ? new Date(pagSeguroOrder.charges[0].paid_at)
+            : new Date()
+          await settlePaymentAsPaid(payment, {
+            paidAt,
+            pagSeguroReferenceId: pagSeguroOrder?.reference_id || undefined
+          })
+          return res.json({
+            success: true,
+            status: 'PAID',
+            message: 'Pagamento confirmado! Plano ativado.',
+            paidAt: paidAt.toISOString(),
+            planActivated: true
+          })
+        }
+
+        return res.json({
+          success: true,
+          status: 'PENDING',
+          message: 'Pagamento via cartão em processamento',
+          providerStatus: {
+            order: normalizedOrderStatus || orderStatus,
+            charge: normalizedChargeStatus || chargeStatus
+          }
+        })
+      } catch (error: any) {
+        console.error(`❌ [check-status] Erro ao verificar CARTÃO:`, error.message)
+        return res.json({
+          success: true,
+          status: 'PENDING',
+          message: 'Aguardando confirmação do pagamento',
+          note: 'Não foi possível consultar o status. Tente novamente em alguns segundos.'
+        })
+      }
+    }
+
     // Verificar permissão: apenas o dono do pagamento ou admin pode verificar
     const isOwner = payment.userId === session.user.id
     const isAdmin = session.user.role === 'ADMIN' || session.user.role === 'OWNER'
