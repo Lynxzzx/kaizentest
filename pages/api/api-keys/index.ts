@@ -28,73 +28,75 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     // Criar nova API key
-    const { planId, name, usageType, identifier } = req.body
-
-    if (!planId) {
-      return res.status(400).json({ error: 'planId is required' })
-    }
-
-    // Verificar se o plano existe e é um plano de API
-    const plan = await prisma.plan.findUnique({
-      where: { id: planId }
+    const { planId: bodyPlanId, name, usageType, identifier } = req.body
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { apiPlanId: true, apiPlanExpiresAt: true }
     })
-
+    const now = new Date()
+    const hasActiveAssignedApiPlan =
+      !!user?.apiPlanId && (user?.apiPlanExpiresAt === null || (user?.apiPlanExpiresAt as Date) > now)
+    const effectivePlanId: string | null = bodyPlanId || (hasActiveAssignedApiPlan ? (user!.apiPlanId as string) : null)
+    if (!effectivePlanId) {
+      return res.status(400).json({ error: 'Sem plano de API ativo. Selecione um plano ou peça atribuição ao Owner.' })
+    }
+ 
+    // Verificar se o plano existe e é de API (compatível com registros antigos)
+    const plan = await prisma.plan.findUnique({ where: { id: effectivePlanId } })
     if (!plan) {
       return res.status(404).json({ error: 'Plan not found' })
     }
-
-    // OWNER tem acesso automático ao melhor plano de API (api-pro) para testes
+    const isApiPlan = (plan as any)?.type === 'API' || plan.name.toLowerCase().includes('api')
+    if (!isApiPlan) {
+      return res.status(400).json({ error: 'O plano selecionado não é de API' })
+    }
+ 
+    // Permissões
     const isOwner = session.user.role === 'OWNER'
-    const isApiProPlan = plan.name.toLowerCase().includes('api') && plan.name.toLowerCase().includes('pro')
-    
     if (!isOwner) {
-      // Verificar se o usuário tem pagamento ativo para este plano
-      const activePayment = await prisma.payment.findFirst({
-        where: {
-          userId: session.user.id,
-          planId: planId,
-          status: 'PAID'
-        },
-        orderBy: { createdAt: 'desc' }
-      })
-
-      if (!activePayment) {
-        return res.status(403).json({ error: 'Você precisa ter um pagamento ativo para este plano para criar uma API key' })
+      let allowed = false
+      if (hasActiveAssignedApiPlan && user!.apiPlanId === effectivePlanId) {
+        allowed = true
+      } else {
+        const activePayment = await prisma.payment.findFirst({
+          where: { userId: session.user.id, planId: effectivePlanId, status: 'PAID' },
+          orderBy: { createdAt: 'desc' }
+        })
+        allowed = !!activePayment
+      }
+      if (!allowed) {
+        return res.status(403).json({ error: 'Plano de API não ativo para o usuário. Faça um pagamento ou peça atribuição ao Owner.' })
       }
     }
-
-    // Construir nome amigável com tipo de uso
+ 
+    // Nome amigável com tipo de uso
     let computedName: string | undefined = name || undefined
     const normalizedUsage = typeof usageType === 'string' ? usageType.toUpperCase() : null
     const idLabel = typeof identifier === 'string' && identifier.trim().length > 0 ? identifier.trim() : undefined
     if (!computedName) {
-      if (normalizedUsage === 'BOT' && idLabel) {
-        computedName = `bot:${idLabel}`
-      } else if (normalizedUsage === 'BOT') {
-        computedName = 'bot:unnamed'
-      } else if (normalizedUsage === 'SITE' && idLabel) {
-        computedName = `site:${idLabel}`
-      } else if (normalizedUsage === 'SITE') {
-        computedName = 'site:unknown'
-      }
+      if (normalizedUsage === 'BOT' && idLabel) computedName = `bot:${idLabel}`
+      else if (normalizedUsage === 'BOT') computedName = 'bot:unnamed'
+      else if (normalizedUsage === 'SITE' && idLabel) computedName = `site:${idLabel}`
+      else if (normalizedUsage === 'SITE') computedName = 'site:unknown'
     }
-
+ 
+    const isApiProPlan = plan.name.toLowerCase().includes('api') && plan.name.toLowerCase().includes('pro')
+    const rateLimit = isApiProPlan ? 120 : (plan.name.toLowerCase().includes('creator') ? 90 : 60)
+ 
     const apiKey = await prisma.apiKey.create({
       data: {
         key: generateApiKey(),
         userId: session.user.id,
-        planId: planId,
+        planId: effectivePlanId,
         name: computedName,
         monthlyGenerations: plan.maxGenerations || 0,
-        rateLimit: 60 // Padrão, pode ser customizado por plano
+        rateLimit
       },
       include: {
-        plan: {
-          select: { name: true }
-        }
+        plan: { select: { name: true } }
       }
     })
-
+ 
     return res.json(apiKey)
   }
 
