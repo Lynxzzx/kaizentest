@@ -178,6 +178,14 @@ export default function Plans() {
 
     if (method === 'CARD') {
       setPendingCardPayment(plan)
+      if (!cardEmail) {
+        const emailFromSession = (session.user as any)?.email || ''
+        if (emailFromSession) setCardEmail(emailFromSession)
+      }
+      if (!cardHolderName) {
+        const holder = (session.user as any)?.username || ''
+        if (holder) setCardHolderName(holder.toUpperCase())
+      }
       setShowCardModal(true)
       return
     }
