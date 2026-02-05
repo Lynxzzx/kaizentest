@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
 import Layout from '@/components/Layout'
+import Link from 'next/link'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
@@ -123,6 +124,12 @@ export default function ApiKeys() {
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-4xl font-bold text-white">🔑 Minhas API Keys</h1>
             <div className="flex items-center gap-3">
+              <Link
+                href="/api-docs"
+                className="bg-white/10 text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/15 transition-all border border-white/20"
+              >
+                Documentação
+              </Link>
               <button
                 onClick={() => router.push('/api-plans')}
                 className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
