@@ -46,10 +46,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!plan) {
       return res.status(404).json({ error: 'Plan not found' })
     }
-    const isApiPlan = (plan as any)?.type === 'API' || plan.name.toLowerCase().includes('api')
-    if (!isApiPlan) {
-      return res.status(400).json({ error: 'O plano selecionado não é de API' })
-    }
+    // Considerar válido quando o plano está atribuído ao usuário pelo Owner,
+    // mesmo que não tenha type='API' ou não contenha 'API' no nome.
  
     // Permissões
     const isOwner = session.user.role === 'OWNER'
@@ -67,6 +65,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!allowed) {
         return res.status(403).json({ error: 'Plano de API não ativo para o usuário. Faça um pagamento ou peça atribuição ao Owner.' })
       }
+    }
+ 
+    // Anti-abuso: limitar quantidade de API keys ativas por plano
+    const existingActiveKeysCount = await prisma.apiKey.count({
+      where: { userId: session.user.id, planId: effectivePlanId, isActive: true }
+    })
+    const planName = plan.name.toLowerCase()
+    const maxActiveKeys =
+      planName.includes('pro') ? 3 :
+      planName.includes('creator') ? 2 : 1
+    if (existingActiveKeysCount >= maxActiveKeys) {
+      return res.status(403).json({ error: `Limite de ${maxActiveKeys} API keys ativas para este plano alcançado` })
     }
  
     // Nome amigável com tipo de uso
