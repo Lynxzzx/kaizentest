@@ -54,23 +54,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   }
 
-  // Verificar limite mensal
-  if (apiKeyData.usedGenerations >= apiKeyData.monthlyGenerations) {
-    await prisma.apiKeyUsageLog.create({
-      data: {
-        apiKeyId: apiKeyData.id,
-        endpoint: '/api/v1/generate',
-        ip,
-        userAgent,
-        success: false,
-        errorMessage: 'Monthly generation limit exceeded'
-      }
+  // Verificar limite mensal agregado por usuário+plano
+  {
+    const keys = await prisma.apiKey.findMany({
+      where: { userId: apiKeyData.userId, planId: apiKeyData.planId },
+      select: { usedGenerations: true, lastResetAt: true }
     })
-    return res.status(403).json({
-      error: 'Monthly generation limit exceeded',
-      limit: apiKeyData.monthlyGenerations,
-      used: apiKeyData.usedGenerations
-    })
+    const now = new Date()
+    const sumUsed = keys.reduce((acc, k) => {
+      const lr = new Date(k.lastResetAt)
+      const sameMonth = lr.getMonth() === now.getMonth() && lr.getFullYear() === now.getFullYear()
+      return acc + (sameMonth ? (k.usedGenerations || 0) : 0)
+    }, 0)
+    if (sumUsed >= apiKeyData.monthlyGenerations) {
+      await prisma.apiKeyUsageLog.create({
+        data: {
+          apiKeyId: apiKeyData.id,
+          endpoint: '/api/v1/generate',
+          ip,
+          userAgent,
+          success: false,
+          errorMessage: 'Monthly generation limit exceeded (aggregate)'
+        }
+      })
+      return res.status(403).json({
+        error: 'Monthly generation limit exceeded',
+        limit: apiKeyData.monthlyGenerations,
+        used: sumUsed
+      })
+    }
   }
 
   const { serviceId } = req.body

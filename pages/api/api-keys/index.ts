@@ -93,6 +93,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const isApiProPlan = plan.name.toLowerCase().includes('api') && plan.name.toLowerCase().includes('pro')
     const rateLimit = isApiProPlan ? 120 : (plan.name.toLowerCase().includes('creator') ? 90 : 60)
  
+    const existingKeys = await prisma.apiKey.findMany({
+      where: { userId: session.user.id, planId: effectivePlanId },
+      select: { usedGenerations: true, lastResetAt: true }
+    })
+    const aggregatedUsed = existingKeys.reduce((acc, k) => {
+      const lr = new Date(k.lastResetAt)
+      const sameMonth = lr.getMonth() === now.getMonth() && lr.getFullYear() === now.getFullYear()
+      return acc + (sameMonth ? (k.usedGenerations || 0) : 0)
+    }, 0)
+ 
     const apiKey = await prisma.apiKey.create({
       data: {
         key: generateApiKey(),
@@ -100,6 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         planId: effectivePlanId,
         name: computedName,
         monthlyGenerations: plan.maxGenerations || 0,
+        usedGenerations: aggregatedUsed,
         rateLimit
       },
       include: {
