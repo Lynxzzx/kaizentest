@@ -4,6 +4,7 @@ import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { sendStockRestockNotification } from '@/lib/discord-webhook'
 import { sendStockRestockNotificationTelegram } from '@/lib/telegram'
+import { sendStockRestockWebhook } from '@/lib/webhook'
 
 const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1462491603875926151/zjLBTVjZLpA20IhBjAs5NQvV4J4nbKn8t3hlNEZ_vYFMCMnLjNc4h_RmpiMqkbD2xmfT'
 
@@ -62,6 +63,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await sendStockRestockNotificationTelegram(
         stock.service.name,
         1
+      )
+      await sendStockRestockWebhook(
+        stock.service.name,
+        1,
+        'https://kaizengen.shop',
+        { serviceId: stock.serviceId }
       )
     } catch (error) {
       console.error('Error sending stock notifications:', error)
