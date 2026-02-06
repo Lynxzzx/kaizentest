@@ -52,7 +52,9 @@ export default function AdminTelegram() {
     try {
       const res = await axios.post('/api/admin/telegram', {
         test: true,
-        message
+        message,
+        botToken: botToken !== '••••••••' ? botToken : undefined,
+        chatId: chatId !== '••••••••' ? chatId : undefined
       })
       if (res.data.ok) {
         toast.success('Mensagem de teste enviada')

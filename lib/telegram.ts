@@ -33,9 +33,9 @@ async function getTelegramChatId(): Promise<string | null> {
   }
 }
 
-export async function sendTelegramMessage(text: string) {
-  const token = await getTelegramBotToken()
-  const chatId = await getTelegramChatId()
+export async function sendTelegramMessage(text: string, overrides?: { token?: string; chatId?: string }) {
+  const token = overrides?.token || await getTelegramBotToken()
+  const chatId = overrides?.chatId || await getTelegramChatId()
   if (!token || !chatId) {
     return { ok: false, error: 'Telegram not configured' }
   }
