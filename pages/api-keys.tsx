@@ -121,25 +121,33 @@ export default function ApiKeys() {
     <Layout>
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12 px-4">
         <div className="max-w-6xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-4xl font-bold text-white">🔑 Minhas API Keys</h1>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/api-docs"
-                className="bg-white/10 text-white px-6 py-3 rounded-lg font-semibold hover:bg-white/15 transition-all border border-white/20"
-              >
-                Documentação
-              </Link>
-              <button
-                onClick={() => router.push('/api-plans')}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
-              >
-                Assinar Plano de API
-              </button>
+          <div className="mb-10">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium">
+                <span>🌐</span>
+                <span>Integração via API</span>
+              </div>
+            </div>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <h1 className="text-4xl md:text-5xl font-extrabold text-white">Minhas API Keys</h1>
+              <div className="flex items-center gap-3">
+                <Link
+                  href="/api-docs"
+                  className="glass-panel px-6 py-3 rounded-lg font-semibold transition-all border border-white/10 text-white hover:bg-white/5"
+                >
+                  Documentação
+                </Link>
+                <button
+                  onClick={() => router.push('/api-plans')}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(79,70,229,0.5)]"
+                >
+                  Assinar Plano de API
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20 mb-8">
+          <div className="glass-panel rounded-2xl p-6 border border-white/10 mb-8">
             <h2 className="text-xl font-bold text-white mb-4">Criar API Key</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
@@ -198,7 +206,7 @@ export default function ApiKeys() {
           </div>
 
           {apiKeys.length === 0 ? (
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-12 border border-white/20 text-center">
+            <div className="glass-panel rounded-2xl p-12 border border-white/10 text-center">
               <p className="text-xl text-slate-300 mb-6">
                 Você ainda não possui nenhuma API Key.
               </p>
@@ -210,11 +218,11 @@ export default function ApiKeys() {
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {apiKeys.map((apiKey) => (
                 <div
                   key={apiKey.id}
-                  className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 border border-white/20"
+                  className="glass-card rounded-2xl p-6 border border-white/10"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -225,29 +233,29 @@ export default function ApiKeys() {
                     </div>
                     <div className="flex gap-2">
                       {apiKey.isActive ? (
-                        <span className="bg-green-500/20 text-green-300 px-3 py-1 rounded-full text-sm">
+                        <span className="glass-panel px-3 py-1 rounded-full text-sm text-green-300 border border-green-500/20 bg-green-500/10">
                           Ativa
                         </span>
                       ) : (
-                        <span className="bg-red-500/20 text-red-300 px-3 py-1 rounded-full text-sm">
+                        <span className="glass-panel px-3 py-1 rounded-full text-sm text-red-300 border border-red-500/20 bg-red-500/10">
                           Inativa
                         </span>
                       )}
                       <button
                         onClick={() => handleDelete(apiKey.id)}
-                        className="bg-red-500/20 text-red-300 px-3 py-1 rounded-full text-sm hover:bg-red-500/30 transition-colors"
+                        className="px-3 py-1 rounded-full text-sm text-red-300 hover:text-white transition-colors border border-red-500/20 bg-red-500/10 hover:bg-red-500/20"
                       >
                         Deletar
                       </button>
                     </div>
                   </div>
 
-                  <div className="bg-white/5 rounded-lg p-4 mb-4">
+                  <div className="glass-panel rounded-lg p-4 mb-4 border border-white/10">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-slate-300 text-sm">API Key:</span>
                       <button
                         onClick={() => copyToClipboard(apiKey.key)}
-                        className="text-purple-400 hover:text-purple-300 text-sm"
+                        className="text-indigo-400 hover:text-indigo-300 text-sm"
                       >
                         Copiar
                       </button>
@@ -263,13 +271,8 @@ export default function ApiKeys() {
                       <p className="text-white">
                         {apiKey.usedGenerations} / {apiKey.monthlyGenerations}
                       </p>
-                      <div className="w-full bg-white/10 rounded-full h-2 mt-2">
-                        <div
-                          className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full"
-                          style={{
-                            width: `${Math.min((apiKey.usedGenerations / apiKey.monthlyGenerations) * 100, 100)}%`
-                          }}
-                        />
+                      <div className="w-full h-2 mt-2 rounded-full bg-white/10 overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-600" style={{ width: `${Math.min((apiKey.usedGenerations / apiKey.monthlyGenerations) * 100, 100)}%` }} />
                       </div>
                     </div>
                     <div>
@@ -286,7 +289,7 @@ export default function ApiKeys() {
 
                   <div className="mt-4 pt-4 border-t border-white/10">
                     <p className="text-slate-400 text-xs mb-2">Exemplo de uso:</p>
-                    <code className="block bg-black/30 rounded p-2 text-xs text-slate-300 overflow-x-auto">
+                    <code className="block glass-panel border border-white/10 rounded p-2 text-xs text-slate-300 overflow-x-auto">
                       curl -H "X-API-Key: {apiKey.key}" https://kaizengen.shop/api/v1/services
                     </code>
                   </div>

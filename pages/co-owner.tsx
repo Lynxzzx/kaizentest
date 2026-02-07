@@ -51,6 +51,16 @@ export default function CoOwnerPanel() {
     }
   }
 
+  const generateCode = async () => {
+    try {
+      const res = await axios.post('/api/affiliate/generate-code')
+      toast.success('Código gerado!')
+      setStats(prev => prev ? { ...prev, affiliateCode: res.data.code } : prev)
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Erro ao gerar código')
+    }
+  }
+
   const getLink = (code: string | null) => {
     if (!code || typeof window === 'undefined') return ''
     return `${window.location.origin}/register?ref=${code}`
@@ -71,14 +81,21 @@ export default function CoOwnerPanel() {
             <h2 className="text-xl font-bold text-white mb-4">Seu link</h2>
             <div className="flex items-center gap-3">
               <div className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white font-mono text-sm truncate">
-                {getLink(stats?.affiliateCode || null)}
+                {stats?.affiliateCode ? getLink(stats?.affiliateCode || null) : 'Nenhum código ainda'}
               </div>
-              {stats?.affiliateCode && (
+              {stats?.affiliateCode ? (
                 <button
                   onClick={() => copy(getLink(stats.affiliateCode))}
                   className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold"
                 >
                   Copiar
+                </button>
+              ) : (
+                <button
+                  onClick={generateCode}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
+                >
+                  Gerar Código
                 </button>
               )}
             </div>

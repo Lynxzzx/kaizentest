@@ -156,7 +156,7 @@ export default function Home() {
         </div>
       </nav>
 
-      <main className="relative z-10 pt-32 pb-20 px-6">
+      <main className="relative z-10 pt-32 pb-24 px-6">
         <div className="max-w-7xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium mb-8 animate-fade-in">
             <span className="relative flex h-2 w-2">
@@ -196,10 +196,10 @@ export default function Home() {
             </Link>
           </div>
 
-          <div className="max-w-5xl mx-auto mb-16">
+          <div className="max-w-6xl mx-auto mb-20">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 items-center opacity-80">
               {partners.map((p, i) => (
-                <div key={i} className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-xs sm:text-sm text-gray-300 text-center">
+                <div key={i} className="px-4 py-2 rounded-lg glass-panel border border-white/10 text-xs sm:text-sm text-gray-300 text-center hover:bg-white/5 transition-colors">
                   {p}
                 </div>
               ))}
@@ -207,11 +207,12 @@ export default function Home() {
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-6xl mx-auto">
             {stats.map((stat, i) => (
-              <div key={i} className="glass-card p-6 rounded-2xl text-center">
+              <div key={i} className="glass-card p-8 rounded-3xl text-center border border-white/10 hover:border-indigo-500/30 transition-all hover:-translate-y-1">
                 <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>
-                <div className="text-sm text-gray-500 font-medium uppercase tracking-wider">{stat.label}</div>
+                <div className="text-indigo-300 font-semibold">{stat.label}</div>
+                <p className="text-gray-400 text-sm mt-2">{stat.desc}</p>
               </div>
             ))}
           </div>
