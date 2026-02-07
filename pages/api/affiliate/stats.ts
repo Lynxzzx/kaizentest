@@ -88,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Novo sistema de comissões em dinheiro
       affiliateBalance: user.affiliateBalance || 0,
       totalAffiliateEarnings: user.totalAffiliateEarnings || 0,
-      commissionRate: 40, // 40% de comissão
+      commissionRate: (session.user.role === 'CO_OWNER') ? 50 : 40,
       recentReferrals: user.referrals.slice(0, 10),
       recentRewards: user.affiliateRewards.slice(0, 10),
       recentCommissions: user.affiliateCommissions.map(c => ({

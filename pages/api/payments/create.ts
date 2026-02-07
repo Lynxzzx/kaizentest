@@ -741,24 +741,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           })
 
           if (userWithReferrer?.referredBy) {
-            const commissionAmount = finalAmount * 0.4 // 40% de comissão
-            
-            await prisma.affiliateCommission.create({
-              data: {
-                affiliateId: userWithReferrer.referredBy,
-                paymentId: payment.id,
-                amount: commissionAmount,
-                paymentAmount: finalAmount
-              }
+            // Evitar duplicidade
+            const existingCommission = await prisma.affiliateCommission.findFirst({
+              where: { paymentId: payment.id }
             })
-
-            await prisma.user.update({
-              where: { id: userWithReferrer.referredBy },
-              data: {
-                affiliateBalance: { increment: commissionAmount },
-                totalAffiliateEarnings: { increment: commissionAmount }
+            if (!existingCommission) {
+              const affiliate = await prisma.user.findUnique({
+                where: { id: userWithReferrer.referredBy },
+                select: { id: true, role: true }
+              })
+              if (affiliate) {
+                const rate = affiliate.role === 'CO_OWNER' ? 0.50 : 0.40
+                const commissionAmount = finalAmount * rate
+                
+                await prisma.affiliateCommission.create({
+                  data: {
+                    affiliateId: userWithReferrer.referredBy,
+                    paymentId: payment.id,
+                    amount: commissionAmount,
+                    paymentAmount: finalAmount
+                  }
+                })
+                
+                await prisma.user.update({
+                  where: { id: userWithReferrer.referredBy },
+                  data: {
+                    affiliateBalance: { increment: commissionAmount },
+                    totalAffiliateEarnings: { increment: commissionAmount }
+                  }
+                })
               }
-            })
+            }
           }
 
           console.log('✅ Pagamento via cartão aprovado e plano ativado!')

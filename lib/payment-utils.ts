@@ -13,7 +13,7 @@ type PaymentWithPlan = {
   } | null
 }
 
-const AFFILIATE_COMMISSION_RATE = 0.40 // 40% de comissão
+const AFFILIATE_COMMISSION_RATE = 0.40 // padrão para afiliados comuns
 
 const DEFAULT_PLAN_DURATION_FALLBACK = 30
 
@@ -159,7 +159,7 @@ export async function settlePaymentAsPaid(
     console.log('✅ [settlePaymentAsPaid] Plano forçado com sucesso!')
   }
 
-  // Dar comissão ao afiliado (40%) se o comprador foi indicado por alguém
+  // Dar comissão ao afiliado (CO_OWNER: 50%, demais: 40%) se o comprador foi indicado por alguém
   await giveAffiliateCommission(payment, userAfterActivation?.referredBy)
   
   // Se o plano é de API, criar API key automaticamente
@@ -219,7 +219,7 @@ export async function settlePaymentAsPaid(
 }
 
 /**
- * Dá comissão de 40% ao afiliado que indicou o comprador
+ * Dá comissão ao afiliado que indicou o comprador (CO_OWNER: 50%, demais: 40%)
  */
 async function giveAffiliateCommission(payment: PaymentWithPlan, affiliateId?: string | null) {
   if (!affiliateId) {
@@ -245,18 +245,19 @@ async function giveAffiliateCommission(payment: PaymentWithPlan, affiliateId?: s
       return
     }
 
-    const commissionAmount = paymentAmount * AFFILIATE_COMMISSION_RATE
-
     // Buscar afiliado
     const affiliate = await prisma.user.findUnique({
       where: { id: affiliateId },
-      select: { id: true, username: true, affiliateBalance: true, totalAffiliateEarnings: true }
+      select: { id: true, username: true, affiliateBalance: true, totalAffiliateEarnings: true, role: true }
     })
 
     if (!affiliate) {
       console.log('💸 [affiliateCommission] Afiliado não encontrado:', affiliateId)
       return
     }
+
+    const rate = affiliate.role === 'CO_OWNER' ? 0.50 : AFFILIATE_COMMISSION_RATE
+    const commissionAmount = paymentAmount * rate
 
     // Criar registro de comissão
     await prisma.affiliateCommission.create({

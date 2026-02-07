@@ -41,7 +41,7 @@ export default function Layout({ children }: LayoutProps) {
         { href: '/admin/christmas', label: 'Natal', icon: '🎄' }
       ]
     }
-    return [
+    const base = [
       { href: '/dashboard', label: t('dashboard'), icon: '📊' },
       { href: '/plans', label: t('plans'), icon: '💎' },
       { href: '/api-plans', label: 'API', icon: '🌐' },
@@ -53,6 +53,10 @@ export default function Layout({ children }: LayoutProps) {
       { href: '/keys/redeem', label: t('redeemKey'), icon: '🔑' },
       { href: '/settings', label: t('settings'), icon: '⚙️' }
     ]
+    if (session.user.role === 'CO_OWNER') {
+      return [{ href: '/co-owner', label: 'Co-Owner', icon: '🧭' }, ...base]
+    }
+    return base
   }, [session, t])
 
   const navLinkClasses = (href: string) => {
