@@ -54,6 +54,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   }
 
+  // Verificar cooldown (4 minutos entre gerações por API key)
+  {
+    const API_COOLDOWN_MS = 4 * 60 * 1000
+    const lastSuccess = await prisma.apiKeyUsageLog.findFirst({
+      where: { apiKeyId: apiKeyData.id, endpoint: '/api/v1/generate', success: true },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true }
+    })
+    if (lastSuccess?.createdAt) {
+      const lastTs = new Date(lastSuccess.createdAt).getTime()
+      const nowTs = Date.now()
+      const elapsed = nowTs - lastTs
+      if (elapsed < API_COOLDOWN_MS) {
+        const retryAfter = Math.ceil((API_COOLDOWN_MS - elapsed) / 1000)
+        await prisma.apiKeyUsageLog.create({
+          data: {
+            apiKeyId: apiKeyData.id,
+            endpoint: '/api/v1/generate',
+            ip,
+            userAgent,
+            success: false,
+            errorMessage: 'Cooldown active'
+          }
+        })
+        return res.status(429).json({
+          error: 'Cooldown ativo. Aguarde alguns minutos.',
+          retryAfter,
+          cooldownSecondsRemaining: retryAfter
+        })
+      }
+    }
+  }
+
   // Verificar limite mensal agregado por usuário+plano
   {
     const keys = await prisma.apiKey.findMany({
