@@ -27,7 +27,10 @@ export default function Layout({ children }: LayoutProps) {
 
   const navigationLinks = useMemo(() => {
     if (!session) return []
-    if (session.user.role === 'OWNER') {
+    const rawRole = String(session.user.role || '').toUpperCase()
+    const isOwner = rawRole === 'OWNER'
+    const isCoOwner = rawRole === 'CO_OWNER' || rawRole === 'CO-OWNER' || rawRole === 'CO OWNER'
+    if (isOwner) {
       return [
         { href: '/admin', label: t('admin'), icon: '🛰️' },
         { href: '/dashboard', label: t('dashboard'), icon: '📊' },
@@ -53,7 +56,7 @@ export default function Layout({ children }: LayoutProps) {
       { href: '/keys/redeem', label: t('redeemKey'), icon: '🔑' },
       { href: '/settings', label: t('settings'), icon: '⚙️' }
     ]
-    if (session.user.role === 'CO_OWNER') {
+    if (isCoOwner) {
       return [{ href: '/co-owner', label: 'Co-Owner', icon: '🧭' }, ...base]
     }
     return base
@@ -163,7 +166,9 @@ export default function Layout({ children }: LayoutProps) {
                     <div className="text-right">
                       <p className="text-sm font-bold text-white leading-none">{session.user.username}</p>
                       <p className="text-[10px] uppercase font-bold tracking-wider text-indigo-400">
-                        {session.user.role === 'OWNER' ? 'Admin' : 'Membro'}
+                        {String(session.user.role || '').toUpperCase() === 'OWNER'
+                          ? 'Admin'
+                          : (String(session.user.role || '').toUpperCase().includes('CO') ? 'Co-Owner' : 'Membro')}
                       </p>
                     </div>
                     <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-[2px]">

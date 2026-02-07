@@ -31,11 +31,15 @@ export default function CoOwnerPanel() {
       router.push('/login')
       return
     }
-    if (session && session.user.role !== 'CO_OWNER') {
-      router.push('/dashboard')
-      return
+    if (status === 'authenticated') {
+      const rawRole = String(session?.user?.role || '').toUpperCase()
+      const isCoOwner = rawRole === 'CO_OWNER' || rawRole === 'CO-OWNER' || rawRole === 'CO OWNER'
+      if (!isCoOwner) {
+        router.push('/dashboard')
+        return
+      }
+      loadStats()
     }
-    loadStats()
   }, [session, status])
 
   const loadStats = async () => {
