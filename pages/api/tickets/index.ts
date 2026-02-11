@@ -65,16 +65,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === 'POST') {
     // 🛡️ RATE LIMITING: Máximo 5 tickets por hora
-    const rateCheck = await simpleRateLimit(req, 5, 60)
-    if (!rateCheck.allowed) {
-      return res.status(429).json({ error: rateCheck.error })
-    }
+    try {
+      const rateCheck = await simpleRateLimit(req, 5, 60)
+      if (!rateCheck.allowed) {
+        return res.status(429).json({ error: rateCheck.error })
+      }
+    } catch {}
 
     try {
       // Criar novo ticket
       const { subject, message, priority } = req.body
 
-      if (!subject || !message) {
+      if (typeof subject !== 'string' || typeof message !== 'string' || !subject || !message) {
         return res.status(400).json({ error: 'Subject and message are required' })
       }
 

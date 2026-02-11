@@ -82,8 +82,8 @@ export default function Tickets() {
       setShowForm(false)
       setFormData({ subject: '', message: '', priority: 'MEDIUM' })
       loadTickets()
-    } catch (error) {
-      toast.error('Erro ao criar ticket')
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao criar ticket')
     } finally {
       setLoading(false)
     }
@@ -103,8 +103,8 @@ export default function Tickets() {
       toast.success('Resposta enviada!')
       setReplyMessage('')
       loadTicketDetails(ticketId)
-    } catch (error) {
-      toast.error('Erro ao enviar resposta')
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao enviar resposta')
     } finally {
       setLoading(false)
     }
@@ -115,8 +115,8 @@ export default function Tickets() {
       const response = await axios.get(`/api/tickets/${ticketId}`)
       setSelectedTicket(response.data)
       loadTickets() // Atualizar lista também
-    } catch (error) {
-      toast.error('Erro ao carregar detalhes do ticket')
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao carregar detalhes do ticket')
     }
   }
 
