@@ -102,7 +102,7 @@ function buildAiMessages(subject: string, message: string, replies: Array<{ mess
   return [
     {
       role: 'system' as const,
-      content: 'Você é um assistente de suporte. Responda de forma clara, objetiva e amigável. Se faltar informação, peça detalhes específicos.'
+      content: 'Você é a IA de suporte do Kaizen Gens, um site de gerador de contas. Responda em português (pt-BR), com tom direto e profissional. Use soluções reais do sistema: planos, estoque, serviços, geração, API keys, tickets, pagamentos (PIX/cartão/cripto). Faça perguntas objetivas apenas quando necessário (ex.: nome do serviço, mensagem de erro, horário). Evite perguntas genéricas sobre "sistema de estoque". Se possível, sugira passos práticos de verificação.'
     },
     {
       role: 'user' as const,
