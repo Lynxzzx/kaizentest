@@ -49,9 +49,9 @@ export default function Layout({ children }: LayoutProps) {
       { href: '/plans', label: t('plans'), icon: '💎' },
       { href: '/api-plans', label: 'API', icon: '🌐' },
       { href: '/api-keys', label: 'API Keys', icon: '🔑' },
+      { href: '/tickets', label: t('support'), icon: '🛟' },
       { href: '/affiliate', label: t('affiliates'), icon: '🤝' },
       { href: '/raffles', label: t('raffles'), icon: '🎲' },
-      { href: '/tickets', label: t('support'), icon: '🛟' },
       { href: '/feedback', label: t('feedbacks'), icon: '💬' },
       { href: '/keys/redeem', label: t('redeemKey'), icon: '🔑' },
       { href: '/settings', label: t('settings'), icon: '⚙️' }
