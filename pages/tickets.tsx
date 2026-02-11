@@ -355,6 +355,29 @@ export default function Tickets() {
                 </div>
               )}
 
+              {selectedTicket.user.username === session?.user.username && (
+                <div className={`mb-6 p-4 rounded-lg ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'} border border-white/10`}>
+                  <p className={`${themeClasses.text.secondary} mb-3 font-semibold`}>Atendimento humano</p>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => {
+                        setReplyMessage('Solicito atendimento humano via site.')
+                      }}
+                      className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-indigo-700 transition-all"
+                    >
+                      Atendimento no site
+                    </button>
+                    <Link
+                      href="https://t.me/lynxdevz"
+                      target="_blank"
+                      className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg font-bold hover:from-purple-600 hover:to-pink-700 transition-all"
+                    >
+                      Falar no Telegram
+                    </Link>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4 mb-6">
                 <h3 className={`font-bold ${themeClasses.text.primary}`}>Respostas ({selectedTicket.replies.length})</h3>
                 {selectedTicket.replies.map((reply) => (
@@ -368,7 +391,9 @@ export default function Tickets() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className={`font-semibold ${reply.isAdmin ? (theme === 'dark' ? 'text-purple-300' : 'text-primary-700') : themeClasses.text.secondary}`}>
-                        {reply.isAdmin ? '🔧 Administrador' : '👤 Você'}
+                        {reply.isAdmin
+                          ? (reply.message?.startsWith('🤖 IA:') ? '🤖 IA' : '🔧 Administrador')
+                          : '👤 Você'}
                       </span>
                       <span className={`text-xs ${themeClasses.text.muted}`}>
                         {format(new Date(reply.createdAt), "dd 'de' MMM 'às' HH:mm", { locale: ptBR })}

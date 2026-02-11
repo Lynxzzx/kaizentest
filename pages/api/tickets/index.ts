@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { getGroqReply } from '@/lib/groq'
 import { simpleRateLimit, getClientIp } from '@/lib/api-protection'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -125,6 +126,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
+      try {
+        const aiText = await getGroqReply(buildAiMessages(ticket.subject, ticket.message, []))
+        if (aiText) {
+          await prisma.ticketReply.create({
+            data: {
+              ticketId: ticket.id,
+              userId: session.user.id,
+              message: `🤖 IA: ${aiText}\n\nSe quiser falar com humano, use o botão Atendimento Humano.`,
+              isAdmin: true
+            }
+          })
+          await prisma.ticket.update({
+            where: { id: ticket.id },
+            data: { status: 'IN_PROGRESS' }
+          })
+        }
+      } catch {}
+
       // Log ticket criado
       try {
         await prisma.securityLog.create({
@@ -150,4 +169,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   return res.status(405).json({ error: 'Method not allowed' })
+}
+
+function buildAiMessages(subject: string, message: string, replies: Array<{ message: string; isAdmin: boolean }>) {
+  const context = [
+    `Assunto: ${subject}`,
+    `Mensagem inicial: ${message}`,
+    ...replies.map(r => `${r.isAdmin ? 'Admin' : 'Usuário'}: ${r.message}`)
+  ].join('\n')
+  return [
+    {
+      role: 'system' as const,
+      content: 'Você é um assistente de suporte. Responda de forma clara, objetiva e amigável. Se faltar informação, peça detalhes específicos.'
+    },
+    {
+      role: 'user' as const,
+      content: context
+    }
+  ]
 }
