@@ -166,22 +166,58 @@ export default function Tickets() {
   return (
     <div className={`min-h-screen ${themeClasses.bg} py-12 px-4 sm:px-6 lg:px-8`}>
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className={`text-4xl font-bold mb-2 ${themeClasses.text.primary}`}>Suporte</h1>
-            <p className={themeClasses.text.secondary}>Gerencie seus tickets de suporte</p>
+        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 mb-10 relative overflow-hidden">
+          <div className="absolute -top-24 -right-20 w-64 h-64 bg-indigo-500/20 blur-[80px]" />
+          <div className="absolute -bottom-24 -left-20 w-64 h-64 bg-purple-500/20 blur-[80px]" />
+          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium mb-4">
+                <span>🧭</span>
+                <span>Central de Suporte</span>
+              </div>
+              <h1 className={`text-4xl md:text-5xl font-extrabold mb-3 ${themeClasses.text.primary}`}>Suporte Inteligente</h1>
+              <p className={`${themeClasses.text.secondary} max-w-2xl`}>
+                Abra tickets, receba respostas da IA e peça atendimento humano quando precisar.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <div className="glass-panel px-4 py-2 rounded-full text-xs text-indigo-200 border border-indigo-500/20">
+                  🤖 IA 24/7
+                </div>
+                <div className="glass-panel px-4 py-2 rounded-full text-xs text-emerald-200 border border-emerald-500/20">
+                  ⚡ Resposta rápida
+                </div>
+                <div className="glass-panel px-4 py-2 rounded-full text-xs text-purple-200 border border-purple-500/20">
+                  🧑‍💻 Humano sob demanda
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(79,70,229,0.4)]"
+              >
+                {showForm ? 'Cancelar' : '+ Novo Ticket'}
+              </button>
+              <Link
+                href="https://t.me/lynxdevz"
+                target="_blank"
+                className="glass-panel px-6 py-3 rounded-xl font-semibold text-white border border-white/10 hover:bg-white/5"
+              >
+                Telegram
+              </Link>
+            </div>
           </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl"
-          >
-            {showForm ? 'Cancelar' : '+ Novo Ticket'}
-          </button>
         </div>
 
         {showForm && (
-          <div className={`${themeClasses.card} rounded-2xl shadow-xl p-8 mb-8`}>
-            <h2 className={`text-2xl font-bold mb-6 ${themeClasses.text.primary}`}>Criar Novo Ticket</h2>
+          <div className="grid lg:grid-cols-3 gap-6 mb-10">
+            <div className={`${themeClasses.card} rounded-2xl shadow-xl p-8 lg:col-span-2`}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className={`text-2xl font-bold ${themeClasses.text.primary}`}>Criar Novo Ticket</h2>
+                <span className="text-xs text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full">
+                  Atendimento Inteligente
+                </span>
+              </div>
             <form onSubmit={handleCreateTicket} className="space-y-6">
               <div>
                 <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
@@ -228,11 +264,32 @@ export default function Tickets() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-[0_0_16px_rgba(99,102,241,0.35)] disabled:opacity-50"
               >
                 {loading ? 'Criando...' : 'Criar Ticket'}
               </button>
             </form>
+            </div>
+            <div className="glass-panel rounded-2xl p-6 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-4">Boas práticas</h3>
+              <ul className="space-y-3 text-sm text-gray-300">
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400">•</span>
+                  Informe o serviço e horário do problema.
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400">•</span>
+                  Cole o erro exato se aparecer.
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-indigo-400">•</span>
+                  A IA responde primeiro, humano se necessário.
+                </li>
+              </ul>
+              <div className="mt-6 glass-panel border border-white/10 rounded-xl p-4">
+                <p className="text-xs text-gray-300">Atendimento humano disponível quando solicitado.</p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -240,7 +297,7 @@ export default function Tickets() {
           {tickets.map((ticket) => (
             <div
               key={ticket.id}
-              className={`${themeClasses.card} rounded-2xl shadow-md p-6 hover:shadow-xl transition-all cursor-pointer`}
+              className="glass-card rounded-2xl p-6 border border-white/10 hover:border-indigo-500/30 transition-all cursor-pointer"
               onClick={() => loadTicketDetails(ticket.id)}
             >
               <div className="flex items-start justify-between mb-4">
@@ -286,8 +343,8 @@ export default function Tickets() {
 
         {/* Modal de detalhes do ticket */}
         {selectedTicket && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedTicket(null)}>
-            <div className={`${themeClasses.card} rounded-2xl p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto`} onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setSelectedTicket(null)}>
+            <div className="glass-panel rounded-3xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/10" onClick={(e) => e.stopPropagation()}>
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h2 className={`text-2xl font-bold mb-2 ${themeClasses.text.primary}`}>{selectedTicket.subject}</h2>
@@ -312,7 +369,7 @@ export default function Tickets() {
                 </button>
               </div>
 
-              <div className={`mb-6 p-4 ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'} rounded-lg`}>
+              <div className={`mb-6 p-4 ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'} rounded-xl border border-white/10`}>
                 <p className={`${themeClasses.text.secondary} whitespace-pre-wrap`}>{selectedTicket.message}</p>
                 <p className={`text-xs ${themeClasses.text.muted} mt-2`}>
                   {format(new Date(selectedTicket.createdAt), "dd 'de' MMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
@@ -356,7 +413,7 @@ export default function Tickets() {
               )}
 
               {selectedTicket.user.username === session?.user.username && (
-                <div className={`mb-6 p-4 rounded-lg ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'} border border-white/10`}>
+                <div className="glass-panel rounded-xl p-4 border border-white/10 mb-6">
                   <p className={`${themeClasses.text.secondary} mb-3 font-semibold`}>Atendimento humano</p>
                   <div className="flex flex-wrap gap-3">
                     <button
@@ -383,7 +440,7 @@ export default function Tickets() {
                 {selectedTicket.replies.map((reply) => (
                   <div
                     key={reply.id}
-                    className={`p-4 rounded-lg ${
+                    className={`p-4 rounded-xl border border-white/10 ${
                       reply.isAdmin 
                         ? theme === 'dark' ? 'bg-purple-500/20 border-l-4 border-purple-500' : 'bg-primary-50 border-l-4 border-primary-500'
                         : theme === 'dark' ? 'bg-white/5 border-l-4 border-white/20' : 'bg-gray-50 border-l-4 border-gray-300'
