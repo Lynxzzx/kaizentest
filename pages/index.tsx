@@ -181,7 +181,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-20">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
             <Link
               href={session ? '/dashboard' : '/register'}
               className="w-full sm:w-auto px-8 py-4 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(79,70,229,0.5)]"
@@ -190,9 +190,15 @@ export default function Home() {
             </Link>
             <Link
               href="/plans"
-              className="w-full sm:w-auto px-8 py-4 rounded-full glass-panel hover:bg-white/5 transition-colors font-medium"
+              className="w-full sm:w-auto px-8 py-4 rounded-full glass-panel border border-white/10 hover:bg-white/5 transition-colors font-medium"
             >
               {t('viewPlans')}
+            </Link>
+            <Link
+              href="/api-docs"
+              className="w-full sm:w-auto px-8 py-4 rounded-full glass-panel border border-white/10 hover:bg-white/5 transition-colors font-medium text-indigo-200"
+            >
+              API Docs
             </Link>
           </div>
 
@@ -215,6 +221,14 @@ export default function Home() {
                 <p className="text-gray-400 text-sm mt-2">{stat.desc}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-10 flex justify-center">
+            <Link
+              href="/plans"
+              className="px-8 py-3 rounded-full bg-white/10 text-white font-semibold border border-white/10 hover:bg-white/20 transition-colors"
+            >
+              Ver planos agora →
+            </Link>
           </div>
         </div>
       </main>

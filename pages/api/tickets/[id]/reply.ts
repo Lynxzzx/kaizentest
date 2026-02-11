@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { getGroqReply } from '@/lib/groq'
+import { getSupportKnowledge } from '@/lib/support-knowledge'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const session = await getServerSession(req, res, authOptions)
@@ -99,10 +100,11 @@ function buildAiMessages(subject: string, message: string, replies: Array<{ mess
     `Mensagem inicial: ${message}`,
     ...replies.map(r => `${r.isAdmin ? 'Admin' : 'Usuário'}: ${r.message}`)
   ].join('\n')
+  const facts = getSupportKnowledge().map(item => `- ${item}`).join('\n')
   return [
     {
       role: 'system' as const,
-      content: 'Você é a IA de suporte do Kaizen Gens, um site de gerador de contas. Responda em português (pt-BR), com tom direto e profissional. Use soluções reais do sistema: planos, estoque, serviços, geração, API keys, tickets, pagamentos (PIX/cartão/cripto). Faça perguntas objetivas apenas quando necessário (ex.: nome do serviço, mensagem de erro, horário). Evite perguntas genéricas sobre "sistema de estoque". Se possível, sugira passos práticos de verificação.'
+      content: `Você é a IA de suporte do Kaizen Gens. Responda em português (pt-BR), com tom direto, profissional e transparente. Não invente informações. Se algo não estiver nas informações abaixo ou no texto do usuário, diga que não tem certeza e peça detalhes objetivos. Use apenas fatos confirmados.\n\nFatos confirmados:\n${facts}\n\nDiretrizes:\n- Se o usuário pedir preços ou detalhes de planos, direcione para /plans ou /api-plans.\n- Se faltar contexto, peça o nome do serviço, mensagem de erro e horário.\n- Sugira passos práticos curtos antes de escalar para humano.`
     },
     {
       role: 'user' as const,

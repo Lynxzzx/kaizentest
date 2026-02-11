@@ -3,6 +3,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
+import { getThemeClasses } from '@/lib/theme-utils'
 import Layout from '@/components/Layout'
 import Link from 'next/link'
 import axios from 'axios'
@@ -28,6 +29,7 @@ export default function ApiKeys() {
   const { data: session } = useSession()
   const router = useRouter()
   const { theme } = useTheme()
+  const themeClasses = getThemeClasses(theme)
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
   const [loading, setLoading] = useState(true)
   const [apiPlans, setApiPlans] = useState<Array<{ id: string; name: string }>>([])
@@ -37,6 +39,10 @@ export default function ApiKeys() {
     identifier: ''
   })
   const [creating, setCreating] = useState(false)
+  const totalKeys = apiKeys.length
+  const activeKeys = apiKeys.filter(k => k.isActive).length
+  const totalMonthly = apiKeys.reduce((acc, k) => acc + (k.monthlyGenerations || 0), 0)
+  const totalUsed = apiKeys.reduce((acc, k) => acc + (k.usedGenerations || 0), 0)
 
   useEffect(() => {
     if (!session) {
@@ -119,27 +125,43 @@ export default function ApiKeys() {
 
   return (
     <Layout>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 py-12 px-4">
+      <div className={`min-h-screen ${themeClasses.bg} py-12 px-4`}>
         <div className="max-w-6xl mx-auto">
-          <div className="mb-10">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium">
-                <span>🌐</span>
-                <span>Integração via API</span>
+          <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 mb-10 relative overflow-hidden">
+            <div className="absolute -top-24 -right-16 w-64 h-64 bg-indigo-500/20 blur-[90px]" />
+            <div className="absolute -bottom-24 -left-16 w-64 h-64 bg-purple-500/20 blur-[90px]" />
+            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium mb-4">
+                  <span>🌐</span>
+                  <span>Integração via API</span>
+                </div>
+                <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-3">Minhas API Keys</h1>
+                <p className={themeClasses.text.secondary}>
+                  Gerencie, crie e monitore suas chaves com segurança.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <div className="glass-panel px-4 py-2 rounded-full text-xs text-indigo-200 border border-indigo-500/20">
+                    🔐 Segurança por chave
+                  </div>
+                  <div className="glass-panel px-4 py-2 rounded-full text-xs text-emerald-200 border border-emerald-500/20">
+                    ⚡ Uso rastreado
+                  </div>
+                  <div className="glass-panel px-4 py-2 rounded-full text-xs text-purple-200 border border-purple-500/20">
+                    📈 Controle de limite
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <h1 className="text-4xl md:text-5xl font-extrabold text-white">Minhas API Keys</h1>
               <div className="flex items-center gap-3">
                 <Link
                   href="/api-docs"
-                  className="glass-panel px-6 py-3 rounded-lg font-semibold transition-all border border-white/10 text-white hover:bg-white/5"
+                  className="glass-panel px-6 py-3 rounded-xl font-semibold transition-all border border-white/10 text-white hover:bg-white/5"
                 >
                   Documentação
                 </Link>
                 <button
                   onClick={() => router.push('/api-plans')}
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(79,70,229,0.5)]"
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(79,70,229,0.5)]"
                 >
                   Assinar Plano de API
                 </button>
@@ -147,9 +169,30 @@ export default function ApiKeys() {
             </div>
           </div>
 
-          <div className="glass-panel rounded-2xl p-6 border border-white/10 mb-8">
-            <h2 className="text-xl font-bold text-white mb-4">Criar API Key</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div className="glass-card rounded-2xl p-5 border border-white/10">
+              <p className="text-slate-400 text-xs mb-1">Chaves ativas</p>
+              <p className="text-2xl font-bold text-white">{activeKeys} / {totalKeys}</p>
+            </div>
+            <div className="glass-card rounded-2xl p-5 border border-white/10">
+              <p className="text-slate-400 text-xs mb-1">Uso mensal agregado</p>
+              <p className="text-2xl font-bold text-white">{totalUsed} / {totalMonthly}</p>
+            </div>
+            <div className="glass-card rounded-2xl p-5 border border-white/10">
+              <p className="text-slate-400 text-xs mb-1">Planos disponíveis</p>
+              <p className="text-2xl font-bold text-white">{apiPlans.length}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="glass-panel rounded-2xl p-6 border border-white/10 lg:col-span-2">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-white">Criar API Key</h2>
+                <span className="text-xs text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full">
+                  Rápido e seguro
+                </span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm text-slate-300 mb-1">Plano de API</label>
                 <select
@@ -198,10 +241,24 @@ export default function ApiKeys() {
               <button
                 onClick={handleCreate}
                 disabled={creating}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 {creating ? 'Criando...' : 'Criar API Key'}
               </button>
+            </div>
+            </div>
+            <div className="glass-panel rounded-2xl p-6 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-3">Uso recomendado</h3>
+              <ul className="space-y-3 text-sm text-slate-300">
+                <li className="flex items-start gap-2"><span className="text-indigo-400">•</span>Use uma chave por projeto.</li>
+                <li className="flex items-start gap-2"><span className="text-indigo-400">•</span>Restrinja por IP quando possível.</li>
+                <li className="flex items-start gap-2"><span className="text-indigo-400">•</span>Monitore limites antes de lançar.</li>
+              </ul>
+              <div className="mt-5">
+                <Link href="/api-docs" className="text-indigo-300 hover:text-indigo-200 text-sm">
+                  Ver documentação completa →
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -212,7 +269,7 @@ export default function ApiKeys() {
               </p>
               <button
                 onClick={() => router.push('/api-plans')}
-                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
               >
                 Assinar Plano de API
               </button>
