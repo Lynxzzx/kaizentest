@@ -5,6 +5,7 @@ import { useTranslation } from '@/lib/i18n-helper'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import QRCode from 'qrcode.react'
+import Link from 'next/link'
 
 interface Plan {
   id: string
