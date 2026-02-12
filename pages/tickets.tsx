@@ -49,7 +49,7 @@ export default function Tickets() {
   })
   const [replyMessage, setReplyMessage] = useState('')
   const [loading, setLoading] = useState(false)
-  const themeClasses = getThemeClasses(theme)
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -62,6 +62,15 @@ export default function Tickets() {
       loadTickets()
     }
   }, [session])
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY })
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [])
 
   const loadTickets = async () => {
     try {
@@ -123,39 +132,39 @@ export default function Tickets() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'OPEN':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
       case 'IN_PROGRESS':
-        return 'bg-yellow-100 text-yellow-800'
+        return 'bg-gradient-to-r from-yellow-500 to-orange-500 text-white'
       case 'RESOLVED':
-        return 'bg-green-100 text-green-800'
+        return 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
       case 'CLOSED':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gradient-to-r from-gray-600 to-gray-700 text-white'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gradient-to-r from-gray-600 to-gray-700 text-white'
     }
   }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'LOW':
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
       case 'MEDIUM':
-        return 'bg-blue-100 text-blue-800'
+        return 'bg-gradient-to-r from-blue-500 to-cyan-500 text-white'
       case 'HIGH':
-        return 'bg-orange-100 text-orange-800'
+        return 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
       case 'URGENT':
-        return 'bg-red-100 text-red-800'
+        return 'bg-gradient-to-r from-red-500 to-pink-500 text-white'
       default:
-        return 'bg-gray-100 text-gray-800'
+        return 'bg-gradient-to-r from-gray-500 to-gray-600 text-white'
     }
   }
 
   if (status === 'loading') {
     return (
-      <div className={`min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
-          <div className={`inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${theme === 'dark' ? 'border-purple-500' : 'border-primary-600'}`}></div>
-          <p className={`mt-4 ${themeClasses.text.secondary}`}>Carregando...</p>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+          <p className="mt-4 text-gray-500">Carregando...</p>
         </div>
       </div>
     )
@@ -164,223 +173,388 @@ export default function Tickets() {
   if (!session) return null
 
   return (
-    <div className={`min-h-screen ${themeClasses.bg} py-12 px-4 sm:px-6 lg:px-8`}>
-      <div className="max-w-7xl mx-auto">
-        <div className="glass-panel rounded-3xl p-6 sm:p-8 border border-white/10 mb-10 relative overflow-hidden">
-          <div className="absolute -top-24 -right-20 w-64 h-64 bg-indigo-500/20 blur-[80px]" />
-          <div className="absolute -bottom-24 -left-20 w-64 h-64 bg-purple-500/20 blur-[80px]" />
-          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-            <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-medium mb-4">
-                <span>🧭</span>
-                <span>Central de Suporte</span>
-              </div>
-              <h1 className={`text-4xl md:text-5xl font-extrabold mb-3 ${themeClasses.text.primary}`}>Suporte Inteligente</h1>
-              <p className={`${themeClasses.text.secondary} max-w-2xl`}>
-                Abra tickets, receba respostas da IA e peça atendimento humano quando precisar.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-3">
-                <div className="glass-panel px-4 py-2 rounded-full text-xs text-indigo-200 border border-indigo-500/20">
-                  🤖 IA 24/7
-                </div>
-                <div className="glass-panel px-4 py-2 rounded-full text-xs text-emerald-200 border border-emerald-500/20">
-                  ⚡ Resposta rápida
-                </div>
-                <div className="glass-panel px-4 py-2 rounded-full text-xs text-purple-200 border border-purple-500/20">
-                  🧑‍💻 Humano sob demanda
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowForm(!showForm)}
-                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(79,70,229,0.4)]"
-              >
-                {showForm ? 'Cancelar' : '+ Novo Ticket'}
-              </button>
-              <Link
-                href="https://t.me/lynxdevz"
-                target="_blank"
-                className="glass-panel px-6 py-3 rounded-xl font-semibold text-white border border-white/10 hover:bg-white/5"
-              >
-                Telegram
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {showForm && (
-          <div className="grid lg:grid-cols-3 gap-6 mb-10">
-            <div className={`${themeClasses.card} rounded-2xl shadow-xl p-8 lg:col-span-2`}>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className={`text-2xl font-bold ${themeClasses.text.primary}`}>Criar Novo Ticket</h2>
-                <span className="text-xs text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full">
-                  Atendimento Inteligente
-                </span>
-              </div>
-            <form onSubmit={handleCreateTicket} className="space-y-6">
-              <div>
-                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
-                  Assunto
-                </label>
-                <input
-                  type="text"
-                  value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none`}
-                  required
-                  placeholder="Descreva brevemente o problema"
-                />
-              </div>
-              <div>
-                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
-                  Prioridade
-                </label>
-                <select
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none`}
-                  style={theme === 'dark' ? { colorScheme: 'dark' } : {}}
-                >
-                  <option value="LOW" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Baixa</option>
-                  <option value="MEDIUM" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Média</option>
-                  <option value="HIGH" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Alta</option>
-                  <option value="URGENT" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Urgente</option>
-                </select>
-              </div>
-              <div>
-                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
-                  Mensagem
-                </label>
-                <textarea
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none`}
-                  rows={6}
-                  required
-                  placeholder="Descreva seu problema em detalhes..."
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition-opacity shadow-[0_0_16px_rgba(99,102,241,0.35)] disabled:opacity-50"
-              >
-                {loading ? 'Criando...' : 'Criar Ticket'}
-              </button>
-            </form>
-            </div>
-            <div className="glass-panel rounded-2xl p-6 border border-white/10">
-              <h3 className="text-lg font-bold text-white mb-4">Boas práticas</h3>
-              <ul className="space-y-3 text-sm text-gray-300">
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400">•</span>
-                  Informe o serviço e horário do problema.
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400">•</span>
-                  Cole o erro exato se aparecer.
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-indigo-400">•</span>
-                  A IA responde primeiro, humano se necessário.
-                </li>
-              </ul>
-              <div className="mt-6 glass-panel border border-white/10 rounded-xl p-4">
-                <p className="text-xs text-gray-300">Atendimento humano disponível quando solicitado.</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 gap-6">
-          {tickets.map((ticket) => (
+    <div className="min-h-screen bg-[#000000] text-gray-100 pb-20">
+      {/* Advanced Background with Mouse Tracking */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div 
+          className="absolute w-[1200px] h-[800px] bg-[radial-gradient(circle,rgba(79,70,229,0.15)_0%,transparent_70%)] blur-[150px] transition-all duration-1000 ease-out"
+          style={{
+            transform: `translate(${(mousePosition.x - 600) * 0.02}px, ${(mousePosition.y - 400) * 0.02}px)`,
+            left: `${mousePosition.x - 600}px`,
+            top: `${mousePosition.y - 400}px`
+          }}
+        />
+        <div 
+          className="absolute w-[1000px] h-[600px] bg-[radial-gradient(circle,rgba(236,72,153,0.1)_0%,transparent_70%)] blur-[120px] transition-all duration-1000 ease-out"
+          style={{
+            transform: `translate(${(mousePosition.x - 500) * -0.01}px, ${(mousePosition.y - 300) * -0.01}px)`,
+            right: `${500 - mousePosition.x}px`,
+            bottom: `${300 - mousePosition.y}px`
+          }}
+        />
+        <div 
+          className="absolute w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(59,130,246,0.08)_0%,transparent_70%)] blur-[100px] transition-all duration-1000 ease-out"
+          style={{
+            transform: `translate(${(mousePosition.x - 400) * 0.015}px, ${(mousePosition.y - 400) * 0.015}px)`,
+            left: `${mousePosition.x * 0.1}px`,
+            bottom: `${mousePosition.y * 0.1}px`
+          }}
+        />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+        
+        {/* Floating particles effect */}
+        <div className="absolute inset-0">
+          {[...Array(30)].map((_, i) => (
             <div
-              key={ticket.id}
-              className="glass-card rounded-2xl p-6 border border-white/10 hover:border-indigo-500/30 transition-all cursor-pointer"
-              onClick={() => loadTicketDetails(ticket.id)}
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <h3 className={`text-xl font-bold mb-2 ${themeClasses.text.primary}`}>{ticket.subject}</h3>
-                  <p className={`${themeClasses.text.secondary} text-sm mb-3 line-clamp-2`}>{ticket.message}</p>
-                  <div className={`flex items-center space-x-3 text-xs ${themeClasses.text.muted}`}>
-                    <span>
-                      {format(new Date(ticket.createdAt), "dd 'de' MMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
-                    </span>
-                    {session.user.role === 'OWNER' && (
-                      <span>Por: {ticket.user.username}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex flex-col items-end space-y-2">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(ticket.status)}`}>
-                    {ticket.status === 'OPEN' ? 'Aberto' : 
-                     ticket.status === 'IN_PROGRESS' ? 'Em Andamento' :
-                     ticket.status === 'RESOLVED' ? 'Resolvido' : 'Fechado'}
-                  </span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(ticket.priority)}`}>
-                    {ticket.priority === 'LOW' ? 'Baixa' :
-                     ticket.priority === 'MEDIUM' ? 'Média' :
-                     ticket.priority === 'HIGH' ? 'Alta' : 'Urgente'}
-                  </span>
-                  <span className={`text-xs ${themeClasses.text.muted}`}>
-                    {ticket.replies?.length || ticket._count?.replies || 0} {ticket.replies?.length === 1 ? 'resposta' : 'respostas'}
-                  </span>
-                </div>
-              </div>
-            </div>
+              key={i}
+              className="absolute w-1 h-1 bg-white/15 rounded-full animate-float"
+              style={{
+                left: `${Math.random() * 100}%`,
+                top: `${Math.random() * 100}%`,
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${3 + Math.random() * 4}s`
+              }}
+            />
           ))}
         </div>
+      </div>
 
-        {tickets.length === 0 && !showForm && (
-          <div className={`text-center py-12 ${themeClasses.card} rounded-2xl shadow-md`}>
-            <div className="text-5xl mb-4">📋</div>
-            <p className={`${themeClasses.text.secondary} text-lg`}>Nenhum ticket encontrado</p>
-            <p className={`${themeClasses.text.muted} text-sm mt-2`}>Crie um novo ticket para obter suporte</p>
+      {/* Futuristic Navigation */}
+      <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-black/20 backdrop-blur-2xl">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur-sm opacity-75 group-hover:opacity-100 transition-opacity" />
+              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-xl font-bold text-white relative">
+                {session.user.username?.charAt(0).toUpperCase()}
+              </div>
+            </div>
+            <div>
+              <h1 className="font-bold text-xl text-white">Central de Suporte</h1>
+              <p className="text-sm text-gray-400">Suporte Inteligente 24/7</p>
+            </div>
           </div>
-        )}
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard" className="group relative overflow-hidden px-6 py-2.5 rounded-full glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300">
+              <span className="relative z-10">⚡ Dashboard</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            </Link>
+          </div>
+        </div>
+      </nav>
 
-        {/* Modal de detalhes do ticket */}
-        {selectedTicket && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={() => setSelectedTicket(null)}>
-            <div className="glass-panel rounded-3xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-white/10" onClick={(e) => e.stopPropagation()}>
-              <div className="flex justify-between items-start mb-6">
+      <main className="relative z-10 pt-32 pb-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          
+          {/* Hero Section */}
+          <div className="glass-card rounded-3xl p-8 mb-12 border border-white/10 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 blur-[150px]" />
+            <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 blur-[150px]" />
+            
+            <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-8">
+              <div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-sm font-medium mb-6">
+                  <span>🧠</span>
+                  <span>IA + Humano</span>
+                </div>
+                <h1 className="text-5xl lg:text-6xl font-bold text-white mb-4 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+                  Central de Suporte
+                </h1>
+                <p className="text-xl text-gray-400 max-w-2xl mb-8">
+                  Obtenha ajuda instantânea com nossa IA avançada ou solicite atendimento humano quando necessário.
+                </p>
+                <div className="flex flex-wrap gap-4">
+                  <div className="glass-panel px-4 py-2 rounded-full text-sm text-indigo-200 border border-indigo-500/20 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></span>
+                    IA 24/7
+                  </div>
+                  <div className="glass-panel px-4 py-2 rounded-full text-sm text-emerald-200 border border-emerald-500/20 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                    Resposta em segundos
+                  </div>
+                  <div className="glass-panel px-4 py-2 rounded-full text-sm text-purple-200 border border-purple-500/20 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
+                    Humano sob demanda
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-4">
+                <button
+                  onClick={() => setShowForm(!showForm)}
+                  className="group relative overflow-hidden px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-500"
+                >
+                  <span className="relative z-10">{showForm ? 'Cancelar' : '+ Novo Ticket'}</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                </button>
+                <Link
+                  href="https://t.me/lynxdevz"
+                  target="_blank"
+                  className="group relative overflow-hidden px-8 py-4 rounded-2xl glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300 text-center"
+                >
+                  <span className="relative z-10">📱 Telegram</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Create Ticket Form */}
+          {showForm && (
+            <div className="grid lg:grid-cols-3 gap-8 mb-12">
+              <div className="lg:col-span-2 glass-card rounded-3xl p-8 border border-white/10">
+                <div className="flex items-center justify-between mb-8">
+                  <h2 className="text-3xl font-bold text-white">Criar Novo Ticket</h2>
+                  <span className="px-4 py-2 rounded-full text-sm text-indigo-200 bg-indigo-500/10 border border-indigo-500/20">
+                    Atendimento Inteligente
+                  </span>
+                </div>
+                
+                <form onSubmit={handleCreateTicket} className="space-y-8">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">
+                      Assunto
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.subject}
+                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                      className="w-full bg-black/40 border border-white/20 rounded-2xl px-6 py-4 text-white text-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      required
+                      placeholder="Descreva brevemente o problema"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">
+                      Prioridade
+                    </label>
+                    <select
+                      value={formData.priority}
+                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                      className="w-full bg-black/40 border border-white/20 rounded-2xl px-6 py-4 text-white text-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all appearance-none"
+                    >
+                      <option value="LOW">🟢 Baixa</option>
+                      <option value="MEDIUM">🔵 Média</option>
+                      <option value="HIGH">🟠 Alta</option>
+                      <option value="URGENT">🔴 Urgente</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">
+                      Descrição Detalhada
+                    </label>
+                    <textarea
+                      value={formData.message}
+                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                      className="w-full bg-black/40 border border-white/20 rounded-2xl px-6 py-4 text-white text-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      rows={8}
+                      required
+                      placeholder="Descreva seu problema em detalhes... Quanto mais informações, melhor a IA poderá ajudar!"
+                    />
+                  </div>
+                  
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-500 disabled:opacity-50"
+                  >
+                    {loading ? 'Criando Ticket...' : 'Criar Ticket de Suporte'}
+                  </button>
+                </form>
+              </div>
+              
+              <div className="glass-card rounded-3xl p-8 border border-white/10">
+                <h3 className="text-2xl font-bold text-white mb-6">Como funciona</h3>
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-lg">
+                      🤖
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white mb-2">IA Responde Primeiro</h4>
+                      <p className="text-gray-400 text-sm">Nossa IA avançada analisa seu problema e fornece soluções instantâneas.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-center text-lg">
+                      ⚡
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white mb-2">Resposta em Segundos</h4>
+                      <p className="text-gray-400 text-sm">Obtenha ajuda imediata, 24 horas por dia, 7 dias por semana.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-r from-pink-500 to-purple-500 flex items-center justify-center text-lg">
+                      🧑‍💻
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-white mb-2">Humano quando Precisar</h4>
+                      <p className="text-gray-400 text-sm">Se a IA não resolver, um humano entrará em contato rapidamente.</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-8 glass-panel rounded-2xl p-6 border border-white/10">
+                  <h4 className="font-bold text-white mb-3">💡 Dicas para melhor atendimento</h4>
+                  <ul className="space-y-2 text-sm text-gray-400">
+                    <li className="flex items-start gap-2">
+                      <span className="text-indigo-400 mt-1">•</span>
+                      Informe o serviço e horário do problema
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-indigo-400 mt-1">•</span>
+                      Cole o erro exato se aparecer
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-indigo-400 mt-1">•</span>
+                      Inclua screenshots quando possível
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tickets Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            {tickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="group glass-card rounded-3xl p-8 border border-white/10 hover:border-indigo-500/30 transition-all duration-500 hover:-translate-y-2 cursor-pointer"
+                onClick={() => loadTicketDetails(ticket.id)}
+              >
+                <div className="flex items-start justify-between mb-6">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-white mb-3 group-hover:text-indigo-300 transition-colors">
+                      {ticket.subject}
+                    </h3>
+                    <p className="text-gray-400 text-sm mb-4 line-clamp-3">
+                      {ticket.message}
+                    </p>
+                    <div className="flex items-center space-x-4 text-xs text-gray-500">
+                      <span className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 bg-gray-500 rounded-full"></span>
+                        {format(new Date(ticket.createdAt), "dd 'de' MMM 'às' HH:mm", { locale: ptBR })}
+                      </span>
+                      {session.user.role === 'OWNER' && (
+                        <span className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 bg-gray-500 rounded-full"></span>
+                          Por: {ticket.user.username}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-end space-y-3">
+                    <span className={`px-4 py-2 rounded-full text-xs font-bold ${getStatusColor(ticket.status)}`}>
+                      {ticket.status === 'OPEN' ? 'Aberto' : 
+                       ticket.status === 'IN_PROGRESS' ? 'Em Andamento' :
+                       ticket.status === 'RESOLVED' ? 'Resolvido' : 'Fechado'}
+                    </span>
+                    <span className={`px-4 py-2 rounded-full text-xs font-bold ${getPriorityColor(ticket.priority)}`}>
+                      {ticket.priority === 'LOW' ? 'Baixa' :
+                       ticket.priority === 'MEDIUM' ? 'Média' :
+                       ticket.priority === 'HIGH' ? 'Alta' : 'Urgente'}
+                    </span>
+                    <span className="text-xs text-gray-500 bg-white/10 px-3 py-1 rounded-full">
+                      {ticket.replies?.length || ticket._count?.replies || 0} {ticket.replies?.length === 1 ? 'resposta' : 'respostas'}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="pt-4 border-t border-white/10">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-sm">
+                        {ticket.user.username.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-sm text-gray-400">{ticket.user.username}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-indigo-400">
+                      <span className="text-sm font-semibold">Ver Ticket</span>
+                      <span className="group-hover:translate-x-1 transition-transform">→</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {tickets.length === 0 && !showForm && (
+            <div className="glass-card rounded-3xl p-16 text-center border border-white/10">
+              <div className="text-7xl mb-8">📋</div>
+              <h3 className="text-3xl font-bold text-white mb-4">Nenhum ticket encontrado</h3>
+              <p className="text-gray-400 text-lg mb-8 max-w-md mx-auto">
+                Você ainda não criou nenhum ticket. Clique no botão "Novo Ticket" para obter ajuda.
+              </p>
+              <button
+                onClick={() => setShowForm(true)}
+                className="group relative overflow-hidden px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-500"
+              >
+                <span className="relative z-10">Criar Primeiro Ticket</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Enhanced Ticket Detail Modal */}
+      {selectedTicket && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setSelectedTicket(null)}>
+          <div className="w-full max-w-5xl bg-[#0a0a0a] border border-white/20 rounded-3xl p-8 max-h-[90vh] overflow-y-auto relative" onClick={(e) => e.stopPropagation()}>
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-3xl" />
+            
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-8">
                 <div>
-                  <h2 className={`text-2xl font-bold mb-2 ${themeClasses.text.primary}`}>{selectedTicket.subject}</h2>
-                  <div className="flex items-center space-x-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(selectedTicket.status)}`}>
+                  <h2 className="text-3xl font-bold text-white mb-4">{selectedTicket.subject}</h2>
+                  <div className="flex items-center space-x-4">
+                    <span className={`px-4 py-2 rounded-full text-sm font-bold ${getStatusColor(selectedTicket.status)}`}>
                       {selectedTicket.status === 'OPEN' ? 'Aberto' : 
                        selectedTicket.status === 'IN_PROGRESS' ? 'Em Andamento' :
                        selectedTicket.status === 'RESOLVED' ? 'Resolvido' : 'Fechado'}
                     </span>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getPriorityColor(selectedTicket.priority)}`}>
+                    <span className={`px-4 py-2 rounded-full text-sm font-bold ${getPriorityColor(selectedTicket.priority)}`}>
                       {selectedTicket.priority === 'LOW' ? 'Baixa' :
                        selectedTicket.priority === 'MEDIUM' ? 'Média' :
                        selectedTicket.priority === 'HIGH' ? 'Alta' : 'Urgente'}
+                    </span>
+                    <span className="text-sm text-gray-500">
+                      {format(new Date(selectedTicket.createdAt), "dd 'de' MMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => setSelectedTicket(null)}
-                  className={`${themeClasses.text.muted} hover:${themeClasses.text.secondary} text-2xl`}
+                  className="text-gray-400 hover:text-white text-3xl transition-colors"
                 >
                   ×
                 </button>
               </div>
 
-              <div className={`mb-6 p-4 ${theme === 'dark' ? 'bg-white/5' : 'bg-gray-50'} rounded-xl border border-white/10`}>
-                <p className={`${themeClasses.text.secondary} whitespace-pre-wrap`}>{selectedTicket.message}</p>
-                <p className={`text-xs ${themeClasses.text.muted} mt-2`}>
-                  {format(new Date(selectedTicket.createdAt), "dd 'de' MMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
-                </p>
+              {/* Ticket Message */}
+              <div className="mb-8 p-6 rounded-2xl bg-white/5 border border-white/10">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-lg">
+                    {selectedTicket.user.username.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="font-bold text-white">{selectedTicket.user.username}</div>
+                    <div className="text-sm text-gray-500">Autor do ticket</div>
+                  </div>
+                </div>
+                <p className="text-gray-300 text-lg leading-relaxed">{selectedTicket.message}</p>
               </div>
 
-              {/* Botões de ação para o dono do ticket */}
+              {/* Action Buttons */}
               {selectedTicket.user.username === session?.user.username && 
                selectedTicket.status !== 'CLOSED' && 
                selectedTicket.status !== 'RESOLVED' && (
-                <div className="mb-6 flex flex-wrap gap-3">
+                <div className="mb-8 flex flex-wrap gap-4">
                   <button
                     onClick={async () => {
                       try {
@@ -391,9 +565,10 @@ export default function Tickets() {
                         toast.error('Erro ao atualizar ticket')
                       }
                     }}
-                    className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-bold hover:from-green-600 hover:to-green-700 transition-all"
+                    className="group relative overflow-hidden px-6 py-3 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold hover:shadow-lg hover:shadow-green-500/25 transition-all"
                   >
-                    ✓ Marcar como Resolvido
+                    <span className="relative z-10">✓ Marcar como Resolvido</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                   <button
                     onClick={async () => {
@@ -405,86 +580,128 @@ export default function Tickets() {
                         toast.error('Erro ao fechar ticket')
                       }
                     }}
-                    className="px-4 py-2 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg font-bold hover:from-gray-600 hover:to-gray-700 transition-all"
+                    className="group relative overflow-hidden px-6 py-3 rounded-2xl bg-gradient-to-r from-gray-600 to-gray-700 text-white font-bold hover:shadow-lg hover:shadow-gray-500/25 transition-all"
                   >
-                    ✕ Fechar Ticket
+                    <span className="relative z-10">✕ Fechar Ticket</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                 </div>
               )}
 
+              {/* Human Support Options */}
               {selectedTicket.user.username === session?.user.username && (
-                <div className="glass-panel rounded-xl p-4 border border-white/10 mb-6">
-                  <p className={`${themeClasses.text.secondary} mb-3 font-semibold`}>Atendimento humano</p>
-                  <div className="flex flex-wrap gap-3">
+                <div className="mb-8 glass-panel rounded-2xl p-6 border border-white/10">
+                  <h4 className="font-bold text-white mb-4">Precisa de atendimento humano?</h4>
+                  <div className="flex flex-wrap gap-4">
                     <button
                       onClick={() => {
                         setReplyMessage('Solicito atendimento humano via site.')
                       }}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg font-bold hover:from-blue-600 hover:to-indigo-700 transition-all"
+                      className="group relative overflow-hidden px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold hover:shadow-lg hover:shadow-blue-500/25 transition-all"
                     >
-                      Atendimento no site
+                      <span className="relative z-10">🧑‍💻 Atendimento no site</span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                     <Link
                       href="https://t.me/lynxdevz"
                       target="_blank"
-                      className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg font-bold hover:from-purple-600 hover:to-pink-700 transition-all"
+                      className="group relative overflow-hidden px-6 py-3 rounded-2xl bg-gradient-to-r from-purple-500 to-pink-600 text-white font-bold hover:shadow-lg hover:shadow-purple-500/25 transition-all"
                     >
-                      Falar no Telegram
+                      <span className="relative z-10">📱 Falar no Telegram</span>
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </Link>
                   </div>
                 </div>
               )}
 
-              <div className="space-y-4 mb-6">
-                <h3 className={`font-bold ${themeClasses.text.primary}`}>Respostas ({selectedTicket.replies.length})</h3>
+              {/* Replies */}
+              <div className="space-y-6 mb-8">
+                <h3 className="text-2xl font-bold text-white">Conversa ({selectedTicket.replies.length})</h3>
                 {selectedTicket.replies.map((reply) => (
                   <div
                     key={reply.id}
-                    className={`p-4 rounded-xl border border-white/10 ${
+                    className={`p-6 rounded-2xl border ${
                       reply.isAdmin 
-                        ? theme === 'dark' ? 'bg-purple-500/20 border-l-4 border-purple-500' : 'bg-primary-50 border-l-4 border-primary-500'
-                        : theme === 'dark' ? 'bg-white/5 border-l-4 border-white/20' : 'bg-gray-50 border-l-4 border-gray-300'
+                        ? 'bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border-l-4 border-purple-500'
+                        : 'bg-white/5 border-l-4 border-white/20'
                     }`}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className={`font-semibold ${reply.isAdmin ? (theme === 'dark' ? 'text-purple-300' : 'text-primary-700') : themeClasses.text.secondary}`}>
-                        {reply.isAdmin
-                          ? (reply.message?.startsWith('🤖 IA:') ? '🤖 IA' : '🔧 Administrador')
-                          : '👤 Você'}
-                      </span>
-                      <span className={`text-xs ${themeClasses.text.muted}`}>
-                        {format(new Date(reply.createdAt), "dd 'de' MMM 'às' HH:mm", { locale: ptBR })}
-                      </span>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${
+                          reply.isAdmin 
+                            ? 'bg-gradient-to-r from-purple-500 to-indigo-500'
+                            : 'bg-gradient-to-r from-gray-600 to-gray-700'
+                        }`}>
+                          {reply.isAdmin ? (reply.message?.startsWith('🤖 IA:') ? '🤖' : '🔧') : '👤'}
+                        </div>
+                        <div>
+                          <div className={`font-bold ${reply.isAdmin ? 'text-purple-300' : 'text-white'}`}>
+                            {reply.isAdmin
+                              ? (reply.message?.startsWith('🤖 IA:') ? 'Assistente IA' : 'Suporte Human')
+                              : 'Você'}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {format(new Date(reply.createdAt), "dd 'de' MMM 'às' HH:mm", { locale: ptBR })}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <p className={`${themeClasses.text.secondary} whitespace-pre-wrap`}>{reply.message}</p>
+                    <p className={`${reply.isAdmin ? 'text-gray-300' : 'text-gray-300'} text-lg leading-relaxed`}>
+                      {reply.message}
+                    </p>
                   </div>
                 ))}
               </div>
 
+              {/* Reply Form */}
               <div>
-                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                <label className="block text-sm font-semibold text-gray-300 mb-4 uppercase tracking-wider">
                   Adicionar Resposta
                 </label>
                 <textarea
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
-                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none mb-3`}
+                  className="w-full bg-black/40 border border-white/20 rounded-2xl px-6 py-4 text-white text-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all mb-6"
                   rows={4}
                   placeholder="Digite sua resposta..."
                 />
                 <button
                   onClick={() => handleReply(selectedTicket.id)}
                   disabled={loading || !replyMessage.trim()}
-                  className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all disabled:opacity-50"
                 >
                   {loading ? 'Enviando...' : 'Enviar Resposta'}
                 </button>
               </div>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      <style jsx>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-20px); }
+        }
+        
+        .animate-float {
+          animation: float 6s ease-in-out infinite;
+        }
+        
+        .glass-card {
+          background: rgba(25, 25, 25, 0.3);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .line-clamp-3 {
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+      `}</style>
     </div>
   )
 }
-
