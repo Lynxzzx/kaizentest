@@ -50,6 +50,7 @@ export default function Plans() {
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null)
   const [loading, setLoading] = useState(false)
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Modals and Forms
   const [showEmailModal, setShowEmailModal] = useState(false)
@@ -103,6 +104,11 @@ export default function Plans() {
     window.addEventListener('mousemove', handleMouseMove)
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
+
+  // Mobile menu handlers
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen)
+  }
 
   useEffect(() => {
     if (!paymentData?.id || !paymentMethod || checkingPayment) return
@@ -319,10 +325,10 @@ export default function Plans() {
 
   return (
     <div className="min-h-screen bg-[#000000] text-gray-100 pb-20">
-      {/* Advanced Background with Mouse Tracking */}
+      {/* Advanced Background with Mouse Tracking - Reduced for Mobile */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div 
-          className="absolute w-[1200px] h-[800px] bg-[radial-gradient(circle,rgba(79,70,229,0.15)_0%,transparent_70%)] blur-[150px] transition-all duration-1000 ease-out"
+          className="absolute w-[600px] h-[400px] sm:w-[1200px] sm:h-[800px] bg-[radial-gradient(circle,rgba(79,70,229,0.15)_0%,transparent_70%)] blur-[100px] sm:blur-[150px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 600) * 0.02}px, ${(mousePosition.y - 400) * 0.02}px)`,
             left: `${mousePosition.x - 600}px`,
@@ -330,7 +336,7 @@ export default function Plans() {
           }}
         />
         <div 
-          className="absolute w-[1000px] h-[600px] bg-[radial-gradient(circle,rgba(236,72,153,0.1)_0%,transparent_70%)] blur-[120px] transition-all duration-1000 ease-out"
+          className="absolute w-[500px] h-[300px] sm:w-[1000px] sm:h-[600px] bg-[radial-gradient(circle,rgba(236,72,153,0.1)_0%,transparent_70%)] blur-[80px] sm:blur-[120px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 500) * -0.01}px, ${(mousePosition.y - 300) * -0.01}px)`,
             right: `${500 - mousePosition.x}px`,
@@ -338,18 +344,18 @@ export default function Plans() {
           }}
         />
         <div 
-          className="absolute w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(59,130,246,0.08)_0%,transparent_70%)] blur-[100px] transition-all duration-1000 ease-out"
+          className="absolute w-[400px] h-[400px] sm:w-[800px] sm:h-[800px] bg-[radial-gradient(circle,rgba(59,130,246,0.08)_0%,transparent_70%)] blur-[60px] sm:blur-[100px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 400) * 0.015}px, ${(mousePosition.y - 400) * 0.015}px)`,
             left: `${mousePosition.x * 0.1}px`,
             bottom: `${mousePosition.y * 0.1}px`
           }}
         />
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
+        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-30 sm:opacity-100" />
         
-        {/* Floating particles effect */}
-        <div className="absolute inset-0">
-          {[...Array(30)].map((_, i) => (
+        {/* Floating particles effect - Reduced for Mobile */}
+        <div className="absolute inset-0 hidden sm:block">
+          {[...Array(15)].map((_, i) => (
             <div
               key={i}
               className="absolute w-1 h-1 bg-white/15 rounded-full animate-float"
@@ -366,54 +372,83 @@ export default function Plans() {
 
       {/* Futuristic Navigation */}
       <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-black/20 backdrop-blur-2xl">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+          <div className="flex items-center gap-3 sm:gap-4">
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur-sm opacity-75 group-hover:opacity-100 transition-opacity" />
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-xl font-bold text-white relative">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-lg sm:text-xl font-bold text-white relative">
                 💎
               </div>
             </div>
             <div>
-              <h1 className="font-bold text-xl text-white">Planos Premium</h1>
-              <p className="text-sm text-gray-400">Escolha seu plano ideal</p>
+              <h1 className="font-bold text-lg sm:text-xl text-white">Planos Premium</h1>
+              <p className="text-xs sm:text-sm text-gray-400 hidden sm:block">Escolha seu plano ideal</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          
+          {/* Desktop Navigation */}
+          <div className="hidden sm:flex items-center gap-3">
             <Link href="/dashboard" className="group relative overflow-hidden px-6 py-2.5 rounded-full glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300">
               <span className="relative z-10">⚡ Dashboard</span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </Link>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={toggleMobileMenu}
+            className="sm:hidden p-2 rounded-lg glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300"
+          >
+            <div className="w-6 h-6 flex flex-col justify-center items-center">
+              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMobileMenuOpen ? 'rotate-45 translate-y-1' : '-translate-y-0.5'}`}></span>
+              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm my-0.5 ${isMobileMenuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
+              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMobileMenuOpen ? '-rotate-45 -translate-y-1' : 'translate-y-0.5'}`}></span>
+            </div>
+          </button>
         </div>
+
+        {/* Mobile Menu */}
+        {isMobileMenuOpen && (
+          <div className="sm:hidden absolute top-full left-0 w-full bg-black/95 backdrop-blur-xl border-b border-white/10">
+            <div className="px-4 py-4 space-y-3">
+              <Link 
+                href="/dashboard" 
+                className="block px-4 py-3 rounded-xl glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300 text-center"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                ⚡ Dashboard
+              </Link>
+            </div>
+          </div>
+        )}
       </nav>
 
-      <main className="relative z-10 pt-32 pb-24 px-6">
+      <main className="relative z-10 pt-24 sm:pt-32 pb-24 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
           
           {/* Hero Section */}
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-sm font-medium mb-8">
-              <span className="relative flex h-2 w-2">
+          <div className="text-center mb-12 sm:mb-16">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs sm:text-sm font-medium mb-6 sm:mb-8">
+              <span className="relative flex h-1.5 w-1.5 sm:h-2 sm:w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                <span className="relative inline-flex rounded-full h-1.5 w-1.5 sm:h-2 sm:w-2 bg-indigo-500"></span>
               </span>
               Planos Premium
             </div>
             
-            <h1 className="text-6xl lg:text-7xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
               Escolha Seu Plano
             </h1>
-            <p className="text-xl text-gray-400 max-w-3xl mx-auto mb-12">
+            <p className="text-base sm:text-xl text-gray-400 max-w-2xl sm:max-w-3xl mx-auto mb-8 sm:mb-12">
               Libere todo o potencial do gerador com nossos planos premium. Gerações ilimitadas, suporte prioritário e muito mais.
             </p>
             
-            <div className="flex flex-wrap gap-4 justify-center">
-              <a href="https://t.me/geradordecontasbr" target="_blank" className="group relative overflow-hidden flex items-center gap-3 px-6 py-3 bg-[#0088cc] hover:bg-[#0077b5] text-white rounded-2xl font-semibold transition-all shadow-lg hover:shadow-[#0088cc]/30">
+            <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
+              <a href="https://t.me/geradordecontasbr" target="_blank" className="group relative overflow-hidden flex items-center gap-2 sm:gap-3 px-4 py-2.5 sm:px-6 sm:py-3 bg-[#0088cc] hover:bg-[#0077b5] text-white rounded-xl sm:rounded-2xl font-semibold text-sm sm:text-base transition-all shadow-lg hover:shadow-[#0088cc]/30">
                 <span className="relative z-10">📱 Telegram</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </a>
-              <a href="https://discord.gg/KWZ5fctz3b" target="_blank" className="group relative overflow-hidden flex items-center gap-3 px-6 py-3 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-2xl font-semibold transition-all shadow-lg hover:shadow-[#5865F2]/30">
+              <a href="https://discord.gg/KWZ5fctz3b" target="_blank" className="group relative overflow-hidden flex items-center gap-2 sm:gap-3 px-4 py-2.5 sm:px-6 sm:py-3 bg-[#5865F2] hover:bg-[#4752C4] text-white rounded-xl sm:rounded-2xl font-semibold text-sm sm:text-base transition-all shadow-lg hover:shadow-[#5865F2]/30">
                 <span className="relative z-10">💬 Discord</span>
                 <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </a>
@@ -422,25 +457,25 @@ export default function Plans() {
 
           {/* Coupon Section */}
           {plans.length > 0 && (
-            <div className="glass-card rounded-3xl p-8 mb-16 max-w-3xl mx-auto border border-white/10">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-white">Tem um cupom?</h3>
-                <span className="px-4 py-2 rounded-full text-sm text-emerald-200 bg-emerald-500/10 border border-emerald-500/20">
+            <div className="glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 mb-12 sm:mb-16 max-w-3xl mx-auto border border-white/10">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
+                <h3 className="text-xl sm:text-2xl font-bold text-white">Tem um cupom?</h3>
+                <span className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm text-emerald-200 bg-emerald-500/10 border border-emerald-500/20">
                   💰 Economize mais
                 </span>
               </div>
-              <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <input
                   type="text"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
-                  className="flex-1 bg-black/40 border border-white/20 rounded-2xl px-6 py-4 text-white text-lg placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all uppercase tracking-widest"
+                  className="flex-1 bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 text-white text-base sm:text-lg placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all uppercase tracking-widest"
                   placeholder="PROMO50"
                 />
                 <select
                   value={couponPlanId}
                   onChange={(e) => setCouponPlanId(e.target.value)}
-                  className="bg-black/40 border border-white/20 rounded-2xl px-6 py-4 text-white text-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                  className="bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 text-white text-base sm:text-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                 >
                   {plans.map((plan) => (
                     <option key={plan.id} value={plan.id} className="bg-gray-900">
@@ -454,89 +489,89 @@ export default function Plans() {
                     if (plan) validateCouponForPlan(plan)
                   }}
                   disabled={!couponCode || couponApplying}
-                  className="group relative overflow-hidden px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all disabled:opacity-50"
+                  className="group relative overflow-hidden px-6 py-3 sm:px-8 sm:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg hover:shadow-xl sm:hover:shadow-2xl hover:shadow-purple-500/50 transition-all disabled:opacity-50"
                 >
                   <span className="relative z-10">{t('applyCoupon')}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 </button>
               </div>
               {appliedCoupon && (
-                <div className="mt-6 p-4 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 rounded-2xl text-emerald-300 flex justify-between items-center">
-                  <span className="font-semibold">💰 Desconto aplicado: -{t('currencySymbol')} {appliedCoupon.discountAmount.toFixed(2)} • Preço final: {t('currencySymbol')} {appliedCoupon.finalAmount.toFixed(2)}</span>
-                  <button onClick={() => setAppliedCoupon(null)} className="text-white hover:text-red-400 text-xl">×</button>
+                <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 rounded-xl sm:rounded-2xl text-emerald-300 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                  <span className="font-semibold text-sm sm:text-base">💰 Desconto aplicado: -{t('currencySymbol')} {appliedCoupon.discountAmount.toFixed(2)} • Preço final: {t('currencySymbol')} {appliedCoupon.finalAmount.toFixed(2)}</span>
+                  <button onClick={() => setAppliedCoupon(null)} className="text-white hover:text-red-400 text-lg sm:text-xl self-start sm:self-auto">×</button>
                 </div>
               )}
             </div>
           )}
 
           {/* Plans Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
             {plans.map((plan, index) => (
-              <div key={plan.id} className={`group glass-card rounded-3xl p-8 border border-white/10 hover:border-indigo-500/30 transition-all duration-500 hover:-translate-y-2 relative overflow-hidden ${index === 1 ? 'lg:scale-105 shadow-2xl shadow-indigo-500/20' : ''}`}>
+              <div key={plan.id} className={`group glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-indigo-500/30 transition-all duration-500 hover:-translate-y-1 sm:hover:-translate-y-2 relative overflow-hidden ${index === 1 ? 'lg:scale-105 shadow-xl sm:shadow-2xl shadow-indigo-500/20' : ''}`}>
                 {index === 1 && (
                   <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-2 rounded-full text-sm font-bold uppercase tracking-wider shadow-lg">
+                    <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-1.5 sm:px-6 sm:py-2 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider shadow-lg">
                       ⭐ Mais Popular
                     </div>
                   </div>
                 )}
 
-                <div className="text-center mb-8">
-                  <h3 className="text-3xl font-bold text-white mb-3">{translatePlanName ? translatePlanName(plan.name) : plan.name}</h3>
-                  <p className="text-gray-400 text-lg mb-6 min-h-[60px]">{plan.description}</p>
+                <div className="text-center mb-6 sm:mb-8">
+                  <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2 sm:mb-3">{translatePlanName ? translatePlanName(plan.name) : plan.name}</h3>
+                  <p className="text-gray-400 text-base sm:text-lg mb-4 sm:mb-6 min-h-[40px] sm:min-h-[60px]">{plan.description}</p>
                   
-                  <div className="mb-8">
-                    <span className="text-5xl font-bold text-white tracking-tight">{t('currencySymbol')}{plan.price.toFixed(2)}</span>
-                    <span className="text-gray-500 ml-2 text-lg">/ {plan.duration} {t('daysAccess')}</span>
+                  <div className="mb-6 sm:mb-8">
+                    <span className="text-3xl sm:text-5xl font-bold text-white tracking-tight">{t('currencySymbol')}{plan.price.toFixed(2)}</span>
+                    <span className="text-gray-500 ml-1 sm:ml-2 text-sm sm:text-lg">/ {plan.duration} {t('daysAccess')}</span>
                   </div>
                 </div>
 
-                <div className="space-y-4 mb-10">
-                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center text-xl">✓</div>
-                    <div>
-                      <div className="font-bold text-white text-lg">{plan.maxGenerations === 0 ? t('unlimitedLabel') : `${plan.maxGenerations} ${t('generations')}`}</div>
-                      <div className="text-sm text-gray-400">Gerações disponíveis</div>
+                <div className="space-y-3 sm:space-y-4 mb-8 sm:mb-10">
+                  <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 flex items-center justify-center text-lg sm:text-xl">✓</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-white text-base sm:text-lg">{plan.maxGenerations === 0 ? t('unlimitedLabel') : `${plan.maxGenerations} ${t('generations')}`}</div>
+                      <div className="text-xs sm:text-sm text-gray-400">Gerações disponíveis</div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-xl">✓</div>
-                    <div>
-                      <div className="font-bold text-white text-lg">{t('accessAllServices')}</div>
-                      <div className="text-sm text-gray-400">Todos os serviços premium</div>
+                  <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-lg sm:text-xl">✓</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-white text-base sm:text-lg">{t('accessAllServices')}</div>
+                      <div className="text-xs sm:text-sm text-gray-400">Todos os serviços premium</div>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/10">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-xl">✓</div>
-                    <div>
-                      <div className="font-bold text-white text-lg">Suporte 24/7</div>
-                      <div className="text-sm text-gray-400">Atendimento prioritário</div>
+                  <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10">
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-lg sm:text-xl">✓</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-white text-base sm:text-lg">Suporte 24/7</div>
+                      <div className="text-xs sm:text-sm text-gray-400">Atendimento prioritário</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   <button
                     onClick={() => handlePayment(plan, 'PIX')}
-                    className="group relative overflow-hidden w-full py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-2xl font-bold text-lg hover:shadow-2xl hover:shadow-green-500/50 transition-all"
+                    className="group relative overflow-hidden w-full py-3 sm:py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg hover:shadow-xl sm:hover:shadow-2xl hover:shadow-green-500/50 transition-all"
                   >
                     <span className="relative z-10">💚 Pagar com PIX</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
                   
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     <button
                       onClick={() => handlePayment(plan, 'CARD')}
-                      className="group relative overflow-hidden py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold text-base hover:shadow-lg hover:shadow-blue-500/50 transition-all"
+                      className="group relative overflow-hidden py-2.5 sm:py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base hover:shadow-lg hover:shadow-blue-500/50 transition-all"
                     >
                       <span className="relative z-10">💳 Cartão</span>
                       <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                     <button
                       onClick={() => handlePayment(plan, 'CRYPTO')}
-                      className="group relative overflow-hidden py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-2xl font-bold text-base hover:shadow-lg hover:shadow-orange-500/50 transition-all"
+                      className="group relative overflow-hidden py-2.5 sm:py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base hover:shadow-lg hover:shadow-orange-500/50 transition-all"
                     >
                       <span className="relative z-10">₿ Crypto</span>
                       <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -551,22 +586,22 @@ export default function Plans() {
 
           {/* Email Modal */}
           {showEmailModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-              <div className="glass-card p-8 rounded-3xl max-w-md w-full border border-white/10">
-                <h2 className="text-2xl font-bold text-white mb-6">Informe seu email</h2>
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-sm">
+              <div className="glass-card p-6 sm:p-8 rounded-2xl sm:rounded-3xl max-w-md w-full border border-white/10">
+                <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Informe seu email</h2>
                 <input
                   type="email"
                   value={customerEmail}
                   onChange={(e) => setCustomerEmail(e.target.value)}
                   placeholder="seu@email.com"
-                  className="w-full bg-black/40 border border-white/20 rounded-2xl px-6 py-4 text-white text-lg placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all mb-8"
+                  className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 text-white text-base sm:text-lg placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all mb-6 sm:mb-8"
                 />
-                <div className="flex gap-4">
-                  <button onClick={handleEmailSubmit} className="flex-1 group relative overflow-hidden py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-bold text-lg hover:shadow-lg hover:shadow-indigo-500/50 transition-all">
+                <div className="flex gap-3 sm:gap-4">
+                  <button onClick={handleEmailSubmit} className="flex-1 group relative overflow-hidden py-3 sm:py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg hover:shadow-lg hover:shadow-indigo-500/50 transition-all">
                     <span className="relative z-10">Continuar</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
-                  <button onClick={() => setShowEmailModal(false)} className="px-6 py-4 border border-white/20 rounded-2xl text-white hover:bg-white/5 transition-all font-semibold">
+                  <button onClick={() => setShowEmailModal(false)} className="px-4 py-3 sm:px-6 sm:py-4 border border-white/20 rounded-xl sm:rounded-2xl text-white hover:bg-white/5 transition-all font-semibold text-sm sm:text-base">
                     Cancelar
                   </button>
                 </div>
@@ -576,22 +611,22 @@ export default function Plans() {
 
           {/* Language Modal (Crypto) */}
           {showLanguageModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-              <div className="glass-card p-8 rounded-3xl max-w-sm w-full border border-white/10">
-                <h3 className="text-2xl font-bold text-white mb-8 text-center">Selecione o idioma</h3>
-                <div className="space-y-4">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-sm">
+              <div className="glass-card p-6 sm:p-8 rounded-2xl sm:rounded-3xl max-w-sm w-full border border-white/10">
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-6 sm:mb-8 text-center">Selecione o idioma</h3>
+                <div className="space-y-3 sm:space-y-4">
                   {['pt', 'en', 'es'].map((lang) => (
                     <button
                       key={lang}
                       onClick={() => { setSelectedLanguage(lang); setTimeout(handleLanguageSelection, 100); }}
-                      className="group relative overflow-hidden w-full py-4 rounded-2xl border border-white/20 hover:bg-white/5 text-white font-bold text-lg uppercase transition-all"
+                      className="group relative overflow-hidden w-full py-3 sm:py-4 rounded-xl sm:rounded-2xl border border-white/20 hover:bg-white/5 text-white font-bold text-base sm:text-lg uppercase transition-all"
                     >
                       <span className="relative z-10">{lang}</span>
                       <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
                   ))}
                 </div>
-                <button onClick={() => setShowLanguageModal(false)} className="mt-8 w-full py-4 text-gray-400 hover:text-white transition-colors font-semibold">
+                <button onClick={() => setShowLanguageModal(false)} className="mt-6 sm:mt-8 w-full py-3 sm:py-4 text-gray-400 hover:text-white transition-colors font-semibold text-sm sm:text-base">
                   Cancelar
                 </button>
               </div>
@@ -600,38 +635,38 @@ export default function Plans() {
 
           {/* Payment Modal - PIX */}
           {(paymentData || (paymentMethod && loading)) && pendingPayment && paymentMethod === 'PIX' && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-              <div className="glass-card p-8 rounded-3xl max-w-lg w-full border border-white/10">
-                <div className="flex justify-between items-center mb-8">
-                  <h3 className="text-3xl font-bold text-white flex items-center gap-3">
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-sm overflow-y-auto">
+              <div className="glass-card p-6 sm:p-8 rounded-2xl sm:rounded-3xl max-w-lg w-full border border-white/10">
+                <div className="flex justify-between items-center mb-6 sm:mb-8">
+                  <h3 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2 sm:gap-3">
                     <span className="text-green-400">❖</span> Pagamento via PIX
                   </h3>
-                  <button onClick={() => { setPaymentData(null); setPaymentMethod(null); }} className="text-gray-400 hover:text-white transition-colors text-2xl">
+                  <button onClick={() => { setPaymentData(null); setPaymentMethod(null); }} className="text-gray-400 hover:text-white transition-colors text-xl sm:text-2xl">
                     ×
                   </button>
                 </div>
 
                 {loading ? (
-                  <div className="flex flex-col items-center justify-center py-16">
-                    <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-6" />
-                    <p className="text-gray-400 animate-pulse text-lg">Criando pagamento PIX...</p>
+                  <div className="flex flex-col items-center justify-center py-12 sm:py-16">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4 sm:mb-6" />
+                    <p className="text-gray-400 animate-pulse text-base sm:text-lg">Criando pagamento PIX...</p>
                   </div>
                 ) : (
-                  <div className="space-y-8">
+                  <div className="space-y-6 sm:space-y-8">
                     <div className="text-center">
-                      <p className="text-sm text-gray-400 mb-3">Valor final</p>
-                      <p className="text-5xl font-bold text-white mb-2">{t('currencySymbol')}{paymentData?.finalAmount?.toFixed(2)}</p>
+                      <p className="text-xs sm:text-sm text-gray-400 mb-2 sm:mb-3">Valor final</p>
+                      <p className="text-3xl sm:text-5xl font-bold text-white mb-1 sm:mb-2">{t('currencySymbol')}{paymentData?.finalAmount?.toFixed(2)}</p>
                       {paymentData?.discountAmount ? (
-                        <p className="text-emerald-400 text-lg">💰 Desconto: {t('currencySymbol')}{paymentData.discountAmount.toFixed(2)}</p>
+                        <p className="text-emerald-400 text-sm sm:text-lg">💰 Desconto: {t('currencySymbol')}{paymentData.discountAmount.toFixed(2)}</p>
                       ) : null}
                     </div>
 
                     {paymentData?.pixCopyPaste && (
                       <div className="flex justify-center">
-                        <div className="bg-white p-6 rounded-2xl shadow-2xl shadow-green-900/20">
+                        <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl shadow-xl sm:shadow-2xl shadow-green-900/20">
                           <QRCode
                             value={paymentData.pixCopyPaste}
-                            size={240}
+                            size={200}
                             renderAs="svg"
                             level="M"
                           />
@@ -639,13 +674,13 @@ export default function Plans() {
                       </div>
                     )}
 
-                    <div className="space-y-4">
-                      <label className="text-sm text-gray-400 block">Código PIX copia e cola</label>
-                      <div className="flex gap-3">
+                    <div className="space-y-3 sm:space-y-4">
+                      <label className="text-xs sm:text-sm text-gray-400 block">Código PIX copia e cola</label>
+                      <div className="flex gap-2 sm:gap-3">
                         <input
                           readOnly
                           value={paymentData?.pixCopyPaste || ''}
-                          className="flex-1 bg-black/40 border border-white/20 rounded-2xl px-4 py-3 text-xs text-gray-300 font-mono truncate focus:outline-none"
+                          className="flex-1 bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs text-gray-300 font-mono truncate focus:outline-none"
                         />
                         <button
                           onClick={() => {
@@ -654,7 +689,7 @@ export default function Plans() {
                               toast.success('Código PIX copiado!')
                             }
                           }}
-                          className="group relative overflow-hidden px-4 py-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-colors"
+                          className="group relative overflow-hidden px-3 py-2.5 sm:px-4 sm:py-3 bg-white/10 hover:bg-white/20 rounded-xl sm:rounded-2xl text-white transition-colors"
                         >
                           <span className="relative z-10">📋</span>
                           <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -662,12 +697,12 @@ export default function Plans() {
                       </div>
                     </div>
 
-                    <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-2xl p-6">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                        <span className="text-blue-400 font-bold text-lg">Aguardando pagamento</span>
+                    <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-xl sm:rounded-2xl p-4 sm:p-6">
+                      <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                        <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span className="text-blue-400 font-bold text-base sm:text-lg">Aguardando pagamento</span>
                       </div>
-                      <p className="text-sm text-blue-300/80">O pagamento será confirmado automaticamente assim que o PIX for detectado.</p>
+                      <p className="text-xs sm:text-sm text-blue-300/80">O pagamento será confirmado automaticamente assim que o PIX for detectado.</p>
                     </div>
                   </div>
                 )}
@@ -787,6 +822,35 @@ export default function Plans() {
           background: rgba(25, 25, 25, 0.3);
           backdrop-filter: blur(20px);
           border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glass-panel {
+          background: rgba(25, 25, 25, 0.2);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        @media (max-width: 640px) {
+          .glass-card {
+            backdrop-filter: blur(15px);
+            background: rgba(25, 25, 25, 0.4);
+          }
+          
+          .glass-panel {
+            backdrop-filter: blur(8px);
+            background: rgba(25, 25, 25, 0.3);
+          }
+        }
+        
+        /* Touch-friendly improvements */
+        @media (hover: none) and (pointer: coarse) {
+          .group:hover {
+            transform: none !important;
+          }
+          
+          button:active {
+            transform: scale(0.98);
+          }
         }
       `}</style>
     </div>

@@ -31,6 +31,7 @@ export default function Home() {
   const [translatedFeedbacks, setTranslatedFeedbacks] = useState<Record<string, string>>({})
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [scrollY, setScrollY] = useState(0)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   const stats = [
     { value: '25k+', label: t('metricsUsers'), desc: t('metricsUsersDesc') },
@@ -142,9 +143,9 @@ export default function Home() {
   return (
     <div className="relative min-h-screen bg-[#000000] text-white overflow-hidden">
       {/* Advanced Background with Mouse Tracking */}
-      <div className="fixed inset-0 pointer-events-none">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div 
-          className="absolute w-[1200px] h-[800px] bg-[radial-gradient(circle,rgba(79,70,229,0.2)_0%,transparent_70%)] blur-[150px] transition-all duration-1000 ease-out"
+          className="absolute w-[1200px] h-[800px] bg-[radial-gradient(circle,rgba(79,70,229,0.2)_0%,transparent_70%)] blur-[150px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 600) * 0.02}px, ${(mousePosition.y - 400) * 0.02}px)`,
             left: `${mousePosition.x - 600}px`,
@@ -152,7 +153,7 @@ export default function Home() {
           }}
         />
         <div 
-          className="absolute w-[1000px] h-[600px] bg-[radial-gradient(circle,rgba(236,72,153,0.15)_0%,transparent_70%)] blur-[120px] transition-all duration-1000 ease-out"
+          className="absolute w-[1000px] h-[600px] bg-[radial-gradient(circle,rgba(236,72,153,0.15)_0%,transparent_70%)] blur-[120px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 500) * -0.01}px, ${(mousePosition.y - 300) * -0.01}px)`,
             right: `${500 - mousePosition.x}px`,
@@ -160,7 +161,7 @@ export default function Home() {
           }}
         />
         <div 
-          className="absolute w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(59,130,246,0.1)_0%,transparent_70%)] blur-[100px] transition-all duration-1000 ease-out"
+          className="absolute w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(59,130,246,0.1)_0%,transparent_70%)] blur-[100px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 400) * 0.015}px, ${(mousePosition.y - 400) * 0.015}px)`,
             left: `${mousePosition.x * 0.1}px`,
@@ -174,7 +175,7 @@ export default function Home() {
           {[...Array(20)].map((_, i) => (
             <div
               key={i}
-              className="absolute w-1 h-1 bg-white/20 rounded-full animate-float"
+              className="absolute w-1 h-1 bg-white/20 rounded-full animate-float hidden sm:block"
               style={{
                 left: `${Math.random() * 100}%`,
                 top: `${Math.random() * 100}%`,
@@ -186,51 +187,90 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Futuristic Navigation */}
+      {/* Mobile-Optimized Navigation */}
       <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-black/30 backdrop-blur-2xl">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3 group">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
+          <div className="flex items-center gap-2 sm:gap-3 group">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur-sm opacity-75 group-hover:opacity-100 transition-opacity" />
               <Logo size="sm" showText={false} />
             </div>
-            <span className="font-bold text-xl tracking-tight">
+            <span className="font-bold text-lg sm:text-xl tracking-tight">
               Kaizen<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Gens</span>
             </span>
           </div>
-          <div className="flex items-center gap-4">
+          
+          {/* Desktop Navigation */}
+          <div className="hidden sm:flex items-center gap-3">
             {!session && (
               <>
                 <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition-all duration-300 hover:scale-105">
                   {t('signIn')}
                 </Link>
-                <Link href="/register" className="text-sm font-medium bg-gradient-to-r from-white to-gray-200 text-black px-6 py-2.5 rounded-full hover:shadow-lg hover:shadow-white/20 transition-all duration-300 hover:scale-105">
+                <Link href="/register" className="text-sm font-medium bg-gradient-to-r from-white to-gray-200 text-black px-4 sm:px-6 py-2.5 rounded-full hover:shadow-lg hover:shadow-white/20 transition-all duration-300 hover:scale-105">
                   {t('signUp')}
                 </Link>
               </>
             )}
             {session && (
-              <Link href="/dashboard" className="text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-2.5 rounded-full hover:shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 hover:scale-105">
+              <Link href="/dashboard" className="text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 sm:px-6 py-2.5 rounded-full hover:shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 hover:scale-105">
                 {t('dashboard')}
               </Link>
             )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <button 
+            className="sm:hidden p-2 rounded-lg glass-panel border border-white/10"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <div className="w-6 h-6 flex flex-col justify-center items-center">
+              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMobileMenuOpen ? 'rotate-45 translate-y-1' : '-translate-y-0.5'}`}></span>
+              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm my-0.5 ${isMobileMenuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
+              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMobileMenuOpen ? '-rotate-45 -translate-y-1' : 'translate-y-0.5'}`}></span>
+            </div>
+          </button>
+        </div>
+
+        {/* Mobile Menu */}
+        <div className={`sm:hidden absolute top-16 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10 transition-all duration-300 ${isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+          <div className="p-4 space-y-3">
+            {!session && (
+              <>
+                <Link href="/login" className="block w-full text-center py-3 px-4 rounded-xl glass-panel border border-white/10 text-white font-medium">
+                  {t('signIn')}
+                </Link>
+                <Link href="/register" className="block w-full text-center py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold">
+                  {t('signUp')}
+                </Link>
+              </>
+            )}
+            {session && (
+              <Link href="/dashboard" className="block w-full text-center py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold">
+                {t('dashboard')}
+              </Link>
+            )}
+            <div className="pt-3 border-t border-white/10">
+              <Link href="/plans" className="block py-2 text-white/70 hover:text-white">Planos</Link>
+              <Link href="/api-docs" className="block py-2 text-white/70 hover:text-white">API Docs</Link>
+            </div>
+          </div>
         </div>
       </nav>
 
-      {/* Hero Section with Advanced Animations */}
-      <main className="relative z-10 pt-40 pb-32 px-6">
+      {/* Hero Section with Mobile Optimization */}
+      <main className="relative z-10 pt-24 sm:pt-40 pb-16 sm:pb-32 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-sm font-medium mb-10 animate-pulse">
-            <span className="relative flex h-2.5 w-2.5">
+          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs sm:text-sm font-medium mb-6 sm:mb-10 animate-pulse">
+            <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
             </span>
             {locale === 'pt-BR' ? 'MAIOR gerador de contas do PLANETA' : t('heroBadge')}
           </div>
 
-          <div className="mb-12">
-            <h1 className="text-6xl sm:text-8xl font-bold tracking-tight mb-6 leading-[1.05]">
+          <div className="mb-8 sm:mb-12">
+            <h1 className="text-4xl sm:text-6xl lg:text-8xl font-bold tracking-tight mb-4 sm:mb-6 leading-[1.05]">
               <span className="block bg-gradient-to-br from-white to-gray-300 bg-clip-text text-transparent">
                 {locale === 'pt-BR' ? 'Somos o MAIOR' : t('heroSubtitle')}
               </span>
@@ -240,69 +280,69 @@ export default function Home() {
             </h1>
           </div>
 
-          <div className="max-w-4xl mx-auto mb-16">
-            <p className="text-xl text-gray-300 leading-relaxed">
+          <div className="max-w-2xl sm:max-w-4xl mx-auto mb-12 sm:mb-16">
+            <p className="text-base sm:text-xl text-gray-300 leading-relaxed px-4">
               {locale === 'pt-BR' ? 'Operação 24/7 em escala global. Centenas de milhares de credenciais geradas com qualidade premium.' : t('heroTrustedBy')}
             </p>
           </div>
 
-          {/* Enhanced CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-24">
+          {/* Mobile-Optimized CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mb-16 sm:mb-24">
             <Link
               href={session ? '/dashboard' : '/register'}
-              className="group relative overflow-hidden w-full sm:w-auto px-10 py-5 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-500 hover:scale-105"
+              className="group relative overflow-hidden w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-5 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-base sm:text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-500 hover:scale-105"
             >
               <span className="relative z-10">{session ? t('dashboard') : t('startNow')}</span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </Link>
             <Link
               href="/plans"
-              className="group relative overflow-hidden w-full sm:w-auto px-10 py-5 rounded-full glass-panel border border-white/20 hover:border-white/40 transition-all duration-500 hover:scale-105 font-semibold text-lg"
+              className="group relative overflow-hidden w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-5 rounded-full glass-panel border border-white/20 hover:border-white/40 transition-all duration-500 hover:scale-105 font-semibold text-base sm:text-lg"
             >
               <span className="relative z-10">{t('viewPlans')}</span>
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </Link>
             <Link
               href="/api-docs"
-              className="group relative overflow-hidden w-full sm:w-auto px-10 py-5 rounded-full glass-panel border border-indigo-500/30 hover:border-indigo-500/60 transition-all duration-500 hover:scale-105 font-semibold text-lg text-indigo-200"
+              className="group relative overflow-hidden w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-5 rounded-full glass-panel border border-indigo-500/30 hover:border-indigo-500/60 transition-all duration-500 hover:scale-105 font-semibold text-base sm:text-lg text-indigo-200"
             >
               <span className="relative z-10">API Docs</span>
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             </Link>
           </div>
 
-          {/* Enhanced Partners Grid */}
-          <div className="max-w-6xl mx-auto mb-32">
-            <p className="text-sm text-gray-400 mb-8 tracking-widest uppercase">Trusted by Industry Leaders</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6">
+          {/* Mobile-Optimized Partners Grid */}
+          <div className="max-w-6xl mx-auto mb-20 sm:mb-32">
+            <p className="text-xs sm:text-sm text-gray-400 mb-4 sm:mb-8 tracking-widest uppercase">Trusted by Industry Leaders</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-6">
               {partners.map((p, i) => (
                 <div key={i} className="group relative">
-                  <div className="glass-panel px-6 py-4 rounded-2xl border border-white/10 text-center hover:border-white/20 transition-all duration-500 hover:-translate-y-1">
-                    <div className="text-sm text-gray-300 group-hover:text-white transition-colors">{p}</div>
+                  <div className="glass-panel px-3 sm:px-6 py-2 sm:py-4 rounded-xl sm:rounded-2xl border border-white/10 text-center hover:border-white/20 transition-all duration-500 hover:-translate-y-1">
+                    <div className="text-xs sm:text-sm text-gray-300 group-hover:text-white transition-colors">{p}</div>
                   </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Enhanced Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
+          {/* Mobile-Optimized Stats Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 max-w-6xl mx-auto">
             {stats.map((stat, i) => (
               <div key={i} className="group relative">
-                <div className="glass-card p-10 rounded-3xl text-center border border-white/10 hover:border-indigo-500/40 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-500/20">
-                  <div className="text-4xl font-bold text-white mb-2 group-hover:scale-110 transition-transform duration-300">{stat.value}</div>
-                  <div className="text-indigo-300 font-bold text-lg">{stat.label}</div>
-                  <p className="text-gray-400 text-sm mt-3">{stat.desc}</p>
+                <div className="glass-card p-6 sm:p-10 rounded-2xl sm:rounded-3xl text-center border border-white/10 hover:border-indigo-500/40 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-500/20">
+                  <div className="text-2xl sm:text-4xl font-bold text-white mb-1 sm:mb-2 group-hover:scale-110 transition-transform duration-300">{stat.value}</div>
+                  <div className="text-indigo-300 font-bold text-sm sm:text-lg">{stat.label}</div>
+                  <p className="text-gray-400 text-xs sm:text-sm mt-2 sm:mt-3">{stat.desc}</p>
                 </div>
               </div>
             ))}
           </div>
           
-          <div className="mt-16">
+          <div className="mt-12 sm:mt-16">
             <Link
               href="/plans"
-              className="group inline-flex items-center gap-3 px-10 py-4 rounded-full bg-white/10 text-white font-semibold border border-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-500 hover:scale-105"
+              className="group inline-flex items-center gap-3 px-6 sm:px-10 py-3 sm:py-4 rounded-full bg-white/10 text-white font-semibold border border-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-500 hover:scale-105"
             >
               <span>Ver planos agora</span>
               <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
@@ -311,27 +351,27 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Enhanced Features Section */}
-      <section className="py-32 relative">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-24">
-            <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+      {/* Enhanced Features Section - Mobile Optimized */}
+      <section className="py-16 sm:py-32 relative">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center mb-12 sm:mb-24">
+            <h2 className="text-3xl sm:text-5xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
               Por que somos #1
             </h2>
-            <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+            <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
               Tecnologia de ponta combinada com experiência superior
             </p>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
             {features.map((feature, i) => (
               <div key={i} className="group relative">
-                <div className="glass-card p-10 rounded-3xl border border-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-2 overflow-hidden">
-                  <div className={`w-16 h-16 rounded-2xl bg-gradient-to-r ${feature.color} flex items-center justify-center text-3xl mb-8 group-hover:scale-110 transition-transform duration-500 shadow-lg`}>
+                <div className="glass-card p-6 sm:p-10 rounded-2xl sm:rounded-3xl border border-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-2 overflow-hidden">
+                  <div className={`w-12 sm:w-16 h-12 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-r ${feature.color} flex items-center justify-center text-xl sm:text-3xl mb-6 sm:mb-8 group-hover:scale-110 transition-transform duration-500 shadow-lg`}>
                     {feature.icon}
                   </div>
-                  <h3 className="text-2xl font-bold mb-4 text-gray-100 group-hover:text-white transition-colors">{feature.title}</h3>
-                  <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors">
+                  <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-gray-100 group-hover:text-white transition-colors">{feature.title}</h3>
+                  <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors text-sm sm:text-base">
                     {feature.desc}
                   </p>
                 </div>
@@ -339,51 +379,51 @@ export default function Home() {
             ))}
           </div>
           
-          <div className="mt-24 grid md:grid-cols-3 gap-8">
-            <div className="group relative overflow-hidden p-8 rounded-3xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 hover:border-indigo-500/50 transition-all duration-500">
+          <div className="mt-12 sm:mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="group relative overflow-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 hover:border-indigo-500/50 transition-all duration-500">
               <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <p className="text-sm text-indigo-300 mb-3 font-semibold">Diferencial</p>
-              <h4 className="text-2xl font-bold text-white mb-3">Atividade constante</h4>
-              <p className="text-gray-300">Infra confiável e filas otimizadas para gerar credenciais em ritmo de produção, o dia todo.</p>
+              <p className="text-sm text-indigo-300 mb-2 sm:mb-3 font-semibold">Diferencial</p>
+              <h4 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">Atividade constante</h4>
+              <p className="text-gray-300 text-sm sm:text-base">Infra confiável e filas otimizadas para gerar credenciais em ritmo de produção, o dia todo.</p>
             </div>
-            <div className="group relative overflow-hidden p-8 rounded-3xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 hover:border-emerald-500/50 transition-all duration-500">
+            <div className="group relative overflow-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 hover:border-emerald-500/50 transition-all duration-500">
               <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <p className="text-sm text-emerald-300 mb-3 font-semibold">Escala</p>
-              <h4 className="text-2xl font-bold text-white mb-3">Operação global</h4>
-              <p className="text-gray-300">Latência baixa e disponibilidade alta, atendendo usuários em dezenas de países.</p>
+              <p className="text-sm text-emerald-300 mb-2 sm:mb-3 font-semibold">Escala</p>
+              <h4 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">Operação global</h4>
+              <p className="text-gray-300 text-sm sm:text-base">Latência baixa e disponibilidade alta, atendendo usuários em dezenas de países.</p>
             </div>
-            <div className="group relative overflow-hidden p-8 rounded-3xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-500/30 hover:border-pink-500/50 transition-all duration-500">
+            <div className="group relative overflow-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-500/30 hover:border-pink-500/50 transition-all duration-500">
               <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <p className="text-sm text-pink-300 mb-3 font-semibold">Qualidade</p>
-              <h4 className="text-2xl font-bold text-white mb-3">UX premium</h4>
-              <p className="text-gray-300">Experiência refinada com design moderno, animações sutis e foco em conversão.</p>
+              <p className="text-sm text-pink-300 mb-2 sm:mb-3 font-semibold">Qualidade</p>
+              <h4 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">UX premium</h4>
+              <p className="text-gray-300 text-sm sm:text-base">Experiência refinada com design moderno, animações sutis e foco em conversão.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Enhanced Workflow Section */}
-      <section className="py-32 relative overflow-hidden">
+      {/* Enhanced Workflow Section - Mobile Optimized */}
+      <section className="py-16 sm:py-32 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/10 via-purple-900/10 to-pink-900/10 skew-y-3 transform origin-bottom-left" />
-        <div className="max-w-7xl mx-auto px-6 relative">
-          <div className="text-center mb-24">
-            <h2 className="text-5xl font-bold mb-6">{t('workflowDesc')}</h2>
-            <div className="h-1 w-24 bg-gradient-to-r from-indigo-500 to-purple-500 mx-auto rounded-full" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
+          <div className="text-center mb-12 sm:mb-24">
+            <h2 className="text-3xl sm:text-5xl font-bold mb-4 sm:mb-6">{t('workflowDesc')}</h2>
+            <div className="h-1 w-16 sm:w-24 bg-gradient-to-r from-indigo-500 to-purple-500 mx-auto rounded-full" />
           </div>
 
-          <div className="grid md:grid-cols-3 gap-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12">
             {steps.map((step, i) => (
               <div key={i} className="group relative text-center">
-                <div className="glass-panel p-12 rounded-3xl h-full border border-white/10 hover:border-white/20 transition-all duration-500">
-                  <div className="text-6xl mb-6 group-hover:scale-110 transition-transform duration-500">{step.icon}</div>
-                  <span className="text-7xl font-bold text-white/10 absolute top-6 right-6 select-none">
+                <div className="glass-panel p-8 sm:p-12 rounded-2xl sm:rounded-3xl h-full border border-white/10 hover:border-white/20 transition-all duration-500">
+                  <div className="text-4xl sm:text-6xl mb-6 sm:mb-6 group-hover:scale-110 transition-transform duration-500">{step.icon}</div>
+                  <span className="text-5xl sm:text-7xl font-bold text-white/10 absolute top-4 right-4 sm:top-6 sm:right-6 select-none">
                     {step.number}
                   </span>
-                  <h4 className="text-2xl font-bold mb-6 text-indigo-300">{step.title}</h4>
-                  <p className="text-gray-400 text-lg leading-relaxed">{step.desc}</p>
+                  <h4 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-indigo-300">{step.title}</h4>
+                  <p className="text-gray-400 text-sm sm:text-lg leading-relaxed">{step.desc}</p>
                 </div>
                 {i < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-1/2 -right-6 w-12 h-px bg-gradient-to-r from-indigo-500 to-transparent" />
+                  <div className="hidden lg:block absolute top-1/2 -right-6 w-12 h-px bg-gradient-to-r from-indigo-500 to-transparent" />
                 )}
               </div>
             ))}
@@ -391,23 +431,23 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Enhanced CTA Section */}
-      <section className="py-32 px-6">
+      {/* Enhanced CTA Section - Mobile Optimized */}
+      <section className="py-16 sm:py-32 px-4 sm:px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="glass-card rounded-[4rem] p-16 text-center relative overflow-hidden group">
+          <div className="glass-card rounded-[2rem] sm:rounded-[3rem] p-8 sm:p-16 text-center relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10" />
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_50%)]" />
             <div className="relative z-10">
-              <h2 className="text-6xl font-bold mb-8 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
+              <h2 className="text-3xl sm:text-6xl font-bold mb-4 sm:mb-8 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
                 {locale === 'pt-BR' ? 'Pronto para gerar em nível planetário?' : t('readyToStart')}
               </h2>
-              <p className="text-xl text-gray-400 mb-12 max-w-2xl mx-auto">{t('readyToStartDesc')}</p>
-              <div className="flex flex-col sm:flex-row justify-center gap-6">
-                <Link href="/register" className="group relative overflow-hidden px-12 py-5 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-500 hover:scale-105">
+              <p className="text-base sm:text-xl text-gray-400 mb-6 sm:mb-12 max-w-xl mx-auto">{t('readyToStartDesc')}</p>
+              <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-6">
+                <Link href="/register" className="group relative overflow-hidden px-6 sm:px-12 py-3 sm:py-5 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-base sm:text-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-500">
                   <span className="relative z-10">{t('createFreeAccount')}</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </Link>
-                <Link href="/contact" className="group relative overflow-hidden px-12 py-5 rounded-full glass-panel border border-white/20 hover:border-white/40 transition-all duration-500 hover:scale-105 font-semibold text-xl">
+                <Link href="/contact" className="group relative overflow-hidden px-6 sm:px-12 py-3 sm:py-5 rounded-full glass-panel border border-white/20 hover:border-white/40 transition-all duration-500 font-semibold text-base sm:text-xl">
                   <span className="relative z-10">Falar com especialista</span>
                   <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                 </Link>
@@ -417,21 +457,21 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Enhanced Popup Notifications */}
+      {/* Enhanced Popup Notifications - Mobile Optimized */}
       {currentPopup && (
-        <div className={`fixed bottom-8 left-8 z-50 transition-all duration-700 transform ${popupVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-          <div className="glass-panel pl-4 pr-8 py-4 rounded-2xl flex items-center gap-5 shadow-2xl border border-white/10 hover:border-white/20 transition-all duration-500">
+        <div className={`fixed bottom-4 sm:bottom-8 left-4 sm:left-8 z-50 transition-all duration-700 transform ${popupVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+          <div className="glass-panel pl-3 sm:pl-4 pr-4 sm:pr-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl flex items-center gap-3 sm:gap-5 shadow-2xl border border-white/10 hover:border-white/20 transition-all duration-500">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full blur-sm" />
-              <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-xl shadow-lg relative">
+              <div className="w-8 sm:w-12 h-8 sm:h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-base sm:text-xl shadow-lg relative">
                 {currentPopup.emoji}
               </div>
             </div>
             <div>
-              <p className="text-base font-semibold text-white">
+              <p className="text-sm sm:text-base font-semibold text-white">
                 <span className="font-bold text-indigo-300">{currentPopup.name}</span> {t('popupUserActivated')}
               </p>
-              <p className="text-sm text-gray-400">
+              <p className="text-xs sm:text-sm text-gray-400">
                 {t(currentPopup.planKey)} • <span className="text-emerald-400 font-semibold">{currentPopup.price}</span>
               </p>
             </div>
@@ -439,15 +479,15 @@ export default function Home() {
         </div>
       )}
 
-      {/* Enhanced Footer */}
-      <footer className="py-16 text-center text-gray-500 text-sm border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-6">
+      {/* Enhanced Footer - Mobile Optimized */}
+      <footer className="py-8 sm:py-16 text-center text-gray-600 text-sm border-t border-white/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Logo size="sm" showText={false} />
-            <span className="font-bold text-lg text-gray-400">Kaizen Gens</span>
+            <span className="font-bold text-base sm:text-lg text-gray-400">Kaizen Gens</span>
           </div>
           <p>&copy; {new Date().getFullYear()} Kaizen Gens. All rights reserved.</p>
-          <p className="mt-2 text-xs text-gray-600">The future of account generation is here.</p>
+          <p className="mt-2 text-xs sm:text-sm text-gray-600">The future of account generation is here.</p>
         </div>
       </footer>
 
@@ -472,15 +512,83 @@ export default function Home() {
         }
         
         .glass-panel {
-          background: rgba(25, 25, 25, 0.3);
+          background: rgba(25, 25, 25, 0.4);
           backdrop-filter: blur(20px);
           border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .glass-card {
-          background: rgba(25, 25, 25, 0.4);
+          background: rgba(25, 25, 25, 0.5);
           backdrop-filter: blur(16px);
           border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Mobile-specific optimizations */
+        @media (max-width: 640px) {
+          .glass-panel {
+            backdrop-filter: blur(12px);
+          }
+          
+          .glass-card {
+            backdrop-filter: blur(8px);
+          }
+        }
+        
+        /* Enhanced mobile performance */
+        @media (max-width: 768px) {
+          * {
+            -webkit-tap-highlight-color: transparent;
+          }
+          
+          .overflow-hidden {
+            overflow-x: hidden;
+          }
+          
+          /* Prevent horizontal overflow */
+          body {
+            overflow-x: hidden;
+            max-width: 100vw;
+          }
+          
+          /* Smooth scrolling for mobile */
+          html {
+            scroll-behavior: smooth;
+          }
+          
+          /* Enhanced touch targets */
+          button, a, input, select, textarea {
+            min-height: 44px;
+            min-width: 44px;
+          }
+          
+          /* Reduce motion for users who prefer it */
+          @media (prefers-reduced-motion: reduce) {
+            * {
+              animation-duration: 0.01ms !important;
+              animation-iteration-count: 1 !important;
+              transition-duration: 0.01ms !important;
+            }
+          }
+          
+          /* Touch-friendly improvements */
+          @media (hover: none) and (pointer: coarse) {
+            .group:hover {
+              transform: none !important;
+            }
+            
+            button:active {
+              transform: scale(0.98);
+            }
+          }
         }
       `}</style>
     </div>
