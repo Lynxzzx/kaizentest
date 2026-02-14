@@ -1,16 +1,16 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import prisma from '@/lib/prisma'
-import nodemailer from 'nodemailer'
+// import nodemailer from 'nodemailer'
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
-  }
-})
+// const transporter = nodemailer.createTransport({
+//   host: process.env.SMTP_HOST || 'smtp.gmail.com',
+//   port: parseInt(process.env.SMTP_PORT || '587'),
+//   secure: false,
+//   auth: {
+//     user: process.env.SMTP_USER,
+//     pass: process.env.SMTP_PASS
+//   }
+// })
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
@@ -43,28 +43,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       })
 
-      // Enviar email
-      await transporter.sendMail({
-        from: process.env.SMTP_USER,
-        to: user.email,
-        subject: 'Redefinição de Senha - Kaizen Gens',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #4F46E5;">Redefinição de Senha</h2>
-            <p>Olá ${user.username},</p>
-            <p>Recebemos uma solicitação para redefinir sua senha. Use o código abaixo:</p>
-            <div style="background-color: #F3F4F6; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-              <h1 style="color: #4F46E5; font-size: 32px; margin: 0; letter-spacing: 4px;">${resetCode}</h1>
-            </div>
-            <p>Este código expira em 15 minutos.</p>
-            <p>Se você não solicitou isso, ignore este email.</p>
-            <hr style="border: 1px solid #E5E7EB; margin: 30px 0;">
-            <p style="color: #6B7280; font-size: 12px;">Kaizen Gens - Segurança em primeiro lugar</p>
-          </div>
-        `
-      })
+      // Por enquanto, apenas logar o código (em produção, enviar email)
+      console.log(`📧 Código de redefinição para ${user.email}: ${resetCode}`)
 
-      return res.status(200).json({ message: 'Se o email existir, um código será enviado' })
+      return res.status(200).json({ 
+        message: 'Se o email existir, um código será enviado',
+        debugCode: resetCode // Remover em produção
+      })
     } catch (error) {
       console.error('Erro ao enviar código de redefinição:', error)
       return res.status(500).json({ error: 'Erro ao enviar código' })

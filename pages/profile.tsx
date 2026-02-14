@@ -108,6 +108,10 @@ export default function Profile() {
       setTwoFactorSecret(response.data.secret)
       setQrCodeUrl(response.data.qrCodeUrl)
       setShowTwoFactorSetup(true)
+      // Mostrar código de debug se disponível
+      if (response.data.debugCode) {
+        toast.success(`Código de verificação: ${response.data.debugCode}`)
+      }
     } catch (error) {
       toast.error('Erro ao configurar 2FA')
     }
@@ -155,8 +159,12 @@ export default function Profile() {
 
     setSendingEmailCode(true)
     try {
-      await axios.post('/api/profile/email/send-code')
+      const response = await axios.post('/api/profile/email/send-code')
       toast.success('Código enviado para seu email!')
+      // Mostrar código de debug se disponível
+      if (response.data.debugCode) {
+        toast.success(`Código de verificação: ${response.data.debugCode}`)
+      }
     } catch (error) {
       toast.error('Erro ao enviar código')
     } finally {
@@ -191,8 +199,12 @@ export default function Profile() {
 
     setSendingForgotCode(true)
     try {
-      await axios.post('/api/auth/forgot-password', { email: forgotPasswordEmail })
+      const response = await axios.post('/api/auth/forgot-password', { email: forgotPasswordEmail })
       toast.success('Código enviado para seu email!')
+      // Mostrar código de debug se disponível
+      if (response.data.debugCode) {
+        toast.success(`Código de redefinição: ${response.data.debugCode}`)
+      }
     } catch (error) {
       toast.error('Erro ao enviar código')
     } finally {

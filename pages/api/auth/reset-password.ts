@@ -1,6 +1,17 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import prisma from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+// import nodemailer from 'nodemailer'
+
+// const transporter = nodemailer.createTransport({
+//   host: process.env.SMTP_HOST || 'smtp.gmail.com',
+//   port: parseInt(process.env.SMTP_PORT || '587'),
+//   secure: false,
+//   auth: {
+//     user: process.env.SMTP_USER,
+//     pass: process.env.SMTP_PASS
+//   }
+// })
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
