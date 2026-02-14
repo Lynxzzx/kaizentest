@@ -1,4 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '../auth/[...nextauth]'
 import prisma from '@/lib/prisma'
 import nodemailer from 'nodemailer'
 
@@ -13,33 +15,32 @@ const transporter = nodemailer.createTransport({
 })
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const session = await getServerSession(req, res, authOptions)
+  
+  if (!session) {
+    return res.status(401).json({ error: 'Não autorizado' })
+  }
+
   if (req.method === 'POST') {
-    const { email } = req.body
-
-    if (!email) {
-      return res.status(400).json({ error: 'Email é obrigatório' })
-    }
-
     try {
       const user = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() }
+        where: { id: session.user.id }
       })
 
-      if (!user) {
-        // Não revelar se o email existe ou não por segurança
-        return res.status(200).json({ message: 'Se o email existir, um código será enviado' })
+      if (!user || !user.email) {
+        return res.status(404).json({ error: 'Email não encontrado' })
       }
 
-      // Gerar código de redefinição
-      const resetCode = Math.floor(100000 + Math.random() * 900000).toString()
+      // Gerar código de verificação
+      const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutos
 
       // Salvar código no banco
       await prisma.user.update({
-        where: { id: user.id },
+        where: { id: session.user.id },
         data: {
-          passwordResetCode: resetCode,
-          passwordResetExpires: expiresAt
+          emailVerificationCode: verificationCode,
+          emailVerificationExpires: expiresAt
         }
       })
 
@@ -47,14 +48,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await transporter.sendMail({
         from: process.env.SMTP_USER,
         to: user.email,
-        subject: 'Redefinição de Senha - Kaizen Gens',
+        subject: 'Código de Verificação - Kaizen Gens',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #4F46E5;">Redefinição de Senha</h2>
+            <h2 style="color: #4F46E5;">Verificação de Email</h2>
             <p>Olá ${user.username},</p>
-            <p>Recebemos uma solicitação para redefinir sua senha. Use o código abaixo:</p>
+            <p>Use o código abaixo para verificar seu email:</p>
             <div style="background-color: #F3F4F6; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
-              <h1 style="color: #4F46E5; font-size: 32px; margin: 0; letter-spacing: 4px;">${resetCode}</h1>
+              <h1 style="color: #4F46E5; font-size: 32px; margin: 0; letter-spacing: 4px;">${verificationCode}</h1>
             </div>
             <p>Este código expira em 15 minutos.</p>
             <p>Se você não solicitou isso, ignore este email.</p>
@@ -64,9 +65,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         `
       })
 
-      return res.status(200).json({ message: 'Se o email existir, um código será enviado' })
+      return res.status(200).json({ message: 'Código enviado com sucesso' })
     } catch (error) {
-      console.error('Erro ao enviar código de redefinição:', error)
+      console.error('Erro ao enviar código:', error)
       return res.status(500).json({ error: 'Erro ao enviar código' })
     }
   }

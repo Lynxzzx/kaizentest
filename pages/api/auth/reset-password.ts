@@ -1,51 +1,60 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
-import { prisma } from '@/lib/prisma'
-import { hashPassword } from '@/lib/auth'
+import { NextApiRequest, NextApiResponse } from 'next'
+import prisma from '@/lib/prisma'
+import bcrypt from 'bcryptjs'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
+  if (req.method === 'POST') {
+    const { email, code, newPassword } = req.body
 
-  const { token, password } = req.body as { token?: string; password?: string }
-
-  if (!token || typeof token !== 'string') {
-    return res.status(400).json({ error: 'Token obrigatório' })
-  }
-
-  if (!password || typeof password !== 'string' || password.length < 6) {
-    return res.status(400).json({ error: 'A senha deve ter pelo menos 6 caracteres' })
-  }
-
-  try {
-    const user = await prisma.user.findFirst({
-      where: {
-        passwordResetToken: token,
-        passwordResetExpires: {
-          gt: new Date()
-        }
-      }
-    })
-
-    if (!user) {
-      return res.status(400).json({ error: 'Token inválido ou expirado' })
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ error: 'Email, código e nova senha são obrigatórios' })
     }
 
-    const hashedPassword = await hashPassword(password)
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'A nova senha deve ter pelo menos 6 caracteres' })
+    }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        passwordResetToken: null,
-        passwordResetExpires: null
+    try {
+      const user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() }
+      })
+
+      if (!user) {
+        return res.status(400).json({ error: 'Código inválido ou expirado' })
       }
-    })
 
-    return res.json({ success: true, message: 'Senha redefinida com sucesso' })
-  } catch (error: any) {
-    console.error('Erro ao redefinir senha:', error)
-    return res.status(500).json({ error: 'Erro interno do servidor' })
+      // Verificar código e expiração
+      if (!user.passwordResetCode || !user.passwordResetExpires) {
+        return res.status(400).json({ error: 'Código inválido ou expirado' })
+      }
+
+      if (new Date() > user.passwordResetExpires) {
+        return res.status(400).json({ error: 'Código expirado' })
+      }
+
+      if (user.passwordResetCode !== code) {
+        return res.status(400).json({ error: 'Código inválido' })
+      }
+
+      // Hash da nova senha
+      const hashedPassword = await bcrypt.hash(newPassword, 12)
+
+      // Atualizar senha e limpar código
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          passwordResetCode: null,
+          passwordResetExpires: null
+        }
+      })
+
+      return res.status(200).json({ message: 'Senha redefinida com sucesso' })
+    } catch (error) {
+      console.error('Erro ao redefinir senha:', error)
+      return res.status(500).json({ error: 'Erro interno do servidor' })
+    }
   }
-}
 
+  return res.status(405).json({ error: 'Método não permitido' })
+}

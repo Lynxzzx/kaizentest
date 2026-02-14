@@ -45,6 +45,12 @@ model User {
   theme         String?  @default("dark") // Tema: dark, light, default
   passwordResetToken String?
   passwordResetExpires DateTime?
+  passwordResetCode String? // Código de redefinição de senha (6 dígitos)
+  twoFactorEnabled Boolean @default(false) // 2FA ativado
+  twoFactorSecret String? // Segredo para 2FA
+  twoFactorTempSecret String? // Segredo temporário para setup
+  emailVerificationCode String? // Código de verificação de email
+  emailVerificationExpires DateTime? // Expiração do código de verificação
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   generatedAccounts GeneratedAccount[]

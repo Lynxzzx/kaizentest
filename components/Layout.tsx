@@ -191,20 +191,31 @@ export default function Layout({ children }: LayoutProps) {
                     </svg>
                   </button>
 
-                  <button
-                    onClick={async () => {
-                      await signOut({ redirect: false })
-                      if (typeof window !== 'undefined') {
-                        window.location.href = '/'
-                      }
-                    }}
-                    className="hidden md:flex items-center justify-center w-10 h-10 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
-                    title={t('logout')}
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                  </button>
+                  <div className="hidden md:flex items-center gap-2">
+                    <Link
+                      href="/profile"
+                      className="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white transition-all"
+                      title="Perfil"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </Link>
+                    <button
+                      onClick={async () => {
+                        await signOut({ redirect: false })
+                        if (typeof window !== 'undefined') {
+                          window.location.href = '/'
+                        }
+                      }}
+                      className="flex items-center justify-center w-10 h-10 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                      title={t('logout')}
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
@@ -235,6 +246,14 @@ export default function Layout({ children }: LayoutProps) {
                   {item.label}
                 </Link>
               ))}
+              <Link
+                href="/profile"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 text-base font-medium text-gray-300 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+              >
+                <span className="text-xl">👤</span>
+                Perfil
+              </Link>
               <div className="pt-4 mt-4 border-t border-white/10">
                 <button
                   onClick={() => signOut()}
