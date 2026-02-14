@@ -4,15 +4,30 @@ import { authOptions } from '@/pages/api/auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import nodemailer from 'nodemailer'
 
-// Configurar o transporte de email com melhor tratamento de erros
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
+// Configurar o transporte de email com suporte para SSL/TLS
+const smtpPort = parseInt(process.env.SMTP_PORT || '587')
+const isSSL = smtpPort === 465
+
+// Configuração específica para Gmail
+const isGmail = process.env.SMTP_USER?.includes('@gmail.com')
+const gmailConfig = isGmail && isSSL ? {
+  service: 'gmail', // Usar serviço predefinido do Gmail
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
-  },
+  }
+} : {
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: smtpPort,
+  secure: isSSL, // true para SSL (465), false para TLS (587)
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS
+  }
+}
+
+const transporter = nodemailer.createTransport({
+  ...gmailConfig,
   logger: true, // Ativar logs do nodemailer
   debug: true   // Ativar debug mode
 })
@@ -50,13 +65,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Enviar email com o código de verificação
       try {
         // Log das configurações SMTP (sem expor a senha)
-        console.log('📧 Configurações SMTP:', {
-          host: process.env.SMTP_HOST,
-          port: process.env.SMTP_PORT,
-          user: process.env.SMTP_USER,
-          fromEmail: `"Kaizen Gens" <${process.env.SMTP_USER}>`,
-          toEmail: user.email
-        })
+      console.log('📧 Configurações SMTP:', {
+        host: process.env.SMTP_HOST,
+        port: smtpPort,
+        secure: isSSL,
+        user: process.env.SMTP_USER,
+        fromEmail: `"Kaizen Gens" <${process.env.SMTP_USER}>`,
+        toEmail: user.email,
+        isGmail: process.env.SMTP_USER?.includes('@gmail.com')
+      })
 
         // Verificar se todas as configurações estão presentes
         if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
@@ -121,6 +138,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.error('Código do erro:', emailError.code)
         console.error('Resposta do servidor:', emailError.response)
         console.error('Stack:', emailError.stack)
+        console.error('📧 Detalhes do erro:', {
+          message: emailError.message,
+          code: emailError.code,
+          response: emailError.response,
+          stack: emailError.stack,
+          isGmail: isGmail,
+          smtpPort: smtpPort,
+          isSSL: isSSL
+        })
+        
+        // Mensagem específica para erros do Gmail
+        let errorMessage = 'Erro ao enviar email'
+        if (isGmail && emailError.code === 'EAUTH') {
+          errorMessage = 'Erro de autenticação Gmail. Verifique se está usando senha de app correta.'
+        } else if (emailError.code === 'ECONNECTION') {
+          errorMessage = 'Erro de conexão SMTP. Verifique as configurações do servidor.'
+        } else if (emailError.message?.includes('less secure')) {
+          errorMessage = 'Gmail bloqueou o acesso. Ative senha de app ou permita apps menos seguros.'
+        }
         
         // Mesmo que o email falhe, ainda assim retornar sucesso para não expor o erro ao usuário
         // Mas logar o erro para monitoramento

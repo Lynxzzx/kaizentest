@@ -23,15 +23,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       }
 
-      // Criar transporte
-      const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: false,
+      // Criar transporte com suporte SSL/TLS
+      const smtpPort = parseInt(process.env.SMTP_PORT || '587')
+      const isSSL = smtpPort === 465
+      
+      // Configuração específica para Gmail
+      const isGmail = process.env.SMTP_USER?.includes('@gmail.com')
+      const gmailConfig = isGmail && isSSL ? {
+        service: 'gmail', // Usar serviço predefinido do Gmail
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS
-        },
+        }
+      } : {
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: smtpPort,
+        secure: isSSL, // true para SSL (465), false para TLS (587)
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        }
+      }
+      
+      const transporter = nodemailer.createTransport({
+        ...gmailConfig,
         logger: true,
         debug: true
       })
