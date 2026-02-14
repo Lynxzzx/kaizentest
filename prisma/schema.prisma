@@ -43,9 +43,8 @@ model User {
   lastIp        String? // Último IP usado
   lastIpAt      DateTime? // Data do último acesso com IP
   theme         String?  @default("dark") // Tema: dark, light, default
-  passwordResetToken String?
-  passwordResetExpires DateTime?
   passwordResetCode String? // Código de redefinição de senha (6 dígitos)
+  passwordResetExpires DateTime?
   twoFactorEnabled Boolean @default(false) // 2FA ativado
   twoFactorSecret String? // Segredo para 2FA
   twoFactorTempSecret String? // Segredo temporário para setup

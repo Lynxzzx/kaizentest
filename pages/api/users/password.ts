@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
-import { authOptions } from '../auth/[...nextauth]'
+import { authOptions } from '@/pages/api/auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { verifyPassword, hashPassword } from '@/lib/auth'
 
@@ -45,7 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where: { id: user.id },
       data: {
         password: hashed,
-        passwordResetToken: null,
+        passwordResetCode: null,
         passwordResetExpires: null
       }
     })
