@@ -51,6 +51,8 @@ model User {
   twoFactorTempSecret String? // Segredo temporário para setup
   emailVerificationCode String? // Código de verificação de email
   emailVerificationExpires DateTime? // Expiração do código de verificação
+  emailVerified Boolean   @default(false) // Email verificado
+  lastLoginAt   DateTime? // Último login
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   generatedAccounts GeneratedAccount[]
