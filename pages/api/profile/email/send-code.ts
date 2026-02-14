@@ -4,7 +4,7 @@ import { authOptions } from '@/pages/api/auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import nodemailer from 'nodemailer'
 
-// Configurar o transporte de email
+// Configurar o transporte de email com melhor tratamento de erros
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
@@ -12,7 +12,9 @@ const transporter = nodemailer.createTransport({
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
-  }
+  },
+  logger: true, // Ativar logs do nodemailer
+  debug: true   // Ativar debug mode
 })
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -47,6 +49,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Enviar email com o código de verificação
       try {
+        // Log das configurações SMTP (sem expor a senha)
+        console.log('📧 Configurações SMTP:', {
+          host: process.env.SMTP_HOST,
+          port: process.env.SMTP_PORT,
+          user: process.env.SMTP_USER,
+          fromEmail: `"Kaizen Gens" <${process.env.SMTP_USER}>`,
+          toEmail: user.email
+        })
+
+        // Verificar se todas as configurações estão presentes
+        if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+          console.error('❌ Credenciais SMTP ausentes')
+          return res.status(500).json({ error: 'Configuração de email incompleta' })
+        }
+
         await transporter.sendMail({
           from: `"Kaizen Gens" <${process.env.SMTP_USER}>`,
           to: user.email,
@@ -98,8 +115,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           message: 'Código enviado com sucesso',
           debugCode: verificationCode // Remover em produção
         })
-      } catch (emailError) {
-        console.error('Erro ao enviar email:', emailError)
+      } catch (emailError: any) {
+        console.error('❌ Erro detalhado ao enviar email:')
+        console.error('Erro:', emailError.message)
+        console.error('Código do erro:', emailError.code)
+        console.error('Resposta do servidor:', emailError.response)
+        console.error('Stack:', emailError.stack)
+        
         // Mesmo que o email falhe, ainda assim retornar sucesso para não expor o erro ao usuário
         // Mas logar o erro para monitoramento
         return res.status(200).json({ 
