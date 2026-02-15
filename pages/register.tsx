@@ -20,6 +20,9 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [affiliateRef, setAffiliateRef] = useState<string | null>(null)
+  const [verificationCode, setVerificationCode] = useState('')
+  const [codeSent, setCodeSent] = useState(false)
+  const [verifyingCode, setVerifyingCode] = useState(false)
   const themeClasses = getThemeClasses(theme)
 
   // 🛡️ SEGURANÇA: Estado para proteções anti-bot
@@ -41,6 +44,33 @@ export default function Register() {
   useEffect(() => {
     formStartTimeRef.current = Date.now()
   }, [])
+
+  const handleSendVerificationCode = async () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Email inválido')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const response = await axios.post('/api/auth/send-verification-code', { 
+        email,
+        username 
+      })
+      
+      setCodeSent(true)
+      toast.success('Código enviado para seu email!')
+      
+      // Mostrar código de debug se disponível
+      if (response.data.debugCode) {
+        toast.success(`Código de verificação: ${response.data.debugCode}`)
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Erro ao enviar código')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,6 +111,12 @@ export default function Register() {
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast.error('Email inválido')
+      return
+    }
+
+    // Validar código de verificação
+    if (!verificationCode || verificationCode.length !== 6) {
+      toast.error('Código de verificação inválido')
       return
     }
 
@@ -125,7 +161,8 @@ export default function Register() {
         // 🛡️ Dados de segurança
         recaptchaToken: token,
         honeypot,
-        formStartTime: formStartTimeRef.current
+        formStartTime: formStartTimeRef.current,
+        verificationCode
       }, {
         signal: controller.signal,
         timeout: 30000
@@ -246,16 +283,53 @@ export default function Register() {
               <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
                 {t('email')}
               </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
-                placeholder={t('enterEmail')}
-                required
-                autoComplete="email"
-              />
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
+                  placeholder={t('enterEmail')}
+                  required
+                  autoComplete="email"
+                  disabled={codeSent}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendVerificationCode}
+                  disabled={loading || codeSent || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)}
+                  className={`px-4 py-3 rounded-lg font-semibold transition-all whitespace-nowrap ${
+                    loading || codeSent || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-primary-600 text-white hover:bg-primary-700'
+                  }`}
+                >
+                  {codeSent ? 'Enviado' : 'Enviar Código'}
+                </button>
+              </div>
+              {codeSent && (
+                <p className={`text-xs mt-1 ${themeClasses.text.muted}`}>
+                  Código enviado! Verifique seu email.
+                </p>
+              )}
             </div>
+            {codeSent && (
+              <div>
+                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
+                  Código de Verificação
+                </label>
+                <input
+                  type="text"
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
+                  placeholder="Digite o código de 6 dígitos"
+                  required
+                  maxLength={6}
+                  pattern="[0-9]{6}"
+                />
+              </div>
+            )}
             <div>
               <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
                 {t('password')}

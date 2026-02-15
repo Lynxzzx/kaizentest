@@ -36,7 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       affiliateRef,
       recaptchaToken,
       honeypot,
-      formStartTime
+      formStartTime,
+      verificationCode
     } = req.body
 
     const sanitizedUsername = typeof username === 'string' ? username.trim() : ''
@@ -78,6 +79,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Validar email (agora obrigatório)
     if (!normalizedEmail) {
       return res.status(400).json({ error: 'Email é obrigatório' })
+    }
+
+    // ================================================
+    // 🔐 VALIDAR CÓDIGO DE VERIFICAÇÃO
+    // ================================================
+    if (!verificationCode || verificationCode.length !== 6) {
+      return res.status(400).json({ error: 'Código de verificação inválido' })
+    }
+
+    // Buscar verificação de email
+    const emailVerification = await prisma.emailVerification.findUnique({
+      where: { email: normalizedEmail }
+    })
+
+    if (!emailVerification) {
+      return res.status(400).json({ error: 'Código de verificação não encontrado' })
+    }
+
+    // Verificar se o código está correto
+    if (emailVerification.code !== verificationCode) {
+      return res.status(400).json({ error: 'Código de verificação incorreto' })
+    }
+
+    // Verificar se o código não expirou
+    if (new Date() > emailVerification.expiresAt) {
+      return res.status(400).json({ error: 'Código de verificação expirado' })
+    }
+
+    // Verificar se o username corresponde
+    if (emailVerification.username !== sanitizedUsername) {
+      return res.status(400).json({ error: 'Username não corresponde ao código' })
     }
 
     if (sanitizedUsername.length < 3) {
@@ -230,6 +262,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     console.log('✅ User created successfully:', user.id)
+
+    // Limpar registro de verificação de email
+    if (normalizedEmail) {
+      await prisma.emailVerification.deleteMany({
+        where: { email: normalizedEmail }
+      }).catch((err) => {
+        console.error('Erro ao limpar verificação de email:', err)
+        // Não falhar o registro por causa disso
+      })
+    }
 
     // Log de sucesso
     await logSecurityEvent({
