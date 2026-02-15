@@ -75,6 +75,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Username e senha são obrigatórios' })
     }
 
+    // Validar email (agora obrigatório)
+    if (!normalizedEmail) {
+      return res.status(400).json({ error: 'Email é obrigatório' })
+    }
+
     if (sanitizedUsername.length < 3) {
       return res.status(400).json({ error: 'Username deve ter pelo menos 3 caracteres' })
     }

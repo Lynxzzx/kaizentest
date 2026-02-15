@@ -73,6 +73,17 @@ export default function Register() {
       return
     }
 
+    // Validar email (agora obrigatório)
+    if (!email || !email.trim()) {
+      toast.error('Email é obrigatório')
+      return
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Email inválido')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -233,7 +244,7 @@ export default function Register() {
             </div>
             <div>
               <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>
-                {t('email')} <span className={`${themeClasses.text.muted} font-normal`}>{t('emailOptional')}</span>
+                {t('email')}
               </label>
               <input
                 type="email"
@@ -241,6 +252,7 @@ export default function Register() {
                 onChange={(e) => setEmail(e.target.value)}
                 className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
                 placeholder={t('enterEmail')}
+                required
                 autoComplete="email"
               />
             </div>
