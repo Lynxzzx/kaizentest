@@ -111,9 +111,9 @@ export default function AdminDashboard() {
       toast.loading('Verificando todos os pagamentos pendentes...')
       const response = await axios.post('/api/admin/check-pending-payments')
       toast.dismiss()
-      
+
       const { results } = response.data
-      
+
       if (results.activated > 0) {
         toast.success(`✅ ${results.activated} pagamento(s) confirmado(s) e plano(s) ativado(s)!`)
       } else if (results.stillPending > 0) {
@@ -121,11 +121,11 @@ export default function AdminDashboard() {
       } else {
         toast.success('Nenhum pagamento pendente encontrado')
       }
-      
+
       if (results.errors > 0) {
         toast.error(`⚠️ ${results.errors} erro(s) ao verificar pagamentos`)
       }
-      
+
       loadStats() // Recarregar estatísticas
     } catch (error: any) {
       toast.dismiss()
@@ -228,6 +228,8 @@ export default function AdminDashboard() {
     { href: '/admin/users', icon: '👥', label: t('users'), gradient: 'from-emerald-500 via-teal-500 to-sky-500' },
     { href: '/admin/broadcast', icon: '📢', label: t('broadcast'), gradient: 'from-cyan-500 via-blue-500 to-indigo-600' },
     { href: '/admin/raffles', icon: '🎲', label: t('raffles'), gradient: 'from-indigo-500 via-purple-500 to-pink-500' },
+    { href: '/admin/events', icon: '🎯', label: 'Eventos', gradient: 'from-violet-500 via-indigo-500 to-cyan-500' },
+    { href: '/admin/coupons', icon: '🏷️', label: 'Cupons', gradient: 'from-rose-500 via-pink-500 to-fuchsia-500' },
     { href: '/admin/feedback', icon: '💬', label: t('feedbacks'), gradient: 'from-teal-500 via-emerald-500 to-lime-500' },
     { href: '/admin/withdrawals', icon: '💸', label: 'Resgates', gradient: 'from-green-500 via-emerald-500 to-teal-500' },
     { href: '/admin/payments', icon: '💰', label: 'Pagamentos', gradient: 'from-emerald-500 via-green-500 to-teal-500' },
@@ -391,13 +393,12 @@ export default function AdminDashboard() {
                       <div className="text-right">
                         <p className="font-bold text-green-600">R$ {payment.amount.toFixed(2)}</p>
                         <span
-                          className={`inline-block px-2 py-1 rounded-full text-xs ${
-                            payment.status === 'PAID'
+                          className={`inline-block px-2 py-1 rounded-full text-xs ${payment.status === 'PAID'
                               ? 'bg-green-100 text-green-800'
                               : payment.status === 'PENDING'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                          }`}
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-red-100 text-red-800'
+                            }`}
                         >
                           {payment.status === 'PAID' ? t('paid') : payment.status === 'PENDING' ? t('pending') : t('cancelled')}
                         </span>
@@ -407,11 +408,10 @@ export default function AdminDashboard() {
                             <button
                               onClick={() => activatePlanManually(payment.id)}
                               disabled={activatingPaymentId === payment.id}
-                              className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1 text-xs font-semibold transition ${
-                                theme === 'dark'
+                              className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1 text-xs font-semibold transition ${theme === 'dark'
                                   ? 'border-amber-400/60 text-amber-200 hover:bg-amber-400/10 disabled:opacity-60'
                                   : 'border-amber-500 text-amber-700 hover:bg-amber-50 disabled:opacity-60'
-                              }`}
+                                }`}
                             >
                               <span>⚡</span>
                               {activatingPaymentId === payment.id ? t('activatingPlan') : t('activatePlanAuto')}

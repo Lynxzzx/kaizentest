@@ -327,7 +327,7 @@ export default function Plans() {
     <div className="min-h-screen bg-[#000000] text-gray-100 pb-20">
       {/* Advanced Background with Mouse Tracking - Reduced for Mobile */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div 
+        <div
           className="absolute w-[600px] h-[400px] sm:w-[1200px] sm:h-[800px] bg-[radial-gradient(circle,rgba(79,70,229,0.15)_0%,transparent_70%)] blur-[100px] sm:blur-[150px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 600) * 0.02}px, ${(mousePosition.y - 400) * 0.02}px)`,
@@ -335,7 +335,7 @@ export default function Plans() {
             top: `${mousePosition.y - 400}px`
           }}
         />
-        <div 
+        <div
           className="absolute w-[500px] h-[300px] sm:w-[1000px] sm:h-[600px] bg-[radial-gradient(circle,rgba(236,72,153,0.1)_0%,transparent_70%)] blur-[80px] sm:blur-[120px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 500) * -0.01}px, ${(mousePosition.y - 300) * -0.01}px)`,
@@ -343,7 +343,7 @@ export default function Plans() {
             bottom: `${300 - mousePosition.y}px`
           }}
         />
-        <div 
+        <div
           className="absolute w-[400px] h-[400px] sm:w-[800px] sm:h-[800px] bg-[radial-gradient(circle,rgba(59,130,246,0.08)_0%,transparent_70%)] blur-[60px] sm:blur-[100px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 400) * 0.015}px, ${(mousePosition.y - 400) * 0.015}px)`,
@@ -352,7 +352,7 @@ export default function Plans() {
           }}
         />
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-30 sm:opacity-100" />
-        
+
         {/* Floating particles effect - Reduced for Mobile */}
         <div className="absolute inset-0 hidden sm:block">
           {[...Array(15)].map((_, i) => (
@@ -385,7 +385,7 @@ export default function Plans() {
               <p className="text-xs sm:text-sm text-gray-400 hidden sm:block">Escolha seu plano ideal</p>
             </div>
           </div>
-          
+
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center gap-3">
             <Link href="/dashboard" className="group relative overflow-hidden px-6 py-2.5 rounded-full glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300">
@@ -411,8 +411,8 @@ export default function Plans() {
         {isMobileMenuOpen && (
           <div className="sm:hidden absolute top-full left-0 w-full bg-black/95 backdrop-blur-xl border-b border-white/10">
             <div className="px-4 py-4 space-y-3">
-              <Link 
-                href="/dashboard" 
+              <Link
+                href="/dashboard"
                 className="block px-4 py-3 rounded-xl glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300 text-center"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
@@ -425,7 +425,7 @@ export default function Plans() {
 
       <main className="relative z-10 pt-24 sm:pt-32 pb-24 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
-          
+
           {/* Hero Section */}
           <div className="text-center mb-12 sm:mb-16">
             <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs sm:text-sm font-medium mb-6 sm:mb-8">
@@ -435,14 +435,14 @@ export default function Plans() {
               </span>
               Planos Premium
             </div>
-            
+
             <h1 className="text-4xl sm:text-6xl lg:text-7xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
               Escolha Seu Plano
             </h1>
             <p className="text-base sm:text-xl text-gray-400 max-w-2xl sm:max-w-3xl mx-auto mb-8 sm:mb-12">
               Libere todo o potencial do gerador com nossos planos premium. Gerações ilimitadas, suporte prioritário e muito mais.
             </p>
-            
+
             <div className="flex flex-wrap gap-3 sm:gap-4 justify-center">
               <a href="https://t.me/geradordecontasbr" target="_blank" className="group relative overflow-hidden flex items-center gap-2 sm:gap-3 px-4 py-2.5 sm:px-6 sm:py-3 bg-[#0088cc] hover:bg-[#0077b5] text-white rounded-xl sm:rounded-2xl font-semibold text-sm sm:text-base transition-all shadow-lg hover:shadow-[#0088cc]/30">
                 <span className="relative z-10">📱 Telegram</span>
@@ -507,10 +507,10 @@ export default function Plans() {
           {/* Plans Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 mb-12 sm:mb-16">
             {plans.map((plan, index) => (
-              <div key={plan.id} className={`group glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 border border-white/10 hover:border-indigo-500/30 transition-all duration-500 hover:-translate-y-1 sm:hover:-translate-y-2 relative overflow-hidden ${index === 1 ? 'lg:scale-105 shadow-xl sm:shadow-2xl shadow-indigo-500/20' : ''}`}>
+              <div key={plan.id} className={`group glass-card rounded-2xl sm:rounded-3xl p-6 sm:p-8 border transition-all duration-500 hover:-translate-y-1 sm:hover:-translate-y-2 relative ${index === 1 ? 'border-indigo-500/30 shadow-xl sm:shadow-2xl shadow-indigo-500/20 pt-10 sm:pt-12' : 'border-white/10 hover:border-indigo-500/30'}`}>
                 {index === 1 && (
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-1.5 sm:px-6 sm:py-2 rounded-full text-xs sm:text-sm font-bold uppercase tracking-wider shadow-lg">
+                  <div className="absolute top-0 left-0 right-0 flex justify-center">
+                    <div className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-1.5 sm:px-6 sm:py-2 rounded-b-xl text-xs sm:text-sm font-bold uppercase tracking-wider shadow-lg">
                       ⭐ Mais Popular
                     </div>
                   </div>
@@ -519,7 +519,7 @@ export default function Plans() {
                 <div className="text-center mb-6 sm:mb-8">
                   <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2 sm:mb-3">{translatePlanName ? translatePlanName(plan.name) : plan.name}</h3>
                   <p className="text-gray-400 text-base sm:text-lg mb-4 sm:mb-6 min-h-[40px] sm:min-h-[60px]">{plan.description}</p>
-                  
+
                   <div className="mb-6 sm:mb-8">
                     <span className="text-3xl sm:text-5xl font-bold text-white tracking-tight">{t('currencySymbol')}{plan.price.toFixed(2)}</span>
                     <span className="text-gray-500 ml-1 sm:ml-2 text-sm sm:text-lg">/ {plan.duration} {t('daysAccess')}</span>
@@ -534,7 +534,7 @@ export default function Plans() {
                       <div className="text-xs sm:text-sm text-gray-400">Gerações disponíveis</div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-lg sm:text-xl">✓</div>
                     <div className="min-w-0 flex-1">
@@ -542,7 +542,7 @@ export default function Plans() {
                       <div className="text-xs sm:text-sm text-gray-400">Todos os serviços premium</div>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white/5 border border-white/10">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-lg sm:text-xl">✓</div>
                     <div className="min-w-0 flex-1">
@@ -560,7 +560,7 @@ export default function Plans() {
                     <span className="relative z-10">💚 Pagar com PIX</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                   </button>
-                  
+
                   <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     <button
                       onClick={() => handlePayment(plan, 'CARD')}
@@ -730,7 +730,7 @@ export default function Plans() {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm text-gray-400 mb-3">Email</label>
                     <input
@@ -742,7 +742,7 @@ export default function Plans() {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm text-gray-400 mb-3">Número do cartão</label>
                     <input
@@ -754,7 +754,7 @@ export default function Plans() {
                       required
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm text-gray-400 mb-3">Validade</label>
