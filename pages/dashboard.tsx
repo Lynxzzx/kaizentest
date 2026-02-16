@@ -310,7 +310,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-[#000000] text-gray-100 pb-20">
       {/* Advanced Background with Mouse Tracking - Hidden on Mobile */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div 
+        <div
           className="absolute w-[1200px] h-[800px] bg-[radial-gradient(circle,rgba(79,70,229,0.15)_0%,transparent_70%)] blur-[150px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 600) * 0.02}px, ${(mousePosition.y - 400) * 0.02}px)`,
@@ -318,7 +318,7 @@ export default function Dashboard() {
             top: `${mousePosition.y - 400}px`
           }}
         />
-        <div 
+        <div
           className="absolute w-[1000px] h-[600px] bg-[radial-gradient(circle,rgba(236,72,153,0.1)_0%,transparent_70%)] blur-[120px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 500) * -0.01}px, ${(mousePosition.y - 300) * -0.01}px)`,
@@ -326,7 +326,7 @@ export default function Dashboard() {
             bottom: `${300 - mousePosition.y}px`
           }}
         />
-        <div 
+        <div
           className="absolute w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(59,130,246,0.08)_0%,transparent_70%)] blur-[100px] transition-all duration-1000 ease-out hidden sm:block"
           style={{
             transform: `translate(${(mousePosition.x - 400) * 0.015}px, ${(mousePosition.y - 400) * 0.015}px)`,
@@ -335,7 +335,7 @@ export default function Dashboard() {
           }}
         />
         <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-        
+
         {/* Floating particles effect - Hidden on Mobile */}
         <div className="absolute inset-0">
           {[...Array(30)].map((_, i) => (
@@ -368,7 +368,7 @@ export default function Dashboard() {
               <p className="text-xs sm:text-sm text-gray-400">Painel de Controle</p>
             </div>
           </div>
-          
+
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center gap-3">
             <Link href="/plans" className="group relative overflow-hidden px-4 sm:px-6 py-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold hover:shadow-lg hover:shadow-indigo-500/50 transition-all duration-300">
@@ -382,7 +382,7 @@ export default function Dashboard() {
           </div>
 
           {/* Mobile Menu Button */}
-          <button 
+          <button
             className="sm:hidden p-2 rounded-lg glass-panel border border-white/10"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
@@ -417,7 +417,7 @@ export default function Dashboard() {
 
       <main className="relative z-10 pt-20 sm:pt-32 pb-16 sm:pb-24 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
-          
+
           {/* Mobile-Optimized Hero Stats Section */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8 sm:mb-12">
             <div className="glass-card p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 hover:border-indigo-500/30 transition-all duration-500 hover:-translate-y-1">
@@ -439,11 +439,11 @@ export default function Dashboard() {
                     <span className="font-semibold text-white">{translatePlanName ? translatePlanName(userPlan.plan.name) : userPlan.plan.name}</span>
                   </div>
                   <div className="flex justify-between text-xs sm:text-sm">
-                    <span className="text-gray-400">Expira</span>
-                    <span className="font-semibold text-white">
+                    <span className="text-gray-400">{userPlan.planExpiresAt ? 'Expira' : 'Validade'}</span>
+                    <span className={`font-semibold ${userPlan.planExpiresAt ? 'text-white' : 'text-emerald-400'}`}>
                       {userPlan.planExpiresAt
                         ? format(new Date(userPlan.planExpiresAt), "dd/MM/yyyy", { locale: ptBR })
-                        : 'N/A'}
+                        : 'Permanente ♾️'}
                     </span>
                   </div>
                 </div>
@@ -503,7 +503,7 @@ export default function Dashboard() {
                   <span className="font-semibold text-white">{accountHistory.length}</span>
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-2">
-                  <div 
+                  <div
                     className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min((accountHistory.length / (userPlan?.plan?.maxGenerations || 2)) * 100, 100)}%` }}
                   />
@@ -514,11 +514,11 @@ export default function Dashboard() {
 
           {/* Mobile-Optimized Main Generator Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-8 sm:mb-12">
-            
+
             {/* Account Generator */}
             <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-white/10 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 sm:w-64 h-32 sm:h-64 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 blur-[50px] sm:blur-[100px]" />
-              
+
               <div className="relative z-10">
                 <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
                   <div className="w-10 sm:w-16 h-10 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-lg sm:text-2xl">
@@ -843,7 +843,7 @@ export default function Dashboard() {
           {userPlan?.affiliateCode && (
             <div className="glass-card rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-white/10 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-48 sm:w-96 h-48 sm:h-96 bg-gradient-to-br from-pink-500/20 to-purple-500/20 blur-[80px] sm:blur-[150px]" />
-              
+
               <div className="relative z-10">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 sm:mb-8 gap-4 sm:gap-0">
                   <div className="flex items-center gap-3 sm:gap-4">
@@ -1021,9 +1021,9 @@ function CaptchaModal({
               ×
             </button>
           </div>
-          
+
           <p className="text-gray-400 mb-6 text-sm sm:text-base">Digite os caracteres exibidos para continuar a geração.</p>
-          
+
           <div className="flex items-center gap-4 mb-6">
             {image ? (
               <img src={image} alt="CAPTCHA" className="rounded-lg sm:rounded-xl border border-white/10 bg-white/5" />
@@ -1038,7 +1038,7 @@ function CaptchaModal({
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             </button>
           </div>
-          
+
           <input
             type="text"
             value={value}
@@ -1046,7 +1046,7 @@ function CaptchaModal({
             className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-3 sm:py-4 text-white text-sm sm:text-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all mb-6"
             placeholder="Digite os caracteres (A-Z, 2-9)"
           />
-          
+
           <div className="flex gap-4">
             <button
               onClick={onClose}

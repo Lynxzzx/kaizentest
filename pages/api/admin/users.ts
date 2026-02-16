@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'PUT') {
-    const { userId, planId, planExpiresAt, apiPlanId, apiPlanExpiresAt, isBanned, newPassword, role } = req.body
+    const { userId, planId, planExpiresAt, apiPlanId, apiPlanExpiresAt, permanentPlan, permanentApiPlan, isBanned, newPassword, role } = req.body
 
     console.log('🔧 PUT /api/admin/users - Atualizando usuário:', { userId, temNovaSenha: !!newPassword })
 
@@ -121,10 +121,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (planId !== undefined) {
         updateData.planId = planId || null
 
-        const shouldAutoComputeExpiration =
-          planExpiresAt === undefined || planExpiresAt === null || planExpiresAt === ''
-
-        if (shouldAutoComputeExpiration && planId) {
+        if (!planId) {
+          // Removing plan
+          computedPlanExpiresAt = null
+        } else if (permanentPlan) {
+          // Explicitly set as permanent
+          computedPlanExpiresAt = null
+        } else if (planExpiresAt) {
+          // Explicit date provided
+          computedPlanExpiresAt = new Date(planExpiresAt)
+        } else {
+          // Auto-compute from plan duration
           const plan = await prisma.plan.findUnique({ where: { id: planId } })
           if (plan) {
             computedPlanExpiresAt = plan.duration > 0
@@ -132,12 +139,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               : null
           }
         }
-
-        if (!planId) computedPlanExpiresAt = null
-      }
-
-      if (planExpiresAt !== undefined) {
-        computedPlanExpiresAt = planExpiresAt ? new Date(planExpiresAt) : null
+      } else if (permanentPlan !== undefined) {
+        // Just toggling permanent without changing planId
+        computedPlanExpiresAt = permanentPlan ? null : (planExpiresAt ? new Date(planExpiresAt) : undefined)
       }
 
       if (computedPlanExpiresAt !== undefined) {
@@ -148,10 +152,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (apiPlanId !== undefined) {
         updateData.apiPlanId = apiPlanId || null
 
-        const shouldAutoComputeApiExpiration =
-          apiPlanExpiresAt === undefined || apiPlanExpiresAt === null || apiPlanExpiresAt === ''
-
-        if (shouldAutoComputeApiExpiration && apiPlanId) {
+        if (!apiPlanId) {
+          computedApiPlanExpiresAt = null
+        } else if (permanentApiPlan) {
+          computedApiPlanExpiresAt = null
+        } else if (apiPlanExpiresAt) {
+          computedApiPlanExpiresAt = new Date(apiPlanExpiresAt)
+        } else {
           const apiPlan = await prisma.plan.findUnique({ where: { id: apiPlanId } })
           if (apiPlan) {
             computedApiPlanExpiresAt = apiPlan.duration > 0
@@ -159,12 +166,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               : null
           }
         }
-
-        if (!apiPlanId) computedApiPlanExpiresAt = null
-      }
-
-      if (apiPlanExpiresAt !== undefined) {
-        computedApiPlanExpiresAt = apiPlanExpiresAt ? new Date(apiPlanExpiresAt) : null
+      } else if (permanentApiPlan !== undefined) {
+        computedApiPlanExpiresAt = permanentApiPlan ? null : (apiPlanExpiresAt ? new Date(apiPlanExpiresAt) : undefined)
       }
 
       if (computedApiPlanExpiresAt !== undefined) {

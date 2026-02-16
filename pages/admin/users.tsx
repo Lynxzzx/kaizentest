@@ -601,7 +601,7 @@ export default function AdminUsers() {
                   <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Sem plano normal</option>
                   {plans.filter((plan) => !plan.name.toLowerCase().includes('api')).map((plan) => (
                     <option key={plan.id} value={plan.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
-                      {plan.name}
+                      {plan.name} {plan.duration <= 0 ? '(Permanente ♾️)' : `(${plan.duration} dias)`}
                     </option>
                   ))}
                 </select>
@@ -620,7 +620,7 @@ export default function AdminUsers() {
                   <option value="" style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>Sem plano de API</option>
                   {apiPlans.map((plan) => (
                     <option key={plan.id} value={plan.id} style={theme === 'dark' ? { backgroundColor: '#1e293b', color: '#fff' } : {}}>
-                      {plan.name}
+                      {plan.name} {plan.duration <= 0 ? '(Permanente ♾️)' : `(${plan.duration} dias)`}
                     </option>
                   ))}
                 </select>
