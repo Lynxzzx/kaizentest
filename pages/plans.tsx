@@ -272,25 +272,110 @@ export default function Plans() {
       toast.error(t('invalidCardNumber'))
       return
     }
+    if (!cardExpMonth || !cardExpYear || !cardCvv || !cardHolderName) {
+      toast.error('Preencha todos os campos do cartão.')
+      return
+    }
 
     setProcessingCard(true)
     try {
+      // 1. Carregar SDK do PagBank se ainda não está carregado
+      if (!(window as any).PagSeguro) {
+        await new Promise<void>((resolve, reject) => {
+          const existingScript = document.querySelector('script[src*="pagseguro.min.js"]')
+          if (existingScript) {
+            // Script já existe mas PagSeguro não carregou ainda, aguardar
+            const waitForLoad = setInterval(() => {
+              if ((window as any).PagSeguro) {
+                clearInterval(waitForLoad)
+                resolve()
+              }
+            }, 100)
+            setTimeout(() => {
+              clearInterval(waitForLoad)
+              reject(new Error('Timeout ao carregar SDK do PagBank'))
+            }, 10000)
+            return
+          }
+          const script = document.createElement('script')
+          script.src = 'https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js'
+          script.async = true
+          script.onload = () => {
+            // Aguardar o PagSeguro estar disponível
+            const waitForPagSeguro = setInterval(() => {
+              if ((window as any).PagSeguro) {
+                clearInterval(waitForPagSeguro)
+                resolve()
+              }
+            }, 50)
+            setTimeout(() => {
+              clearInterval(waitForPagSeguro)
+              if ((window as any).PagSeguro) resolve()
+              else reject(new Error('SDK do PagBank carregado mas PagSeguro não disponível'))
+            }, 5000)
+          }
+          script.onerror = () => reject(new Error('Erro ao carregar SDK do PagBank'))
+          document.body.appendChild(script)
+        })
+      }
+
+      // 2. Buscar chave pública do PagBank
+      const publicKeyResponse = await axios.get('/api/payments/public-key')
+      const publicKey = publicKeyResponse.data.publicKey
+      if (!publicKey) {
+        toast.error('Não foi possível obter a chave de criptografia do PagBank.')
+        return
+      }
+
+      // 3. Criptografar dados do cartão usando SDK do PagBank
+      const PagSeguro = (window as any).PagSeguro
+      const card = PagSeguro.encryptCard({
+        publicKey: publicKey,
+        holder: cardHolderName.toUpperCase(),
+        number: cleanCardNumber,
+        expMonth: cardExpMonth.padStart(2, '0'),
+        expYear: cardExpYear.length === 2 ? `20${cardExpYear}` : cardExpYear,
+        securityCode: cardCvv
+      })
+
+      if (card.hasErrors) {
+        const errorMessages = card.errors || []
+        console.error('Erros na criptografia do cartão:', errorMessages)
+        const errorList = errorMessages.map((e: any) => e.message || e.code || 'Erro desconhecido').join(', ')
+        toast.error(`Dados do cartão inválidos: ${errorList}`)
+        return
+      }
+
+      const encryptedCard = card.encryptedCard
+      if (!encryptedCard) {
+        toast.error('Erro ao criptografar dados do cartão. Verifique os dados e tente novamente.')
+        return
+      }
+
+      console.log('✅ Cartão criptografado com sucesso via PagBank SDK')
+
+      // 4. Enviar para a API com cartão criptografado
       const response = await axios.post('/api/payments/create', {
         planId: pendingCardPayment.id,
         method: 'CARD',
-        cardNumber: cleanCardNumber,
-        cardExpMonth,
-        cardExpYear,
-        cardCvv,
+        encryptedCard: encryptedCard,
         cardHolderName,
         customerEmail: cardEmail,
         couponCode: couponCode.trim().toUpperCase() || undefined
       })
       setShowCardModal(false)
       const paymentId = response.data.id || response.data.paymentId
+
+      // Se pagamento já foi aprovado, mostrar sucesso
+      if (response.data.paid) {
+        toast.success('Pagamento aprovado! 🎉')
+      }
+
       router.push(`/payment-status/${paymentId}`)
     } catch (error: any) {
-      toast.error(error.response?.data?.error || t('cardPaymentError'))
+      console.error('Erro ao processar pagamento via cartão:', error)
+      const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message || t('cardPaymentError')
+      toast.error(errorMsg)
     } finally {
       setProcessingCard(false)
     }

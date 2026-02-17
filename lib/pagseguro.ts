@@ -5,14 +5,14 @@ import { prisma } from '@/lib/prisma'
 async function getPagSeguroSellerEmail(): Promise<string | null> {
   // Primeiro verificar variável de ambiente
   let email = process.env.PAGSEGURO_SELLER_EMAIL
-  
+
   // Se não encontrar, buscar no banco de dados
   if (!email || (typeof email === 'string' && email.trim().length === 0)) {
     try {
       const config = await prisma.systemConfig.findUnique({
         where: { key: 'PAGSEGURO_SELLER_EMAIL' }
       })
-      
+
       if (config && config.value && config.value.trim().length > 0) {
         email = config.value.trim()
         console.log('✅ PAGSEGURO_SELLER_EMAIL encontrado no banco de dados:', email)
@@ -21,7 +21,7 @@ async function getPagSeguroSellerEmail(): Promise<string | null> {
       console.error('⚠️ Erro ao buscar PAGSEGURO_SELLER_EMAIL no banco de dados:', dbError.message)
     }
   }
-  
+
   return email && email.trim().length > 0 ? email.trim() : null
 }
 
@@ -42,7 +42,7 @@ async function getPagSeguroKey(): Promise<string> {
       let config = await prisma.systemConfig.findUnique({
         where: { key: 'PAGSEGURO_APP_KEY' }
       })
-      
+
       if (config && config.value && config.value.trim().length > 0) {
         key = config.value.trim()
         console.log('✅ PAGSEGURO_APP_KEY encontrada no banco de dados!')
@@ -53,7 +53,7 @@ async function getPagSeguroKey(): Promise<string> {
         config = await prisma.systemConfig.findUnique({
           where: { key: 'PAGSEGURO_TOKEN' }
         })
-        
+
         if (config && config.value && config.value.trim().length > 0) {
           key = config.value.trim()
           console.log('✅ PAGSEGURO_TOKEN encontrada no banco de dados!')
@@ -82,7 +82,7 @@ async function getPagSeguroKey(): Promise<string> {
     console.log(`✅ PAGSEGURO_${keyType} carregada com sucesso!`)
     console.log('   Tamanho:', trimmedKey.length, 'caracteres')
     console.log('   Prefixo:', trimmedKey.substring(0, 20))
-    ;(getPagSeguroKey as any).logged = true
+      ; (getPagSeguroKey as any).logged = true
   }
 
   return trimmedKey
@@ -92,14 +92,14 @@ async function getPagSeguroKey(): Promise<string> {
 async function getPagSeguroApiUrl(): Promise<string> {
   // Primeiro verificar se há URL customizada (variável de ambiente ou banco de dados)
   let customUrl = process.env.PAGSEGURO_API_URL
-  
+
   // Se não encontrar na variável de ambiente, tentar buscar no banco de dados
   if (!customUrl || (typeof customUrl === 'string' && customUrl.trim().length === 0)) {
     try {
       const config = await prisma.systemConfig.findUnique({
         where: { key: 'PAGSEGURO_API_URL' }
       })
-      
+
       if (config && config.value && config.value.trim().length > 0) {
         customUrl = config.value.trim()
         console.log('✅ PAGSEGURO_API_URL encontrada no banco de dados:', customUrl)
@@ -108,7 +108,7 @@ async function getPagSeguroApiUrl(): Promise<string> {
       console.error('⚠️ Erro ao buscar PAGSEGURO_API_URL no banco de dados:', dbError.message)
     }
   }
-  
+
   // Se houver URL customizada, usar ela
   if (customUrl && customUrl.trim().length > 0) {
     const trimmedUrl = customUrl.trim()
@@ -121,16 +121,16 @@ async function getPagSeguroApiUrl(): Promise<string> {
       console.warn('⚠️ URL customizada inválida, usando padrão baseado em sandbox')
     }
   }
-  
+
   // Se não houver URL customizada, usar lógica baseada em sandbox
   let isSandbox: boolean | null = null
-  
+
   // PRIORIDADE: Banco de dados primeiro (configuração do admin tem prioridade)
   try {
     const config = await prisma.systemConfig.findUnique({
       where: { key: 'PAGSEGURO_SANDBOX' }
     })
-    
+
     if (config && config.value && config.value.trim().length > 0) {
       isSandbox = config.value.trim().toLowerCase() === 'true'
       console.log(`📦 PAGSEGURO_SANDBOX do banco de dados (PRIORIDADE): ${isSandbox}`)
@@ -141,7 +141,7 @@ async function getPagSeguroApiUrl(): Promise<string> {
   } catch (dbError: any) {
     console.error('⚠️ Erro ao buscar PAGSEGURO_SANDBOX no banco de dados:', dbError.message)
   }
-  
+
   // Se não encontrou no banco de dados, verificar variável de ambiente
   if (isSandbox === null) {
     const envSandbox = process.env.PAGSEGURO_SANDBOX
@@ -150,17 +150,17 @@ async function getPagSeguroApiUrl(): Promise<string> {
       console.log(`📦 PAGSEGURO_SANDBOX da variável de ambiente: ${isSandbox}`)
     }
   }
-  
+
   // Se ainda não foi definido, usar PRODUÇÃO por padrão (mudança para produção)
   if (isSandbox === null) {
     isSandbox = false // Padrão: PRODUÇÃO
     console.log(`📦 PAGSEGURO_SANDBOX padrão: ${isSandbox} (PRODUÇÃO)`)
   }
-  
-  const baseUrl = isSandbox 
-    ? 'https://sandbox.api.pagseguro.com' 
+
+  const baseUrl = isSandbox
+    ? 'https://sandbox.api.pagseguro.com'
     : 'https://api.pagseguro.com'
-  
+
   console.log(`📦 Usando PagSeguro ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'}: ${baseUrl}`)
   console.log(`   isSandbox: ${isSandbox}, NODE_ENV: ${process.env.NODE_ENV}`)
   return baseUrl
@@ -226,7 +226,7 @@ export async function createPagSeguroPixPayment(data: {
 }) {
   let key: string = ''
   let apiUrl: string = ''
-  
+
   try {
     key = await getPagSeguroKey()
     apiUrl = await getPagSeguroApiUrl()
@@ -236,26 +236,26 @@ export async function createPagSeguroPixPayment(data: {
 
     // Obter email do vendedor (se configurado)
     const sellerEmail = await getPagSeguroSellerEmail()
-    
+
     // Preparar dados do cliente
     // O PagSeguro exige que customer.email seja obrigatório e diferente do email do vendedor
     const customerData: any = {
       name: data.customer.name,
       tax_id: data.customer.tax_id.replace(/\D/g, '') // Remover formatação do CPF/CNPJ
     }
-    
+
     // Validar e usar email do cliente
     if (!data.customer.email || data.customer.email.trim().length === 0) {
       throw new Error('Email do cliente é obrigatório para pagamentos via PagSeguro')
     }
-    
+
     const customerEmail = data.customer.email.trim()
-    
+
     // Verificar se o email do cliente é diferente do email do vendedor
     if (sellerEmail && customerEmail.toLowerCase() === sellerEmail.toLowerCase()) {
       throw new Error('O email do cliente não pode ser igual ao email do vendedor. Por favor, use um email diferente.')
     }
-    
+
     customerData.email = customerEmail
 
     // O endpoint /orders é o correto para PIX com qr_codes (conforme documentação oficial)
@@ -281,7 +281,7 @@ export async function createPagSeguroPixPayment(data: {
         }
       ]
     }
-    
+
     // Criar pedido via /orders (método correto para PIX)
     // Conforme documentação oficial do PagSeguro:
     // Authorization: Bearer [TOKEN] (apenas o token, sem email)
@@ -292,12 +292,12 @@ export async function createPagSeguroPixPayment(data: {
       'App-Token': key,
       'Content-Type': 'application/json'
     }
-    
+
     // Adicionar email do vendedor se configurado (recomendado pela documentação)
     if (sellerEmail) {
       headers['X-Seller-Email'] = sellerEmail
     }
-    
+
     // ============================================
     // LOG COMPLETO DO REQUEST - PRODUÇÃO
     // ============================================
@@ -312,7 +312,7 @@ export async function createPagSeguroPixPayment(data: {
     console.log('📦 Body (Request Payload) Completo:')
     console.log(JSON.stringify(orderData, null, 2))
     console.log('='.repeat(80))
-    
+
     const orderResponse = await axios.post(
       `${apiUrl}/orders`,
       orderData,
@@ -332,58 +332,58 @@ export async function createPagSeguroPixPayment(data: {
     console.log('📦 Body (Response Payload) Completo:')
     console.log(JSON.stringify(orderResponse.data, null, 2))
     console.log('='.repeat(80))
-    
+
     console.log('✅ Pedido PIX criado no PagSeguro:', orderResponse.data.id)
-    
+
     // Extrair dados do QR code da resposta
     const orderData_response = orderResponse.data
-    
+
     // Priorizar Order ID (formato ORD-) porque é mais confiável para consultas
     // Order ID é o ID principal que pode ser consultado via /orders/{id}
     const orderId = orderData_response.id
     const chargeId = orderData_response.charges?.[0]?.id
-    
+
     // Usar Order ID como padrão, mas se houver Charge ID no formato correto (CHG-), usá-lo também
     const paymentId = orderId || chargeId || ''
-    
+
     console.log('📋 IDs extraídos da resposta:')
     console.log('   Order ID:', orderId)
     console.log('   Charge ID:', chargeId)
     console.log('   ID que será salvo:', paymentId)
-    
-    // O QR code PIX deve vir na resposta do /orders dentro de qr_codes
-    const qrCodeData = orderData_response.qr_codes?.[0] || 
-                       orderData_response.charges?.[0]?.qr_codes?.[0] ||
-                       orderData_response.charges?.[0]?.payment_method?.pix ||
-                       orderData_response
-    const qrCode = qrCodeData?.text ||
-                   qrCodeData?.qr_code || 
-                   qrCodeData?.qr_code_text || 
-                   qrCodeData?.pix_copy_paste ||
-                   orderData_response.qr_codes?.[0]?.text ||
-                   orderData_response.qr_codes?.[0]?.qr_code ||
-                   orderData_response.qr_codes?.[0]?.qr_code_text ||
-                   orderData_response.qr_codes?.[0]?.pix_copy_paste ||
-                   orderData_response.charges?.[0]?.qr_codes?.[0]?.text ||
-                   orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code ||
-                   orderData_response.charges?.[0]?.qr_codes?.[0]?.pix_copy_paste ||
-                   ''
 
-    const qrCodeImage = qrCodeData?.qr_code_image || 
-                        qrCodeData?.qr_code_base64 ||
-                        orderData_response.qr_codes?.[0]?.qr_code_image ||
-                        orderData_response.qr_codes?.[0]?.qr_code_base64 ||
-                        orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code_image ||
-                        orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code_base64 ||
-                        null
+    // O QR code PIX deve vir na resposta do /orders dentro de qr_codes
+    const qrCodeData = orderData_response.qr_codes?.[0] ||
+      orderData_response.charges?.[0]?.qr_codes?.[0] ||
+      orderData_response.charges?.[0]?.payment_method?.pix ||
+      orderData_response
+    const qrCode = qrCodeData?.text ||
+      qrCodeData?.qr_code ||
+      qrCodeData?.qr_code_text ||
+      qrCodeData?.pix_copy_paste ||
+      orderData_response.qr_codes?.[0]?.text ||
+      orderData_response.qr_codes?.[0]?.qr_code ||
+      orderData_response.qr_codes?.[0]?.qr_code_text ||
+      orderData_response.qr_codes?.[0]?.pix_copy_paste ||
+      orderData_response.charges?.[0]?.qr_codes?.[0]?.text ||
+      orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code ||
+      orderData_response.charges?.[0]?.qr_codes?.[0]?.pix_copy_paste ||
+      ''
+
+    const qrCodeImage = qrCodeData?.qr_code_image ||
+      qrCodeData?.qr_code_base64 ||
+      orderData_response.qr_codes?.[0]?.qr_code_image ||
+      orderData_response.qr_codes?.[0]?.qr_code_base64 ||
+      orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code_image ||
+      orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code_base64 ||
+      null
 
     const expiresAt = qrCodeData?.expiration_date ||
-                      qrCodeData?.expires_at || 
-                      orderData_response.qr_codes?.[0]?.expiration_date ||
-                      orderData_response.qr_codes?.[0]?.expires_at ||
-                      orderData_response.charges?.[0]?.qr_codes?.[0]?.expiration_date ||
-                      orderData_response.charges?.[0]?.qr_codes?.[0]?.expires_at ||
-                      new Date(Date.now() + 30 * 60 * 1000).toISOString()
+      qrCodeData?.expires_at ||
+      orderData_response.qr_codes?.[0]?.expiration_date ||
+      orderData_response.qr_codes?.[0]?.expires_at ||
+      orderData_response.charges?.[0]?.qr_codes?.[0]?.expiration_date ||
+      orderData_response.charges?.[0]?.qr_codes?.[0]?.expires_at ||
+      new Date(Date.now() + 30 * 60 * 1000).toISOString()
 
     return {
       id: paymentId,
@@ -393,7 +393,7 @@ export async function createPagSeguroPixPayment(data: {
     }
   } catch (error: any) {
     const errorData = error.response?.data || error.message
-    
+
     // ============================================
     // LOG COMPLETO DO ERRO - PRODUÇÃO
     // ============================================
@@ -403,7 +403,7 @@ export async function createPagSeguroPixPayment(data: {
     console.error('📡 URL da Requisição:', `${apiUrl}/orders`)
     console.error('📡 Método: POST')
     console.error('🌐 Ambiente:', apiUrl.includes('sandbox') ? 'SANDBOX' : 'PRODUÇÃO')
-    
+
     if (error.config) {
       console.error('📋 Headers Enviados (Request):')
       console.error(JSON.stringify(error.config.headers, null, 2))
@@ -415,7 +415,7 @@ export async function createPagSeguroPixPayment(data: {
         console.error(error.config.data)
       }
     }
-    
+
     if (error.response) {
       console.error('📊 Status Code da Resposta:', error.response.status)
       console.error('📋 Headers da Resposta:')
@@ -431,8 +431,8 @@ export async function createPagSeguroPixPayment(data: {
 
     // Verificar se é erro de rede/API fora do ar
     if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' ||
-        error.message?.includes('timeout') || error.message?.includes('ECONNREFUSED') ||
-        error.response?.status === 503 || error.response?.status === 502 || error.response?.status === 504) {
+      error.message?.includes('timeout') || error.message?.includes('ECONNREFUSED') ||
+      error.response?.status === 503 || error.response?.status === 502 || error.response?.status === 504) {
       const networkError = new Error('A API do PagSeguro está temporariamente indisponível. O serviço pode estar fora do ar ou em manutenção. Tente novamente em alguns minutos.')
       networkError.name = 'PagSeguroServiceUnavailableError'
       throw networkError
@@ -442,7 +442,7 @@ export async function createPagSeguroPixPayment(data: {
     if (error.response?.status === 401 || error.response?.status === 403) {
       const errorMessage = errorData?.error_messages?.[0]?.description || errorData?.message || 'Token inválido'
       const errorCode = errorData?.error_messages?.[0]?.code || 'UNKNOWN'
-      
+
       console.error('❌ ERRO DE AUTENTICAÇÃO: O token do PagSeguro está inválido ou expirado!')
       console.error('   Código do erro:', errorCode)
       console.error('   Mensagem do PagSeguro:', errorMessage)
@@ -453,7 +453,7 @@ export async function createPagSeguroPixPayment(data: {
       console.error('      2. O token foi gerado no painel do PagSeguro sandbox')
       console.error('      3. A conta tem permissão para usar a API no sandbox')
       console.error('      4. O token não está expirado')
-      
+
       let detailedMessage = `Token do PagSeguro inválido: ${errorMessage}`
       if (errorCode === 'UNAUTHORIZED') {
         detailedMessage += '\n\nPossíveis causas:'
@@ -463,7 +463,7 @@ export async function createPagSeguroPixPayment(data: {
         detailedMessage += '\n- Conta não tem permissão para usar a API no sandbox'
         detailedMessage += '\n\nSolução: Gere um novo token no painel do PagSeguro SANDBOX e configure no admin.'
       }
-      
+
       const authError = new Error(detailedMessage)
       authError.name = 'PagSeguroAuthenticationError'
       throw authError
@@ -482,15 +482,15 @@ export async function getPagSeguroPayment(paymentId: string) {
     console.log('🔍 [getPagSeguroPayment] Buscando pagamento:', paymentId)
 
     // Detectar se é Order ID (formatos: ORD-, ORDE_, ORDER_)
-    const isOrderId = paymentId.startsWith('ORD-') || 
-                      paymentId.startsWith('ORDE_') || 
-                      paymentId.startsWith('ORDER_') ||
-                      paymentId.toUpperCase().includes('ORDER')
+    const isOrderId = paymentId.startsWith('ORD-') ||
+      paymentId.startsWith('ORDE_') ||
+      paymentId.startsWith('ORDER_') ||
+      paymentId.toUpperCase().includes('ORDER')
 
     // Detectar se é Charge ID (formato: CHG-, CHAR_)
-    const isChargeId = paymentId.startsWith('CHG-') || 
-                       paymentId.startsWith('CHAR_') ||
-                       paymentId.toUpperCase().includes('CHARGE')
+    const isChargeId = paymentId.startsWith('CHG-') ||
+      paymentId.startsWith('CHAR_') ||
+      paymentId.toUpperCase().includes('CHARGE')
 
     console.log('🔍 [getPagSeguroPayment] Tipo detectado:', { isOrderId, isChargeId })
 
@@ -535,12 +535,12 @@ export async function getPagSeguroPayment(paymentId: string) {
       return response.data
     } catch (chargeError: any) {
       console.error('❌ [getPagSeguroPayment] Falha ao buscar como Charge:', chargeError.response?.data || chargeError.message)
-      
+
       // Se já tentamos Order e Charge e ambos falharam, lançar erro
       if (isOrderId) {
         throw new Error(`Pagamento não encontrado no PagSeguro (ID: ${paymentId}). Tentado como Order e Charge.`)
       }
-      
+
       throw chargeError
     }
   } catch (error: any) {
@@ -576,18 +576,7 @@ export async function getPagSeguroPixQrCode(chargeId: string) {
   }
 }
 
-// Interface para dados do cartão de crédito
-interface CardData {
-  number: string       // Número do cartão (apenas números)
-  exp_month: string    // Mês de expiração (2 dígitos)
-  exp_year: string     // Ano de expiração (4 dígitos)
-  security_code: string // CVV (3-4 dígitos)
-  holder: {
-    name: string       // Nome impresso no cartão
-  }
-}
-
-// Interface para pagamento com cartão
+// Interface para pagamento com cartão (usando criptografia do PagBank SDK)
 interface CreateCardPaymentData {
   reference_id: string
   customer: {
@@ -603,15 +592,18 @@ interface CreateCardPaymentData {
   }
   amount: number // Valor em reais
   description: string
-  card: CardData // Dados do cartão (processados diretamente pelo PagBank de forma segura)
+  encryptedCard: string // Cartão criptografado via PagBank SDK (PagSeguro.encryptCard)
+  holderName: string // Nome do titular do cartão
   installments?: number // Número de parcelas (1 = à vista)
 }
 
 // Criar pagamento com cartão de crédito no PagSeguro
+// Usa cartão criptografado conforme documentação oficial:
+// https://dev.pagbank.uol.com.br/reference/criar-pagar-pedido-com-cartao
 export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
   let key: string = ''
   let apiUrl: string = ''
-  
+
   try {
     key = await getPagSeguroKey()
     apiUrl = await getPagSeguroApiUrl()
@@ -621,47 +613,39 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
 
     // Obter email do vendedor (se configurado)
     const sellerEmail = await getPagSeguroSellerEmail()
-    
+
     // Preparar dados do cliente
+    const customerTaxId = data.customer.tax_id.replace(/\D/g, '') // Remover formatação do CPF/CNPJ
     const customerData: any = {
       name: data.customer.name,
       email: data.customer.email.trim(),
-      tax_id: data.customer.tax_id.replace(/\D/g, '') // Remover formatação do CPF/CNPJ
+      tax_id: customerTaxId
     }
-    
+
     // Validar email do cliente
     if (!data.customer.email || data.customer.email.trim().length === 0) {
       throw new Error('Email do cliente é obrigatório para pagamentos via cartão')
     }
-    
+
     // Verificar se o email do cliente é diferente do email do vendedor
     if (sellerEmail && data.customer.email.trim().toLowerCase() === sellerEmail.toLowerCase()) {
       throw new Error('O email do cliente não pode ser igual ao email do vendedor.')
     }
 
-    // Preparar dados do cartão
-    // Os dados são processados diretamente pelo PagBank com criptografia SSL
-    // O PagBank não armazena dados em nossos servidores
-    const cardData = {
-      number: data.card.number.replace(/\D/g, ''), // Apenas números
-      exp_month: data.card.exp_month.padStart(2, '0'),
-      exp_year: data.card.exp_year,
-      security_code: data.card.security_code,
-      holder: {
-        name: data.card.holder.name.toUpperCase()
-      }
+    // Validar dados obrigatórios
+    if (!data.encryptedCard || data.encryptedCard.trim().length === 0) {
+      throw new Error('Cartão criptografado é obrigatório. Use o SDK do PagBank para criptografar os dados do cartão.')
     }
 
-    // Validar dados do cartão
-    if (cardData.number.length < 13 || cardData.number.length > 19) {
-      throw new Error('Número do cartão inválido')
-    }
-    if (cardData.security_code.length < 3 || cardData.security_code.length > 4) {
-      throw new Error('CVV inválido')
+    if (!data.holderName || data.holderName.trim().length === 0) {
+      throw new Error('Nome do titular do cartão é obrigatório.')
     }
 
-    // Estrutura para pagamento via cartão usando /orders (mesmo endpoint do PIX)
-    // O PagBank usa /orders para todos os tipos de pagamento
+    // Estrutura para pagamento via cartão usando /orders
+    // Conforme documentação oficial do PagBank:
+    // - card.encrypted: string criptografada pelo SDK
+    // - card.store: false (não armazenar cartão)
+    // - holder: no nível payment_method (fora de card)
     const orderData: any = {
       reference_id: data.reference_id,
       customer: customerData,
@@ -685,37 +669,42 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
             type: 'CREDIT_CARD',
             installments: data.installments || 1,
             capture: true, // Captura imediata
-            card: cardData
+            card: {
+              encrypted: data.encryptedCard,
+              store: false
+            },
+            holder: {
+              name: data.holderName.toUpperCase(),
+              tax_id: customerTaxId
+            }
           }
         }
       ]
     }
-    
+
     // Headers para a requisição
-    // IMPORTANTE: Usar os mesmos headers do PIX (Authorization + App-Token)
     const headers: any = {
       'Authorization': `Bearer ${key}`,
-      'App-Token': key, // Adicionar App-Token (necessário para autenticação)
       'Content-Type': 'application/json'
     }
-    
-    // Adicionar email do vendedor se configurado (recomendado pela documentação)
+
+    // Adicionar email do vendedor se configurado
     if (sellerEmail) {
       headers['X-Seller-Email'] = sellerEmail
     }
-    
+
     // ============================================
-    // LOG COMPLETO DO REQUEST - CARTÃO
+    // LOG DO REQUEST - CARTÃO (criptografado)
     // ============================================
     console.log('='.repeat(80))
-    console.log('📤 REQUEST - PagSeguro CARTÃO')
+    console.log('📤 REQUEST - PagSeguro CARTÃO (criptografado)')
     console.log('='.repeat(80))
     console.log('📡 Método: POST')
     console.log('📡 URL:', `${apiUrl}/orders`)
     console.log('🌐 Ambiente:', apiUrl.includes('sandbox') ? 'SANDBOX' : 'PRODUÇÃO')
     console.log('📋 Headers:')
-    console.log(JSON.stringify({ ...headers, 'Authorization': 'Bearer ***', 'App-Token': '***' }, null, 2))
-    // Não logar número completo do cartão por segurança
+    console.log(JSON.stringify({ ...headers, 'Authorization': 'Bearer ***' }, null, 2))
+    // Log seguro - mostrar apenas parte do encrypted
     const safeOrderData = {
       ...orderData,
       charges: [
@@ -724,18 +713,17 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
           payment_method: {
             ...orderData.charges[0].payment_method,
             card: {
-              ...orderData.charges[0].payment_method.card,
-              number: `****${cardData.number.slice(-4)}`,
-              security_code: '***'
+              encrypted: `${data.encryptedCard.substring(0, 30)}...`,
+              store: false
             }
           }
         }
       ]
     }
-    console.log('📦 Body (dados sensíveis ocultados):')
+    console.log('📦 Body (encrypted reduzido para log):')
     console.log(JSON.stringify(safeOrderData, null, 2))
     console.log('='.repeat(80))
-    
+
     const response = await axios.post(
       `${apiUrl}/orders`,
       orderData,
@@ -743,7 +731,7 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
     )
 
     // ============================================
-    // LOG COMPLETO DO RESPONSE - CARTÃO
+    // LOG DO RESPONSE - CARTÃO
     // ============================================
     console.log('='.repeat(80))
     console.log('📥 RESPONSE - PagSeguro CARTÃO')
@@ -752,42 +740,56 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
     console.log('📦 Response:')
     console.log(JSON.stringify(response.data, null, 2))
     console.log('='.repeat(80))
-    
+
     const orderResponse = response.data
-    
+
     // Extrair dados da charge dentro do order
     const charge = orderResponse.charges?.[0] || orderResponse.charge || orderResponse
-    
+
     // Verificar status do pagamento
     const paymentStatus = charge.status || orderResponse.status
     const chargeId = charge.id || orderResponse.id
     const orderId = orderResponse.id
-    
+
+    // Verificar payment_response para erros detalhados
+    const paymentResponse = charge.payment_response
+    if (paymentResponse) {
+      console.log('💳 Payment Response:', JSON.stringify(paymentResponse, null, 2))
+      if (paymentResponse.code && paymentResponse.code !== '20000') {
+        console.warn('⚠️ Payment Response Code:', paymentResponse.code, '-', paymentResponse.message)
+      }
+    }
+
     console.log('✅ Pedido via cartão criado:', orderId)
     console.log('✅ Charge ID:', chargeId)
     console.log('📊 Status:', paymentStatus)
+
+    // Determinar se foi pago com base no status E no payment_response
+    const isPaid = paymentStatus === 'PAID' || paymentStatus === 'AUTHORIZED' ||
+      (paymentResponse?.code === '20000')
 
     return {
       id: chargeId || orderId,
       orderId: orderId,
       status: paymentStatus,
-      paid: paymentStatus === 'PAID' || paymentStatus === 'AUTHORIZED',
-      message: getCardPaymentStatusMessage(paymentStatus),
+      paid: isPaid,
+      message: paymentResponse?.message || getCardPaymentStatusMessage(paymentStatus),
       paymentMethod: charge.payment_method,
+      paymentResponse: paymentResponse,
       createdAt: charge.created_at || orderResponse.created_at
     }
   } catch (error: any) {
     const errorData = error.response?.data || error.message
-    
+
     // ============================================
-    // LOG COMPLETO DO ERRO - CARTÃO
+    // LOG DO ERRO - CARTÃO
     // ============================================
     console.error('='.repeat(80))
     console.error('❌ ERRO - PagSeguro CARTÃO')
     console.error('='.repeat(80))
     console.error('📡 URL:', `${apiUrl}/orders`)
     console.error('🌐 Ambiente:', apiUrl.includes('sandbox') ? 'SANDBOX' : 'PRODUÇÃO')
-    
+
     if (error.response) {
       console.error('📊 Status Code:', error.response.status)
       console.error('📦 Response:')
@@ -799,8 +801,8 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
 
     // Verificar se é erro de rede/API fora do ar
     if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' ||
-        error.message?.includes('timeout') || error.message?.includes('ECONNREFUSED') ||
-        error.response?.status === 503 || error.response?.status === 502 || error.response?.status === 504) {
+      error.message?.includes('timeout') || error.message?.includes('ECONNREFUSED') ||
+      error.response?.status === 503 || error.response?.status === 502 || error.response?.status === 504) {
       const networkError = new Error('A API do PagSeguro está temporariamente indisponível. Tente novamente em alguns minutos.')
       networkError.name = 'PagSeguroServiceUnavailableError'
       throw networkError
@@ -813,79 +815,26 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
       throw authError
     }
 
-    // Erros específicos do cartão
+    // Erros específicos do cartão (400, 422)
     if (error.response?.status === 400 || error.response?.status === 422) {
       const errorMessages = errorData?.error_messages || []
       const firstError = errorMessages[0]
-      
+
       if (firstError) {
         const errorCode = firstError.code || ''
         const errorDescription = firstError.description || 'Erro ao processar pagamento'
-        
-        // Mapear erros comuns do cartão
         const cardError = new Error(mapCardErrorMessage(errorCode, errorDescription))
         cardError.name = 'PagSeguroCardError'
-        // Fallback: tentar endpoint /charges quando /orders recusar a estrutura
-        try {
-          console.warn('⚠️ Tentando fallback via /charges...')
-          const headers: any = {
-            'Authorization': `Bearer ${key}`,
-            'App-Token': key,
-            'Content-Type': 'application/json'
-          }
-          const sellerEmail = await getPagSeguroSellerEmail()
-          if (sellerEmail) headers['X-Seller-Email'] = sellerEmail
-          const valueInCents = Math.round(data.amount * 100)
-          const customerData: any = {
-            name: data.customer.name,
-            email: data.customer.email.trim(),
-            tax_id: data.customer.tax_id.replace(/\D/g, '')
-          }
-          const chargeBody: any = {
-            reference_id: data.reference_id,
-            description: data.description,
-            amount: {
-              value: valueInCents,
-              currency: 'BRL'
-            },
-            payment_method: {
-              type: 'CREDIT_CARD',
-              installments: data.installments || 1,
-              capture: true,
-              card: {
-                number: data.card.number.replace(/\D/g, ''),
-                exp_month: data.card.exp_month.padStart(2, '0'),
-                exp_year: data.card.exp_year,
-                security_code: data.card.security_code,
-                holder: { name: data.card.holder.name.toUpperCase() }
-              }
-            },
-            customer: customerData
-          }
-          console.log('📤 Fallback REQUEST /charges')
-          const response = await axios.post(
-            `${apiUrl}/charges`,
-            chargeBody,
-            { headers }
-          )
-          console.log('📥 Fallback RESPONSE /charges:', response.status)
-          const charge = response.data
-          const paymentStatus = charge.status
-          const chargeId = charge.id
-          const orderId = charge.order_id || charge.order?.id
-          return {
-            id: chargeId || orderId,
-            orderId: orderId,
-            status: paymentStatus,
-            paid: paymentStatus === 'PAID' || paymentStatus === 'AUTHORIZED',
-            message: getCardPaymentStatusMessage(paymentStatus),
-            paymentMethod: charge.payment_method,
-            createdAt: charge.created_at
-          }
-        } catch (fallbackError: any) {
-          console.error('❌ Fallback /charges falhou:', fallbackError.response?.data || fallbackError.message)
-          throw cardError
-        }
+        throw cardError
+      }
+
+      // Verificar payment_response dentro de charges (cartão recusado)
+      const charges = errorData?.charges || []
+      const chargePaymentResponse = charges[0]?.payment_response
+      if (chargePaymentResponse && chargePaymentResponse.code !== '20000') {
+        const declineError = new Error(mapCardPaymentResponseMessage(chargePaymentResponse.code, chargePaymentResponse.message))
+        declineError.name = 'PagSeguroCardError'
+        throw declineError
       }
     }
 
@@ -905,10 +854,41 @@ function mapCardErrorMessage(code: string, description: string): string {
     'CARD_BLOCKED': 'Cartão bloqueado. Entre em contato com o banco emissor.',
     'CARD_NOT_SUPPORTED': 'Bandeira do cartão não suportada.',
     'FRAUD_DETECTED': 'Transação não autorizada por medidas de segurança.',
-    'INVALID_HOLDER_NAME': 'Nome do titular inválido.'
+    'INVALID_HOLDER_NAME': 'Nome do titular inválido.',
+    'INVALID_PARAMETER': description || 'Parâmetro inválido na requisição.',
+    '40001': 'Dados do cartão inválidos. Verifique os dados e tente novamente.',
+    '40002': 'Dados do cartão inválidos. Verifique os dados e tente novamente.'
   }
-  
+
   return errorMap[code] || description || 'Erro ao processar o cartão. Tente novamente.'
+}
+
+// Mapear códigos de resposta de pagamento do PagBank
+function mapCardPaymentResponseMessage(code: string, message: string): string {
+  const responseMap: Record<string, string> = {
+    '20000': 'Pagamento aprovado com sucesso!',
+    '20001': 'Cartão recusado pelo emissor. Entre em contato com o banco.',
+    '20002': 'Cartão recusado pelo emissor.',
+    '20003': 'Cartão expirado.',
+    '20004': 'Cartão restrito.',
+    '20005': 'Cartão bloqueado.',
+    '20006': 'Tempo limite excedido. Tente novamente.',
+    '20007': 'Cartão com erro. Verifique os dados.',
+    '20008': 'Número do cartão inválido.',
+    '20009': 'CVV inválido.',
+    '20010': 'Transação não permitida para este cartão.',
+    '20011': 'Saldo insuficiente.',
+    '20012': 'Valor da transação não permitido.',
+    '20013': 'Parcelamento não permitido.',
+    '20014': 'Número de parcelas inválido.',
+    '20015': 'Transação não autorizada.',
+    '20017': 'Transação suspeita de fraude.',
+    '20018': 'Transação de teste. Use cartão de teste.',
+    '20019': 'Tente novamente mais tarde.',
+    '99999': 'Erro interno no PagBank. Tente novamente.'
+  }
+
+  return responseMap[code] || message || 'Erro ao processar o cartão. Tente novamente.'
 }
 
 // Obter mensagem de status do pagamento
@@ -921,6 +901,6 @@ function getCardPaymentStatusMessage(status: string): string {
     'IN_ANALYSIS': 'Pagamento em análise. Aguarde confirmação.',
     'WAITING': 'Aguardando processamento...'
   }
-  
+
   return statusMap[status] || 'Processando pagamento...'
 }
