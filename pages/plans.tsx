@@ -720,10 +720,10 @@ export default function Plans() {
 
           {/* Payment Modal - PIX */}
           {(paymentData || (paymentMethod && loading)) && pendingPayment && paymentMethod === 'PIX' && (
-            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center py-4 px-2 sm:p-4 bg-black/90 backdrop-blur-sm overflow-y-auto">
-              <div className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-3xl max-w-lg w-full border border-white/10 my-auto">
-                <div className="flex justify-between items-center mb-4 sm:mb-8">
-                  <h3 className="text-lg sm:text-3xl font-bold text-white flex items-center gap-2 sm:gap-3">
+            <div className="fixed inset-0 z-50 flex items-start justify-center py-4 px-2 sm:px-4 bg-black/90 backdrop-blur-sm overflow-y-auto">
+              <div className="glass-card p-5 sm:p-6 rounded-2xl sm:rounded-3xl max-w-lg w-full border border-white/10 my-auto">
+                <div className="flex justify-between items-center mb-4 sm:mb-5">
+                  <h3 className="text-lg sm:text-2xl font-bold text-white flex items-center gap-2 sm:gap-3">
                     <span className="text-green-400">❖</span> Pagamento via PIX
                   </h3>
                   <button onClick={() => { setPaymentData(null); setPaymentMethod(null); }} className="text-gray-400 hover:text-white transition-colors text-xl sm:text-2xl">
@@ -737,10 +737,10 @@ export default function Plans() {
                     <p className="text-gray-400 animate-pulse text-sm sm:text-lg">Criando pagamento PIX...</p>
                   </div>
                 ) : (
-                  <div className="space-y-4 sm:space-y-8">
+                  <div className="space-y-4 sm:space-y-5">
                     <div className="text-center">
-                      <p className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-3">Valor final</p>
-                      <p className="text-2xl sm:text-5xl font-bold text-white mb-1 sm:mb-2">{t('currencySymbol')}{paymentData?.finalAmount?.toFixed(2)}</p>
+                      <p className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">Valor final</p>
+                      <p className="text-2xl sm:text-3xl font-bold text-white mb-1">{t('currencySymbol')}{paymentData?.finalAmount?.toFixed(2)}</p>
                       {paymentData?.discountAmount ? (
                         <p className="text-emerald-400 text-xs sm:text-lg">💰 Desconto: {t('currencySymbol')}{paymentData.discountAmount.toFixed(2)}</p>
                       ) : null}
@@ -748,10 +748,10 @@ export default function Plans() {
 
                     {paymentData?.pixCopyPaste && (
                       <div className="flex justify-center">
-                        <div className="bg-white p-3 sm:p-6 rounded-xl sm:rounded-2xl shadow-xl sm:shadow-2xl shadow-green-900/20">
+                        <div className="bg-white p-3 sm:p-4 rounded-xl sm:rounded-2xl shadow-xl sm:shadow-2xl shadow-green-900/20">
                           <QRCode
                             value={paymentData.pixCopyPaste}
-                            size={typeof window !== 'undefined' && window.innerWidth < 640 ? 160 : 200}
+                            size={typeof window !== 'undefined' && window.innerWidth < 640 ? 160 : 180}
                             renderAs="svg"
                             level="M"
                           />
@@ -782,7 +782,7 @@ export default function Plans() {
                       </div>
                     </div>
 
-                    <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-xl sm:rounded-2xl p-3 sm:p-6">
+                    <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-xl sm:rounded-2xl p-3 sm:p-4">
                       <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-3">
                         <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-blue-500 animate-pulse" />
                         <span className="text-blue-400 font-bold text-sm sm:text-lg">Aguardando pagamento</span>
@@ -797,76 +797,76 @@ export default function Plans() {
 
           {/* Payment Modal - CARD */}
           {showCardModal && (
-            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center py-4 px-2 sm:p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-              <div className="glass-card p-5 sm:p-8 rounded-2xl sm:rounded-3xl max-w-md w-full border border-white/10 my-auto">
-                <div className="flex justify-between items-center mb-4 sm:mb-8">
-                  <h3 className="text-lg sm:text-2xl font-bold text-white">Pagamento com Cartão</h3>
+            <div className="fixed inset-0 z-50 flex items-start justify-center py-4 px-2 sm:px-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+              <div className="glass-card p-5 sm:p-6 rounded-2xl sm:rounded-3xl max-w-md w-full border border-white/10 my-auto">
+                <div className="flex justify-between items-center mb-4 sm:mb-5">
+                  <h3 className="text-lg sm:text-xl font-bold text-white">Pagamento com Cartão</h3>
                   <button onClick={() => setShowCardModal(false)} className="text-gray-400 hover:text-white text-xl sm:text-2xl">×</button>
                 </div>
 
-                <form onSubmit={(e) => { e.preventDefault(); createCardPayment(); }} className="space-y-3 sm:space-y-6">
+                <form onSubmit={(e) => { e.preventDefault(); createCardPayment(); }} className="space-y-3 sm:space-y-4">
                   <div>
-                    <label className="block text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-3">Nome do titular</label>
+                    <label className="block text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-2">Nome do titular</label>
                     <input
                       value={cardHolderName}
                       onChange={e => setCardHolderName(e.target.value.toUpperCase())}
                       placeholder="NOME COMPLETO"
-                      className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-2.5 sm:py-4 text-white text-sm sm:text-lg placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 text-white text-sm sm:text-base placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-3">Email</label>
+                    <label className="block text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-2">Email</label>
                     <input
                       type="email"
                       value={cardEmail}
                       onChange={e => setCardEmail(e.target.value)}
                       placeholder="seu@email.com"
-                      className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-2.5 sm:py-4 text-white text-sm sm:text-lg placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 text-white text-sm sm:text-base placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-3">Número do cartão</label>
+                    <label className="block text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-2">Número do cartão</label>
                     <input
                       value={cardNumber}
                       onChange={e => setCardNumber(formatCardNumber(e.target.value))}
                       placeholder="0000 0000 0000 0000"
-                      className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-6 py-2.5 sm:py-4 text-white text-sm sm:text-lg placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-mono"
+                      className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-2.5 sm:py-3 text-white text-sm sm:text-base placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all font-mono"
                       maxLength={19}
                       required
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3 sm:gap-6">
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <label className="block text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-3">Validade</label>
+                      <label className="block text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-2">Validade</label>
                       <div className="flex gap-2 sm:gap-3">
                         <input
                           value={cardExpMonth}
                           onChange={e => setCardExpMonth(e.target.value.replace(/\D/g, '').slice(0, 2))}
                           placeholder="MM"
-                          className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-2 sm:px-4 py-2.5 sm:py-4 text-white text-sm sm:text-lg placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-center"
+                          className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-2 sm:px-3 py-2.5 sm:py-3 text-white text-sm sm:text-base placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-center"
                           required
                         />
                         <input
                           value={cardExpYear}
                           onChange={e => setCardExpYear(e.target.value.replace(/\D/g, '').slice(0, 4))}
                           placeholder="YYYY"
-                          className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-2 sm:px-4 py-2.5 sm:py-4 text-white text-sm sm:text-lg placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-center"
+                          className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-2 sm:px-3 py-2.5 sm:py-3 text-white text-sm sm:text-base placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-center"
                           required
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-3">CVV</label>
+                      <label className="block text-xs sm:text-sm text-gray-400 mb-1.5 sm:mb-2">CVV</label>
                       <input
                         value={cardCvv}
                         onChange={e => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
                         placeholder="123"
-                        className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-2 sm:px-4 py-2.5 sm:py-4 text-white text-sm sm:text-lg placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-center"
+                        className="w-full bg-black/40 border border-white/20 rounded-xl sm:rounded-2xl px-2 sm:px-3 py-2.5 sm:py-3 text-white text-sm sm:text-base placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all text-center"
                         type="password"
                         required
                       />
@@ -876,7 +876,7 @@ export default function Plans() {
                   <button
                     type="submit"
                     disabled={processingCard}
-                    className="group relative overflow-hidden w-full py-3 sm:py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl sm:rounded-2xl font-bold text-base sm:text-lg hover:shadow-2xl hover:shadow-blue-500/50 transition-all disabled:opacity-50 mt-2 sm:mt-4"
+                    className="group relative overflow-hidden w-full py-3 sm:py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl sm:rounded-2xl font-bold text-base hover:shadow-2xl hover:shadow-blue-500/50 transition-all disabled:opacity-50 mt-2 sm:mt-3"
                   >
                     <span className="relative z-10">{processingCard ? 'Processando...' : 'Pagar Agora'}</span>
                     <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
