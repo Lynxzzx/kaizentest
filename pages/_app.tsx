@@ -8,6 +8,7 @@ import { initOwner } from '@/lib/init-owner'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ChristmasProvider } from '@/contexts/ChristmasContext'
 import ChristmasEffects from '@/components/ChristmasEffects'
+import AnnouncementModal from '@/components/AnnouncementModal'
 
 function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
   useEffect(() => {
@@ -46,6 +47,7 @@ function App({ Component, pageProps: { session, ...pageProps } }: AppProps) {
             <Toaster position="top-right" />
           </Layout>
           <ChristmasEffects />
+          <AnnouncementModal />
         </ChristmasProvider>
       </ThemeProvider>
     </SessionProvider>

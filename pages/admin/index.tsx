@@ -227,6 +227,7 @@ export default function AdminDashboard() {
     { href: '/admin/keys', icon: '🔑', label: t('keys'), gradient: 'from-amber-500 via-orange-500 to-red-500' },
     { href: '/admin/users', icon: '👥', label: t('users'), gradient: 'from-emerald-500 via-teal-500 to-sky-500' },
     { href: '/admin/broadcast', icon: '📢', label: t('broadcast'), gradient: 'from-cyan-500 via-blue-500 to-indigo-600' },
+    { href: '/admin/announcement', icon: '📣', label: 'Anúncio', gradient: 'from-violet-500 via-purple-500 to-indigo-500' },
     { href: '/admin/raffles', icon: '🎲', label: t('raffles'), gradient: 'from-indigo-500 via-purple-500 to-pink-500' },
     { href: '/admin/events', icon: '🎯', label: 'Eventos', gradient: 'from-violet-500 via-indigo-500 to-cyan-500' },
     { href: '/admin/coupons', icon: '🏷️', label: 'Cupons', gradient: 'from-rose-500 via-pink-500 to-fuchsia-500' },
