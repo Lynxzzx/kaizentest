@@ -35,8 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const topUsers = await prisma.user.findMany({
       where: {
         weeklyGenerations: { gt: 0 },
-        isBanned: false,
-        role: 'USER' // Apenas usuários normais concorrem
+        isBanned: false
       },
       orderBy: { weeklyGenerations: 'desc' },
       take: 20,
@@ -80,8 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const aboveMe = await prisma.user.count({
             where: {
               weeklyGenerations: { gt: myUser.weeklyGenerations },
-              isBanned: false,
-              role: 'USER'
+              isBanned: false
             }
           })
           myPosition = aboveMe + 1

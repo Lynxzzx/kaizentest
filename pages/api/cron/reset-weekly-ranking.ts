@@ -41,8 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const top3 = await prisma.user.findMany({
       where: {
         weeklyGenerations: { gt: 0 },
-        isBanned: false,
-        role: 'USER'
+        isBanned: false
       },
       orderBy: { weeklyGenerations: 'desc' },
       take: 3,
