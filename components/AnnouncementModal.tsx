@@ -15,21 +15,35 @@ interface AnnouncementConfig {
 const STORAGE_KEY = 'kaizen_announcement_dismissed'
 const COUNTDOWN_SECONDS = 5
 
+// Fingerprint único por conteúdo do anúncio — muda quando o admin edita
+function announcementKey(title: string, message: string) {
+  return `${title}||${message}`
+}
+
+// Garante que a URL sempre tenha protocolo — evita que seja tratada como caminho relativo
+function normalizeUrl(url: string): string {
+  const trimmed = url?.trim() || ''
+  if (!trimmed) return '#'
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
 export default function AnnouncementModal() {
   const [config, setConfig] = useState<AnnouncementConfig | null>(null)
   const [visible, setVisible] = useState(false)
   const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS)
   const [canDismiss, setCanDismiss] = useState(false)
   const [closing, setClosing] = useState(false)
+  const [dontShowAgain, setDontShowAgain] = useState(false)
 
   const fetchAnnouncement = useCallback(async () => {
     try {
       const { data } = await axios.get<AnnouncementConfig>('/api/announcement')
       if (!data.isActive) return
 
-      // Verifica se o usuário já dispensou este anúncio nesta sessão
-      const dismissed = sessionStorage.getItem(STORAGE_KEY)
-      if (dismissed === data.title + data.message) return
+      // Verifica localStorage (persiste entre sessões / fechamento do navegador)
+      const dismissed = localStorage.getItem(STORAGE_KEY)
+      if (dismissed === announcementKey(data.title, data.message)) return
 
       setConfig(data)
       setVisible(true)
@@ -66,17 +80,14 @@ export default function AnnouncementModal() {
     if (!canDismiss || !config) return
     setClosing(true)
     setTimeout(() => {
-      sessionStorage.setItem(STORAGE_KEY, config.title + config.message)
+      if (dontShowAgain) {
+        // Salva no localStorage para nunca mais exibir este anúncio neste browser
+        localStorage.setItem(STORAGE_KEY, announcementKey(config.title, config.message))
+      }
       setVisible(false)
       setClosing(false)
     }, 350)
-  }, [canDismiss, config])
-
-  const handlePrimary = useCallback(() => {
-    if (config?.buttons.primary.url) {
-      window.open(config.buttons.primary.url, '_blank', 'noopener,noreferrer')
-    }
-  }, [config])
+  }, [canDismiss, config, dontShowAgain])
 
   if (!visible || !config) return null
 
@@ -96,7 +107,8 @@ export default function AnnouncementModal() {
           closing ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
         }`}
       >
-        <div className="relative w-full max-w-lg overflow-hidden rounded-[28px] border border-white/10 shadow-[0_40px_120px_rgba(2,8,23,0.9)]"
+        <div
+          className="relative w-full max-w-lg overflow-hidden rounded-[28px] border border-white/10 shadow-[0_40px_120px_rgba(2,8,23,0.9)]"
           style={{
             background: 'linear-gradient(135deg, rgba(15,23,42,0.95) 0%, rgba(30,27,75,0.95) 50%, rgba(15,23,42,0.95) 100%)',
           }}
@@ -126,13 +138,12 @@ export default function AnnouncementModal() {
           </div>
 
           <div className="relative z-10 px-8 pb-8 pt-6">
-            {/* Badge */}
+            {/* Badge + countdown */}
             <div className="mb-5 flex items-center justify-between">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-[11px] uppercase tracking-[0.35em] text-white/60">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-amber-400" />
                 Aviso Oficial
               </div>
-              {/* Countdown badge */}
               {!canDismiss && (
                 <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[11px] text-white/50">
                   <svg className="h-3 w-3 animate-spin text-violet-400" viewBox="0 0 24 24" fill="none">
@@ -166,36 +177,81 @@ export default function AnnouncementModal() {
               {config.message}
             </div>
 
+            {/* Checkbox "Não mostrar novamente" — aparece assim que o countdown termina */}
+            {canDismiss && (
+              <label className="mb-4 flex cursor-pointer items-center justify-center gap-2.5 select-none">
+                <div className="relative flex-shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={dontShowAgain}
+                    onChange={(e) => setDontShowAgain(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  {/* Custom checkbox visual */}
+                  <div
+                    className={`h-4 w-4 rounded border transition-all duration-200 ${
+                      dontShowAgain
+                        ? 'border-violet-500 bg-violet-600'
+                        : 'border-white/20 bg-white/5'
+                    }`}
+                  >
+                    {dontShowAgain && (
+                      <svg className="h-4 w-4 text-white" viewBox="0 0 16 16" fill="none">
+                        <path d="M3 8l3.5 3.5L13 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-xs text-white/50">Não mostrar novamente</span>
+              </label>
+            )}
+
             {/* Buttons */}
             <div className="flex flex-col gap-3">
-              {/* Primary button */}
+              {/*
+               * Botão primário como <a> tag com href normalizado.
+               * Isso garante que URLs sem protocolo (ex: t.me/canal) não sejam
+               * tratadas como caminhos relativos do site, causando 404.
+               */}
               {config.buttons.primary.url && (
-                <button
-                  onClick={handlePrimary}
-                  className="group relative w-full overflow-hidden rounded-2xl py-3.5 text-sm font-bold text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                <a
+                  href={normalizeUrl(config.buttons.primary.url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl py-3.5 text-sm font-bold text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                   style={{
                     background: 'linear-gradient(135deg, #7c3aed 0%, #06b6d4 100%)',
                     boxShadow: '0 8px 32px rgba(124,58,237,0.5)',
                   }}
                 >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    <span>{config.buttons.primary.label}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  </span>
-                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #0891b2 100%)' }} />
-                </button>
+                  <span className="relative z-10">{config.buttons.primary.label}</span>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="relative z-10 h-4 w-4 transition-transform group-hover:translate-x-1"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <div
+                    className="absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"
+                    style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #0891b2 100%)' }}
+                  />
+                </a>
               )}
 
-              {/* Secondary button */}
+              {/* Botão secundário — fecha o modal após o countdown */}
               <button
                 onClick={dismiss}
                 disabled={!canDismiss}
                 className={`relative w-full overflow-hidden rounded-2xl border py-3.5 text-sm font-semibold transition-all duration-200 ${
                   canDismiss
-                    ? 'border-white/15 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white hover:scale-[1.01] cursor-pointer'
-                    : 'border-white/5 bg-white/3 text-white/30 cursor-not-allowed'
+                    ? 'cursor-pointer border-white/15 bg-white/5 text-white/80 hover:scale-[1.01] hover:bg-white/10 hover:text-white'
+                    : 'cursor-not-allowed border-white/5 bg-white/3 text-white/30'
                 }`}
               >
                 {canDismiss ? (
@@ -215,14 +271,6 @@ export default function AnnouncementModal() {
           </div>
         </div>
       </div>
-
-      <style jsx global>{`
-        @keyframes gradient-shift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-      `}</style>
     </>
   )
 }
