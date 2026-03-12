@@ -3,7 +3,12 @@
 export async function sendDiscordWebhook(webhookUrl: string, message: {
   content?: string
   embeds?: Array<{
+    author?: {
+      name: string
+      icon_url?: string
+    }
     title?: string
+    url?: string
     description?: string
     color?: number
     fields?: Array<{
@@ -11,8 +16,15 @@ export async function sendDiscordWebhook(webhookUrl: string, message: {
       value: string
       inline?: boolean
     }>
+    thumbnail?: {
+      url: string
+    }
+    image?: {
+      url: string
+    }
     footer?: {
       text: string
+      icon_url?: string
     }
     timestamp?: string
   }>
@@ -44,31 +56,54 @@ export async function sendStockRestockNotification(
   siteUrl: string = 'https://kaizengen.shop'
 ) {
   const message = {
-    content: '@everyone 🎉 **ESTOQUE REABASTECIDO!**',
+    content: '@everyone',
     embeds: [
       {
-        title: '📦 Novo Estoque Disponível',
-        description: `O serviço **${serviceName}** foi reabastecido com sucesso!`,
-        color: 0x00ff00, // Verde
+        author: {
+          name: '🚀 KAIZEN GENS — Alerta de Estoque',
+          icon_url: 'https://kaizengen.shop/favicon.ico',
+        },
+        title: '🔥 ESTOQUE REABASTECIDO!',
+        url: siteUrl,
+        description:
+          `> O serviço **${serviceName}** acabou de ser reabastecido!\n> Garanta o seu antes que acabe! ⚡`,
+        color: 0xFFD700, // Dourado premium
         fields: [
           {
             name: '🛍️ Serviço',
-            value: serviceName,
+            value: `\`\`${serviceName}\`\``,
             inline: true,
           },
           {
-            name: '📊 Quantidade',
-            value: `${quantity} conta(s) adicionada(s)`,
+            name: '📦 Contas Adicionadas',
+            value: `**${quantity}** conta(s)`,
             inline: true,
           },
           {
-            name: '🔗 Acesse Agora',
-            value: `[Clique aqui para acessar o site](${siteUrl})`,
+            name: '\u200B',
+            value: '\u200B',
+            inline: false,
+          },
+          {
+            name: '⚡ Ação Rápida',
+            value: `[👉 **Acessar o site agora**](${siteUrl})`,
+            inline: false,
+          },
+          {
+            name: '⏳ Disponibilidade',
+            value: '🟢 Disponível agora — estoque limitado!',
             inline: false,
           },
         ],
+        thumbnail: {
+          url: 'https://em-content.zobj.net/source/twitter/376/package_1f4e6.png',
+        },
+        image: {
+          url: 'https://i.imgur.com/rXNWbNf.png',
+        },
         footer: {
-          text: 'Kaizen Gens - Sistema de Geração de Contas',
+          text: '🏷️ Kaizen Gens — Gerador de Contas Premium  •  kaizengen.shop',
+          icon_url: 'https://kaizengen.shop/favicon.ico',
         },
         timestamp: new Date().toISOString(),
       },

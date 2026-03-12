@@ -27,9 +27,10 @@ async function getTelegramChatId(): Promise<string | null> {
       where: { key: 'TELEGRAM_CHAT_ID' }
     })
     const value = cfg?.value?.trim()
-    return value && value.length > 0 ? value : null
+    // Use default chat ID if no DB value is found
+    return value && value.length > 0 ? value : '-1003884412502'
   } catch {
-    return null
+    return '-1003884412502'
   }
 }
 
@@ -61,17 +62,26 @@ export async function sendStockRestockNotificationTelegram(
   quantity: number,
   siteUrl: string = 'https://kaizengen.shop'
 ) {
-  const text =
-    [
-      '🎉 <b>ESTOQUE REABASTECIDO!</b>',
-      '',
-      `🛍️ Serviço: <b>${escapeHtml(serviceName)}</b>`,
-      `📊 Quantidade: <b>${quantity}</b> conta(s) adicionada(s)`,
-      '',
-      `🔗 <a href="${escapeHtml(siteUrl)}">Clique aqui para acessar o site</a>`,
-      '',
-      'Kaizen Gens — Sistema de Geração de Contas'
-    ].join('\n')
+  const now = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+  const text = [
+    '╔══════════════════════════╗',
+    '        🚀 <b>ESTOQUE REABASTECIDO!</b>',
+    '╚══════════════════════════╝',
+    '',
+    '┌─────────────────────────────┐',
+    `│  🛍️  <b>Serviço:</b>  <code>${escapeHtml(serviceName)}</code>`,
+    `│  📦  <b>Quantidade:</b>  <b>${quantity}</b> conta(s)`,
+    `│  ⏰  <b>Horário:</b>  ${now}`,
+    '└─────────────────────────────┘',
+    '',
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    '⚡ Corra antes que esgote novamente!',
+    '',
+    `🔗 <a href="${escapeHtml(siteUrl)}"><b>👉 Acessar o site agora</b></a>`,
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    '',
+    '🏷️ <i>Kaizen Gens — Gerador de Contas Premium</i>',
+  ].join('\n')
   return sendTelegramMessage(text)
 }
 
