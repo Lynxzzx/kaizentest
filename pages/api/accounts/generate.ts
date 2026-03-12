@@ -315,12 +315,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     logGeneration(userId, ip, serviceId, service.name).catch(() => { })
     completeGeneration(userId)
 
+    // 🏆 Incrementar ranking semanal em background (não crítico)
+    prisma.user.update({
+      where: { id: userId },
+      data: { weeklyGenerations: { increment: 1 } }
+    }).catch(() => { })
+
     // ===========================================
     // 📤 RETORNAR RESPOSTA
     // ===========================================
 
     // Usar cooldown do plano se disponível, senão usar o padrão
-    const planCooldown = user.plan?.generationCooldownSeconds || GENERATION_PROTECTION.COOLDOWN_SECONDS
+    const basePlanCooldown = user.plan?.generationCooldownSeconds || GENERATION_PROTECTION.COOLDOWN_SECONDS
+
+    // 🏆 Verificar se usuário ganhou cooldown reduzido (prêmio top 3 ranking semanal)
+    const now = new Date()
+    const hasHalvedCooldown = user.cooldownHalved &&
+      user.cooldownHalvedUntil &&
+      user.cooldownHalvedUntil > now
+
+    const planCooldown = hasHalvedCooldown
+      ? Math.max(30, Math.ceil(basePlanCooldown / 2)) // mínimo 30s mesmo com redução
+      : basePlanCooldown
     const nextCooldown = planCooldown
 
     return res.json({

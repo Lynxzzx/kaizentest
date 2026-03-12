@@ -241,7 +241,8 @@ export default function AdminDashboard() {
     { href: '/admin/logs', icon: '📋', label: 'Logs', gradient: 'from-slate-500 via-gray-600 to-zinc-700' },
     { href: '/admin/config', icon: '⚙️', label: t('settings'), gradient: 'from-slate-600 via-slate-700 to-slate-900' },
     { href: '/admin/maintenance', icon: '🧰', label: t('maintenance'), gradient: 'from-orange-500 via-amber-500 to-yellow-500' },
-    { href: '/admin/christmas', icon: '🎄', label: 'Natal', gradient: 'from-red-500 via-red-600 to-green-600' }
+    { href: '/admin/christmas', icon: '🎄', label: 'Natal', gradient: 'from-red-500 via-red-600 to-green-600' },
+    { href: '/admin/ranking', icon: '🏆', label: 'Ranking Semanal', gradient: 'from-yellow-500 via-amber-500 to-orange-500' }
   ]
 
   return (
