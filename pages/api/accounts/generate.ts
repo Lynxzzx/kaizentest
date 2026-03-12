@@ -311,15 +311,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 🛡️ REGISTRAR GERAÇÃO E COMPLETAR (BACKGROUND)
     // ===========================================
 
-    // Fazer log em background para não atrasar resposta
-    logGeneration(userId, ip, serviceId, service.name).catch(() => { })
+    // Fazer log em background para não atrasar resposta (await necessário na Vercel para não matar processo)
+    await logGeneration(userId, ip, serviceId, service.name).catch(() => { })
     completeGeneration(userId)
 
-    // 🏆 Incrementar ranking semanal em background (não crítico)
-    prisma.user.update({
+    // 🏆 Incrementar ranking semanal 
+    // Bugfix: No MongoDB com Prisma, "increment" falha silenciosamente se o campo não existir fisicamente no documento antigo.
+    // Solução: Pegar o valor atual (ou 0) e fazer um $set direto.
+    const currentCount = user.weeklyGenerations || 0
+    await prisma.user.update({
       where: { id: userId },
-      data: { weeklyGenerations: { increment: 1 } }
-    }).catch(() => { })
+      data: { weeklyGenerations: currentCount + 1 }
+    }).catch((e) => {
+      console.error('Erro ao somar weeklyGenerations:', e)
+    })
 
     // ===========================================
     // 📤 RETORNAR RESPOSTA
