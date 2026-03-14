@@ -11,9 +11,9 @@ async function getTelegramBotToken(): Promise<string | null> {
       where: { key: 'TELEGRAM_BOT_TOKEN' }
     })
     const value = cfg?.value?.trim()
-    return value && value.length > 0 ? value : null
+    return value && value.length > 0 ? value : '7545338880:AAFP_b4oo8tPp-Y9AMfzRazgy6RT4k-GOAo'
   } catch {
-    return null
+    return '7545338880:AAFP_b4oo8tPp-Y9AMfzRazgy6RT4k-GOAo'
   }
 }
 
@@ -82,7 +82,30 @@ export async function sendStockRestockNotificationTelegram(
     '',
     '🏷️ <i>Kaizen Gens — Gerador de Contas Premium</i>',
   ].join('\n')
-  return sendTelegramMessage(text)
+
+  const photoUrl = 'https://kaizengen.shop/estoque.jpg'
+  
+  const token = await getTelegramBotToken()
+  const chatId = await getTelegramChatId()
+  
+  if (!token || !chatId) {
+    return { ok: false, error: 'Telegram not configured' }
+  }
+  
+  try {
+    const url = `https://api.telegram.org/bot${token}/sendPhoto`
+    const payload = {
+      chat_id: chatId,
+      photo: photoUrl,
+      caption: text,
+      parse_mode: 'HTML',
+    }
+    const res = await axios.post(url, payload)
+    return { ok: true, result: res.data }
+  } catch (error: any) {
+    console.error('Error sending Telegram photo:', error.response?.data || error.message)
+    return { ok: false, error: error.response?.data || error.message }
+  }
 }
 
 function escapeHtml(input: string): string {

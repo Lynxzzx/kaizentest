@@ -99,7 +99,7 @@ export async function sendStockRestockNotification(
           url: 'https://em-content.zobj.net/source/twitter/376/package_1f4e6.png',
         },
         image: {
-          url: 'https://i.imgur.com/rXNWbNf.png',
+          url: 'https://kaizengen.shop/estoque.jpg',
         },
         footer: {
           text: '🏷️ Kaizen Gens — Gerador de Contas Premium  •  kaizengen.shop',
