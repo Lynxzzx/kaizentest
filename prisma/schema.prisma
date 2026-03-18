@@ -79,12 +79,6 @@ model User {
   eventsCreated Event[] @relation("EventCreator")
   eventParticipations EventParticipation[]
 
-  // 🏆 RANKING SEMANAL
-  weeklyGenerations   Int       @default(0)  // Gerações na semana atual (reseta todo domingo)
-  weeklyRankPosition  Int?                   // Posição no último ranking (1, 2 ou 3)
-  cooldownHalved      Boolean   @default(false) // Se o cooldown está pela metade (prêmio top3)
-  cooldownHalvedUntil DateTime?               // Até quando o cooldown está reduzido
-  rankBadge           String?                 // "gold", "silver", "bronze" ou null
 }
 
 enum UserRole {
@@ -635,13 +629,4 @@ model EventParticipation {
   createdAt   DateTime @default(now())
 
   @@unique([eventId, userId])
-}
-
-// 🏆 Snapshot histórico do ranking semanal
-model WeeklyRankingSnapshot {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  weekStart DateTime // Domingo que iniciou a semana
-  weekEnd   DateTime // Sábado que encerrou
-  rankings  String   // JSON: [{userId, username, count, position, badge}]
-  createdAt DateTime @default(now())
 }

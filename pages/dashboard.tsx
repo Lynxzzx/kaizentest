@@ -9,7 +9,6 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
-import WeeklyRanking from '@/components/WeeklyRanking'
 
 interface ServicePlanRule {
   planId: string
@@ -511,11 +510,6 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* 🏆 Weekly Ranking */}
-          <div className="mb-8 sm:mb-12">
-            <WeeklyRanking />
           </div>
 
           {/* Mobile-Optimized Main Generator Section */}

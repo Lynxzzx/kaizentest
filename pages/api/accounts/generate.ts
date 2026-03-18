@@ -315,34 +315,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await logGeneration(userId, ip, serviceId, service.name).catch(() => { })
     completeGeneration(userId)
 
-    // 🏆 Incrementar ranking semanal 
-    // Bugfix: No MongoDB com Prisma, "increment" falha silenciosamente se o campo não existir fisicamente no documento antigo.
-    // Solução: Pegar o valor atual (ou 0) e fazer um $set direto.
-    const currentCount = user.weeklyGenerations || 0
-    await prisma.user.update({
-      where: { id: userId },
-      data: { weeklyGenerations: currentCount + 1 }
-    }).catch((e) => {
-      console.error('Erro ao somar weeklyGenerations:', e)
-    })
-
     // ===========================================
     // 📤 RETORNAR RESPOSTA
     // ===========================================
 
     // Usar cooldown do plano se disponível, senão usar o padrão
-    const basePlanCooldown = user.plan?.generationCooldownSeconds || GENERATION_PROTECTION.COOLDOWN_SECONDS
-
-    // 🏆 Verificar se usuário ganhou cooldown reduzido (prêmio top 3 ranking semanal)
-    const now = new Date()
-    const hasHalvedCooldown = user.cooldownHalved &&
-      user.cooldownHalvedUntil &&
-      user.cooldownHalvedUntil > now
-
-    const planCooldown = hasHalvedCooldown
-      ? Math.max(30, Math.ceil(basePlanCooldown / 2)) // mínimo 30s mesmo com redução
-      : basePlanCooldown
-    const nextCooldown = planCooldown
+    const nextCooldown = user.plan?.generationCooldownSeconds || GENERATION_PROTECTION.COOLDOWN_SECONDS
 
     return res.json({
       id: generatedAccount.id,
