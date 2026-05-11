@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import Layout from '@/components/Layout'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
@@ -12,12 +11,7 @@ interface Stats {
   totalAffiliateEarnings: number
   commissionRate: number
   recentCommissions: Array<{
-    id: string
-    amount: number
-    paymentAmount: number
-    buyerUsername: string
-    planName: string
-    createdAt: string
+    id: string; amount: number; paymentAmount: number; buyerUsername: string; planName: string; createdAt: string
   }>
 }
 
@@ -27,118 +21,93 @@ export default function CoOwnerPanel() {
   const [stats, setStats] = useState<Stats | null>(null)
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-      return
-    }
+    if (status === 'unauthenticated') { router.push('/login'); return }
     if (status === 'authenticated') {
-      const rawRole = String(session?.user?.role || '').toUpperCase()
-      const isCoOwner = rawRole === 'CO_OWNER' || rawRole === 'CO-OWNER' || rawRole === 'CO OWNER'
-      if (!isCoOwner) {
-        router.push('/dashboard')
-        return
-      }
+      const role = String(session?.user?.role || '').toUpperCase()
+      const isCo = role === 'CO_OWNER' || role === 'CO-OWNER' || role === 'CO OWNER'
+      if (!isCo) { router.push('/dashboard'); return }
       loadStats()
     }
   }, [session, status])
 
   const loadStats = async () => {
-    try {
-      const res = await axios.get('/api/affiliate/stats')
-      setStats(res.data)
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Erro ao carregar estatísticas')
-    }
+    try { const r = await axios.get('/api/affiliate/stats'); setStats(r.data) }
+    catch (e: any) { toast.error(e.response?.data?.error || 'Erro') }
   }
 
   const generateCode = async () => {
     try {
-      const res = await axios.post('/api/affiliate/generate-code')
-      toast.success('Código gerado!')
-      setStats(prev => prev ? { ...prev, affiliateCode: res.data.code } : prev)
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || 'Erro ao gerar código')
-    }
+      const r = await axios.post('/api/affiliate/generate-code')
+      toast.success('Código gerado!'); setStats(prev => prev ? { ...prev, affiliateCode: r.data.code } : prev)
+    } catch (e: any) { toast.error(e.response?.data?.error || 'Erro') }
   }
 
-  const getLink = (code: string | null) => {
-    if (!code || typeof window === 'undefined') return ''
-    return `${window.location.origin}/register?ref=${code}`
-  }
-
-  const copy = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast.success('Copiado!')
-  }
+  const getLink = (code: string | null) => code && typeof window !== 'undefined' ? `${window.location.origin}/register?ref=${code}` : ''
+  const copy = (text: string) => { navigator.clipboard.writeText(text); toast.success('Copiado!') }
 
   return (
-    <Layout>
-      <div className="min-h-screen pt-12 pb-16 px-4 sm:px-6">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-extrabold text-white mb-6">Painel do Co-Owner</h1>
+    <div className="relative">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-0 top-0 h-[450px] w-[450px] rounded-full bg-aurora-gold/10 blur-[140px]" />
+      </div>
 
-          <div className="glass-panel p-6 rounded-2xl border border-white/10 mb-8">
-            <h2 className="text-xl font-bold text-white mb-4">Seu link</h2>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white font-mono text-sm truncate">
-                {stats?.affiliateCode ? getLink(stats?.affiliateCode || null) : 'Nenhum código ainda'}
-              </div>
-              {stats?.affiliateCode ? (
-                <button
-                  onClick={() => copy(getLink(stats.affiliateCode))}
-                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold"
-                >
-                  Copiar
-                </button>
-              ) : (
-                <button
-                  onClick={generateCode}
-                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold"
-                >
-                  Gerar Código
-                </button>
-              )}
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="mb-10 animate-fade-up">
+          <p className="eyebrow">Painel exclusivo</p>
+          <h1 className="mt-2 text-display text-4xl sm:text-5xl font-bold text-gradient-gold">Co-Owner</h1>
+          <p className="mt-3 text-sm text-white/55">Comissões maiores, ferramentas exclusivas.</p>
+        </div>
+
+        <div className="surface-card-elevated p-7 mb-6 animate-fade-up delay-100">
+          <h2 className="text-display text-xl font-bold text-white mb-4">Seu link</h2>
+          <div className="flex items-center gap-2">
+            <input
+              readOnly
+              value={stats?.affiliateCode ? getLink(stats?.affiliateCode || null) : 'Nenhum código ainda'}
+              className="input-premium text-mono text-[13px] truncate"
+            />
+            {stats?.affiliateCode ? (
+              <button onClick={() => copy(getLink(stats.affiliateCode))} className="btn btn-primary btn-sm shrink-0">Copiar</button>
+            ) : (
+              <button onClick={generateCode} className="btn btn-primary btn-sm shrink-0">Gerar</button>
+            )}
+          </div>
+        </div>
+
+        {stats && (
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-px overflow-hidden rounded-3xl bg-white/[0.06] ring-1 ring-white/10 animate-fade-up delay-200">
+            <div className="bg-[#0c0c15]/95 p-6">
+              <p className="eyebrow">Saldo disponível</p>
+              <p className="num-display mt-2 text-3xl text-aurora-mint">R$ {stats.affiliateBalance.toFixed(2)}</p>
+            </div>
+            <div className="bg-[#0c0c15]/95 p-6">
+              <p className="eyebrow">Total ganho</p>
+              <p className="num-display mt-2 text-3xl text-gradient">R$ {stats.totalAffiliateEarnings.toFixed(2)}</p>
+            </div>
+            <div className="bg-[#0c0c15]/95 p-6">
+              <p className="eyebrow">Comissão</p>
+              <p className="num-display mt-2 text-3xl text-gradient-gold">{stats.commissionRate}%</p>
             </div>
           </div>
+        )}
 
-          {stats && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-                <div className="text-4xl mb-2">💵</div>
-                <p className="text-3xl font-bold text-green-400">R$ {stats.affiliateBalance.toFixed(2)}</p>
-                <p className="text-gray-400">Saldo disponível</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-                <div className="text-4xl mb-2">📈</div>
-                <p className="text-3xl font-bold text-white">R$ {stats.totalAffiliateEarnings.toFixed(2)}</p>
-                <p className="text-gray-400">Total ganho</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
-                <div className="text-4xl mb-2">🏷️</div>
-                <p className="text-3xl font-bold text-white">{stats.commissionRate}%</p>
-                <p className="text-gray-400">Comissão por venda</p>
-              </div>
-            </div>
-          )}
-
-          {stats && stats.recentCommissions && stats.recentCommissions.length > 0 && (
-            <div className="glass-panel p-6 rounded-2xl border border-white/10">
-              <h2 className="text-xl font-bold text-white mb-4">Vendas pelo seu link</h2>
-              <div className="space-y-3">
-                {stats.recentCommissions.map((c) => (
-                  <div key={c.id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg p-4">
-                    <div className="text-white">
-                      <p className="font-semibold">{c.buyerUsername} comprou {c.planName}</p>
-                      <p className="text-xs text-gray-400">Valor do plano: R$ {c.paymentAmount.toFixed(2)}</p>
-                    </div>
-                    <div className="text-green-400 font-bold">+ R$ {c.amount.toFixed(2)}</div>
+        {stats && stats.recentCommissions && stats.recentCommissions.length > 0 && (
+          <div className="surface-card p-7 animate-fade-up delay-300">
+            <h2 className="text-display text-xl font-bold text-white mb-4">Vendas pelo seu link</h2>
+            <div className="space-y-2">
+              {stats.recentCommissions.map((c) => (
+                <div key={c.id} className="flex items-center justify-between gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+                  <div>
+                    <p className="text-sm font-semibold text-white">{c.buyerUsername} · {c.planName}</p>
+                    <p className="text-[11px] text-white/40">R$ {c.paymentAmount.toFixed(2)}</p>
                   </div>
-                ))}
-              </div>
+                  <p className="num-display text-lg text-aurora-mint">+R$ {c.amount.toFixed(2)}</p>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-    </Layout>
+    </div>
   )
 }

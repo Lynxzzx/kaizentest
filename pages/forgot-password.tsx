@@ -3,195 +3,120 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { useTranslation } from '@/lib/i18n-helper'
-import { useTheme } from '@/contexts/ThemeContext'
-import { getThemeClasses } from '@/lib/theme-utils'
 
 export default function ForgotPassword() {
-  const { t } = useTranslation()
-  const { theme } = useTheme()
-  const themeClasses = getThemeClasses(theme)
+  useTranslation()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
-  const [successMessage, setSuccessMessage] = useState('')
   const [codeSent, setCodeSent] = useState(false)
   const [resetCode, setResetCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [resettingPassword, setResettingPassword] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!email) {
-      toast.error('Informe seu email cadastrado')
-      return
-    }
-
+    if (!email) { toast.error('Informe seu email cadastrado'); return }
     setLoading(true)
-    setSuccessMessage('')
-
     try {
       const response = await axios.post('/api/auth/forgot-password', { email })
       setCodeSent(true)
-      setSuccessMessage('Código enviado! Verifique seu email.')
       toast.success('Código enviado para seu email!')
-      
-      // Mostrar código de debug se disponível
-      if (response.data.debugCode) {
-        toast.success(`Código de redefinição: ${response.data.debugCode}`)
-      }
+      if (response.data.debugCode) toast.success(`Código de redefinição: ${response.data.debugCode}`)
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao solicitar redefinição')
-    } finally {
-      setLoading(false)
-    }
+    } finally { setLoading(false) }
   }
 
-  const handleResetPassword = async (event: React.FormEvent) => {
+  const handleReset = async (event: React.FormEvent) => {
     event.preventDefault()
-    
-    if (!resetCode || !newPassword || !confirmPassword) {
-      toast.error('Preencha todos os campos')
-      return
-    }
+    if (!resetCode || !newPassword || !confirmPassword) { toast.error('Preencha todos os campos'); return }
+    if (newPassword !== confirmPassword) { toast.error('As senhas não coincidem'); return }
+    if (newPassword.length < 6) { toast.error('A senha deve ter no mínimo 6 caracteres'); return }
 
-    if (newPassword !== confirmPassword) {
-      toast.error('As senhas não coincidem')
-      return
-    }
-
-    if (newPassword.length < 6) {
-      toast.error('A senha deve ter pelo menos 6 caracteres')
-      return
-    }
-
-    setResettingPassword(true)
+    setResetting(true)
     try {
-      await axios.post('/api/auth/reset-password', {
-        email: email,
-        code: resetCode,
-        newPassword: newPassword
-      })
+      await axios.post('/api/auth/reset-password', { email, code: resetCode, newPassword })
       toast.success('Senha redefinida com sucesso!')
-      setTimeout(() => {
-        window.location.href = '/login'
-      }, 2000)
+      setTimeout(() => { window.location.href = '/login' }, 1800)
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao redefinir senha')
-    } finally {
-      setResettingPassword(false)
-    }
+    } finally { setResetting(false) }
   }
 
   return (
-    <div className={`min-h-screen flex items-center justify-center ${themeClasses.bg} py-12 px-4 sm:px-6 lg:px-8`}>
-      <div className="max-w-md w-full">
-        <div className={`${themeClasses.card} rounded-2xl shadow-2xl p-8`}>
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl mb-4">
-              <span className="text-white font-bold text-2xl">K</span>
-            </div>
-            <h1 className={`text-3xl font-bold mb-2 ${themeClasses.text.primary}`}>Recuperar conta</h1>
-            <p className={themeClasses.text.secondary}>
-              Informe o email cadastrado. Enviaremos um link seguro para redefinir sua senha.
-            </p>
-          </div>
+    <div className="relative flex min-h-[calc(100vh-64px)] items-center justify-center px-4 py-12">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/2 top-1/3 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-aurora-cyan/15 blur-[120px]" />
+        <div className="absolute inset-0 bg-grid-fine opacity-40" />
+      </div>
+
+      <div className="w-full max-w-md animate-fade-up">
+        <div className="mb-6 text-center">
+          <p className="eyebrow">Recuperação de conta</p>
+          <h1 className="mt-2 text-display text-4xl sm:text-5xl font-bold text-gradient">
+            {codeSent ? 'Definir nova senha' : 'Esqueceu a senha?'}
+          </h1>
+          <p className="mt-3 text-sm text-white/55">
+            {codeSent ? 'Digite o código que enviamos e crie uma nova senha forte.' : 'Informe o email cadastrado e enviaremos um código para redefinir sua senha.'}
+          </p>
+        </div>
+
+        <div className="surface-card-elevated p-7 sm:p-8">
           {!codeSent ? (
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>Email cadastrado</label>
+                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">Email cadastrado</label>
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
-                  placeholder="seuemail@exemplo.com"
-                  required
+                  type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="input-premium" placeholder="seuemail@exemplo.com" required autoFocus
                 />
               </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
+              <button type="submit" disabled={loading} className="btn btn-primary btn-lg w-full">
                 {loading ? 'Enviando...' : 'Enviar código de redefinição'}
               </button>
             </form>
           ) : (
-            <form className="space-y-6" onSubmit={handleResetPassword}>
+            <form onSubmit={handleReset} className="space-y-4">
               <div>
-                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>Código de 6 dígitos</label>
+                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">Código de 6 dígitos</label>
                 <input
-                  type="text"
-                  value={resetCode}
+                  type="text" value={resetCode}
                   onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
-                  placeholder="123456"
-                  maxLength={6}
-                  required
+                  className="input-premium text-mono text-center text-lg tracking-[0.5em]"
+                  placeholder="000000" maxLength={6} required autoFocus
                 />
               </div>
-              
               <div>
-                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>Nova senha</label>
+                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">Nova senha</label>
                 <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
-                  placeholder="Mínimo 6 caracteres"
-                  minLength={6}
-                  required
+                  type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                  className="input-premium" placeholder="Mínimo 6 caracteres" minLength={6} required
                 />
               </div>
-              
               <div>
-                <label className={`block text-sm font-semibold mb-2 ${themeClasses.text.primary}`}>Confirmar nova senha</label>
+                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">Confirmar nova senha</label>
                 <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className={`${themeClasses.input} w-full px-4 py-3 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all outline-none`}
-                  placeholder="Repita a nova senha"
-                  minLength={6}
-                  required
+                  type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="input-premium" placeholder="Repita a nova senha" minLength={6} required
                 />
               </div>
-              
-              <button
-                type="submit"
-                disabled={resettingPassword}
-                className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-3 rounded-lg font-bold hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              >
-                {resettingPassword ? 'Redefinindo...' : 'Redefinir senha'}
+              <button type="submit" disabled={resetting} className="btn btn-primary btn-lg w-full">
+                {resetting ? 'Redefinindo...' : 'Redefinir senha'}
               </button>
-              
-              <button
-                type="button"
-                onClick={() => setCodeSent(false)}
-                className="w-full text-gray-600 hover:text-gray-800 text-sm py-2"
-              >
-                Voltar para enviar código
+              <button type="button" onClick={() => setCodeSent(false)} className="w-full pt-1 text-xs text-white/45 hover:text-white/70 transition-colors">
+                Enviar código para outro email
               </button>
             </form>
           )}
-          {successMessage && (
-            <div className="mt-4 text-sm text-green-500 text-center">
-              {successMessage}
-            </div>
-          )}
-          <div className="mt-6 text-center space-y-2">
-            <Link href="/login" className="text-sm text-primary-600 hover:text-primary-700 hover:underline">
-              Voltar para login
-            </Link>
-            <div>
-              <Link href="/" className={`text-sm ${themeClasses.text.secondary} hover:${themeClasses.text.primary} hover:underline`}>
-                Voltar para a página inicial
-              </Link>
-            </div>
-          </div>
+        </div>
+
+        <div className="mt-6 flex items-center justify-center gap-4 text-sm text-white/55">
+          <Link href="/login" className="hover:text-white transition-colors">Voltar ao login</Link>
+          <span className="text-white/20">·</span>
+          <Link href="/" className="hover:text-white transition-colors">Página inicial</Link>
         </div>
       </div>
     </div>
   )
 }
-

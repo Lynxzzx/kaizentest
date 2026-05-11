@@ -1,227 +1,136 @@
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
 export default function Settings() {
-  const { t } = useTranslation()
   const { data: session, status } = useSession()
   const router = useRouter()
   const { theme, setTheme, isLoading } = useTheme()
   const [saving, setSaving] = useState(false)
   const [passwordLoading, setPasswordLoading] = useState(false)
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  })
+  const [passwordData, setPasswordData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
 
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login')
-    }
-  }, [status, router])
+  useEffect(() => { if (status === 'unauthenticated') router.push('/login') }, [status, router])
 
   const handleThemeChange = async (newTheme: 'dark' | 'light' | 'default') => {
     setSaving(true)
-    try {
-      setTheme(newTheme)
-      toast.success('Tema atualizado com sucesso!')
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erro ao atualizar tema')
-    } finally {
-      setSaving(false)
-    }
+    try { setTheme(newTheme); toast.success('Tema atualizado!') }
+    catch (error: any) { toast.error(error.response?.data?.error || 'Erro ao atualizar') }
+    finally { setSaving(false) }
   }
 
   const handlePasswordChange = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (passwordData.newPassword.length < 6) {
-      toast.error('A nova senha deve ter pelo menos 6 caracteres')
-      return
-    }
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      toast.error('As senhas não conferem')
-      return
-    }
-
+    if (passwordData.newPassword.length < 6) { toast.error('Mínimo 6 caracteres'); return }
+    if (passwordData.newPassword !== passwordData.confirmPassword) { toast.error('Senhas não conferem'); return }
     setPasswordLoading(true)
     try {
-      await axios.put('/api/users/password', {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
-      })
-      toast.success('Senha alterada com sucesso!')
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      })
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erro ao alterar senha')
-    } finally {
-      setPasswordLoading(false)
-    }
+      await axios.put('/api/users/password', { currentPassword: passwordData.currentPassword, newPassword: passwordData.newPassword })
+      toast.success('Senha alterada!')
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } catch (error: any) { toast.error(error.response?.data?.error || 'Erro ao alterar senha') }
+    finally { setPasswordLoading(false) }
   }
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500"></div>
-          <p className="mt-4 text-white">Carregando...</p>
-        </div>
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center text-white/55">
+        <svg className="h-5 w-5 animate-spin mr-2" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4"/></svg>
+        Carregando...
       </div>
     )
   }
-
   if (!session) return null
 
+  const themes: Array<{ id: 'dark' | 'light' | 'default'; label: string; desc: string; preview: string }> = [
+    { id: 'dark',    label: 'Aurora', desc: 'Dark moderno com mesh gradient', preview: 'bg-gradient-to-br from-aurora-violet via-aurora-magenta to-aurora-cyan' },
+    { id: 'light',   label: 'Light',   desc: 'Claro e limpo',                  preview: 'bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100' },
+    { id: 'default', label: 'System',  desc: 'Padrão do sistema',              preview: 'bg-gradient-to-br from-slate-200 via-slate-300 to-slate-400' }
+  ]
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4">
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400">
-              Configurações
-            </span>
-          </h1>
-          <p className="text-gray-300 text-lg">Personalize sua experiência</p>
+    <div className="relative">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute right-0 top-1/4 h-[450px] w-[450px] rounded-full bg-aurora-violet/10 blur-[140px]" />
+      </div>
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="mb-10 animate-fade-up">
+          <p className="eyebrow">Configurações</p>
+          <h1 className="mt-2 text-display text-4xl sm:text-5xl font-bold text-gradient">Preferências</h1>
+          <p className="mt-2 text-sm text-white/55">Personalize sua experiência no Kaizen.</p>
         </div>
 
-        {/* Theme Selection */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 sm:p-8 border border-white/20 shadow-2xl mb-6">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-            <span>🎨</span>
-            <span>Aparência</span>
-          </h2>
-          
-          <div className="space-y-4">
-            <p className="text-gray-300 mb-6">Escolha o tema que melhor se adapta ao seu estilo:</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Dark Theme */}
+        {/* Theme */}
+        <div className="surface-card-elevated p-7 mb-6 animate-fade-up delay-100">
+          <h2 className="text-display text-xl font-bold text-white mb-1">Aparência</h2>
+          <p className="text-sm text-white/55 mb-5">Escolha o tema que melhor se adapta ao seu estilo.</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {themes.map((th) => (
               <button
-                onClick={() => handleThemeChange('dark')}
-                disabled={saving || theme === 'dark'}
-                className={`relative p-6 rounded-xl border-2 transition-all ${
-                  theme === 'dark'
-                    ? 'border-purple-500 bg-purple-500/20 shadow-lg shadow-purple-500/50'
-                    : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
+                key={th.id}
+                onClick={() => handleThemeChange(th.id)}
+                disabled={saving || theme === th.id}
+                className={`group text-left rounded-2xl border p-4 transition-all ${
+                  theme === th.id
+                    ? 'border-aurora-violet/55 bg-aurora-violet/10 shadow-glow-violet'
+                    : 'border-white/[0.08] bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]'
                 }`}
               >
-                <div className="absolute top-2 right-2">
-                  {theme === 'dark' && <span className="text-2xl">✓</span>}
+                <div className={`mb-3 h-20 w-full rounded-xl ${th.preview} ring-1 ring-white/10`} />
+                <div className="flex items-center justify-between">
+                  <p className="text-display text-base font-bold text-white">{th.label}</p>
+                  {theme === th.id && (
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-aurora-violet/30 text-aurora-violet">
+                      <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 13l4 4L19 7"/></svg>
+                    </span>
+                  )}
                 </div>
-                <div className="mb-4">
-                  <div className="w-full h-20 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 rounded-lg border border-white/20"></div>
-                </div>
-                <h3 className="font-bold text-lg mb-2">Dark</h3>
-                <p className="text-sm text-gray-300">Tema escuro moderno e tecnológico</p>
+                <p className="text-[12px] text-white/55 mt-1">{th.desc}</p>
               </button>
-
-              {/* Light Theme */}
-              <button
-                onClick={() => handleThemeChange('light')}
-                disabled={saving || theme === 'light'}
-                className={`relative p-6 rounded-xl border-2 transition-all ${
-                  theme === 'light'
-                    ? 'border-purple-500 bg-purple-500/20 shadow-lg shadow-purple-500/50'
-                    : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
-                }`}
-              >
-                <div className="absolute top-2 right-2">
-                  {theme === 'light' && <span className="text-2xl">✓</span>}
-                </div>
-                <div className="mb-4">
-                  <div className="w-full h-20 bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100 rounded-lg border border-gray-200"></div>
-                </div>
-                <h3 className="font-bold text-lg mb-2">Light</h3>
-                <p className="text-sm text-gray-300">Tema claro e limpo</p>
-              </button>
-
-              {/* Default Theme */}
-              <button
-                onClick={() => handleThemeChange('default')}
-                disabled={saving || theme === 'default'}
-                className={`relative p-6 rounded-xl border-2 transition-all ${
-                  theme === 'default'
-                    ? 'border-purple-500 bg-purple-500/20 shadow-lg shadow-purple-500/50'
-                    : 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10'
-                }`}
-              >
-                <div className="absolute top-2 right-2">
-                  {theme === 'default' && <span className="text-2xl">✓</span>}
-                </div>
-                <div className="mb-4">
-                  <div className="w-full h-20 bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 rounded-lg border border-gray-200"></div>
-                </div>
-                <h3 className="font-bold text-lg mb-2">Padrão</h3>
-                <p className="text-sm text-gray-300">Tema padrão do sistema</p>
-              </button>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Password */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 sm:p-8 border border-white/20 shadow-2xl mb-6">
-          <h2 className="text-2xl font-bold mb-6 flex items-center gap-3">
-            <span>🔒</span>
-            <span>Segurança</span>
-          </h2>
-          <p className="text-gray-300 mb-6">Atualize sua senha regularmente para manter a conta protegida.</p>
-          <form className="space-y-4" onSubmit={handlePasswordChange}>
+        {/* Security */}
+        <div className="surface-card p-7 mb-6 animate-fade-up delay-200">
+          <h2 className="text-display text-xl font-bold text-white mb-1">Segurança</h2>
+          <p className="text-sm text-white/55 mb-5">Atualize sua senha regularmente.</p>
+          <form onSubmit={handlePasswordChange} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">Senha atual</label>
-              <input
-                type="password"
-                value={passwordData.currentPassword}
+              <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">Senha atual</label>
+              <input type="password" value={passwordData.currentPassword}
                 onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/20 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                required
-              />
+                className="input-premium" required />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">Nova senha</label>
-              <input
-                type="password"
-                value={passwordData.newPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/20 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">Nova senha</label>
+                <input type="password" value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                  className="input-premium" required />
+              </div>
+              <div>
+                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">Confirmar</label>
+                <input type="password" value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  className="input-premium" required />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">Confirmar nova senha</label>
-              <input
-                type="password"
-                value={passwordData.confirmPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/20 text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={passwordLoading}
-              className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-blue-500 py-3 rounded-lg font-bold hover:from-purple-600 hover:via-pink-600 hover:to-blue-600 transition disabled:opacity-60"
-            >
+            <button type="submit" disabled={passwordLoading} className="btn btn-primary w-full">
               {passwordLoading ? 'Salvando...' : 'Atualizar senha'}
             </button>
           </form>
         </div>
 
-        {/* Info */}
-        <div className="bg-blue-500/20 backdrop-blur-lg rounded-xl p-4 border border-blue-400/30">
-          <p className="text-sm text-blue-200">
-            <strong>💡 Dica:</strong> Sua preferência de tema é salva automaticamente e será aplicada em todas as páginas do site.
+        <div className="rounded-2xl border border-aurora-cyan/30 bg-aurora-cyan/8 p-4 animate-fade-up delay-300">
+          <p className="text-sm text-aurora-cyan">
+            <span className="font-semibold">💡 Dica:</span> Sua preferência é salva automaticamente e aplicada em todas as páginas.
           </p>
         </div>
       </div>
     </div>
   )
 }
-

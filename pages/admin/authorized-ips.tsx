@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import Layout from '@/components/Layout'
 import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getThemeClasses } from '@/lib/theme-utils'
@@ -127,14 +126,10 @@ export default function AuthorizedIpsAdmin() {
 
   if (status === 'loading' || loading) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-            <p className="mt-4 text-gray-600">Carregando...</p>
-          </div>
-        </div>
-      </Layout>
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center text-white/55">
+        <svg className="h-5 w-5 animate-spin mr-2" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4"/></svg>
+        Carregando...
+      </div>
     )
   }
 
@@ -143,14 +138,12 @@ export default function AuthorizedIpsAdmin() {
   }
 
   return (
-    <Layout>
-      <div className={`admin-shell relative min-h-screen overflow-hidden ${themeClasses.bg}`}>
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-[-20%] right-[-5%] w-[520px] h-[520px] bg-gradient-to-br from-indigo-500/25 via-fuchsia-500/15 to-cyan-400/20 blur-[200px]" />
-          <div className="absolute bottom-[-25%] left-[-10%] w-[540px] h-[540px] bg-gradient-to-br from-sky-400/20 via-transparent to-emerald-400/15 blur-[220px]" />
-        </div>
+    <div className="relative">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/4 top-0 h-[500px] w-[500px] rounded-full bg-aurora-violet/10 blur-[140px]" />
+      </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
           {/* Header */}
           <div className={`${themeClasses.card} neon-shadow mb-8`}>
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/15 via-transparent to-cyan-400/10" />
@@ -273,7 +266,6 @@ export default function AuthorizedIpsAdmin() {
           </div>
         </div>
       </div>
-    </Layout>
   )
 }
 

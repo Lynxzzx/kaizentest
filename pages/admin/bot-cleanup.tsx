@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import Layout from '@/components/Layout'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getThemeClasses } from '@/lib/theme-utils'
 import axios from 'axios'
@@ -203,17 +202,15 @@ export default function BotCleanup() {
 
   if (status === 'loading' || loading) {
     return (
-      <Layout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
-        </div>
-      </Layout>
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center text-white/55">
+        <svg className="h-5 w-5 animate-spin mr-2" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4"/></svg>
+        Carregando...
+      </div>
     )
   }
 
   return (
-    <Layout>
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="mx-auto max-w-7xl px-4 py-10 sm:py-14">
         <div className="mb-8">
           <h1 className={`text-3xl font-bold ${themeClasses.text.primary}`}>
             🤖 Limpeza de Contas de Bots
@@ -578,7 +575,6 @@ export default function BotCleanup() {
           </div>
         )}
       </div>
-    </Layout>
   )
 }
 

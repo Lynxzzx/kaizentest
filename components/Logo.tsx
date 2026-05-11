@@ -1,49 +1,55 @@
-import Image from 'next/image'
 import Link from 'next/link'
-import { useState } from 'react'
 
 interface LogoProps {
   className?: string
   showText?: boolean
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
+}
+
+const SIZES = {
+  sm: { mark: 'h-7 w-7', text: 'text-base' },
+  md: { mark: 'h-9 w-9', text: 'text-xl' },
+  lg: { mark: 'h-12 w-12', text: 'text-2xl' },
+  xl: { mark: 'h-16 w-16', text: 'text-4xl' }
 }
 
 export default function Logo({ className = '', showText = true, size = 'md' }: LogoProps) {
-  const [imageError, setImageError] = useState(false)
-  
-  const sizeClasses = {
-    sm: { image: 'h-6 w-auto', text: 'text-lg', dimensions: { width: 120, height: 40 }, icon: 'w-6 h-6' },
-    md: { image: 'h-8 md:h-10 w-auto', text: 'text-lg md:text-2xl', dimensions: { width: 160, height: 50 }, icon: 'w-8 h-8 md:w-10 md:h-10' },
-    lg: { image: 'h-12 md:h-16 w-auto', text: 'text-2xl md:text-4xl', dimensions: { width: 200, height: 65 }, icon: 'w-12 h-12 md:w-16 md:h-16' }
-  }
-
-  const currentSize = sizeClasses[size]
-
+  const s = SIZES[size]
   return (
-    <Link href="/" className={`flex items-center space-x-2 md:space-x-3 group ${className}`}>
-      <div className="relative flex items-center">
-        {!imageError ? (
-          <Image
-            src="/logo.png"
-            alt="Kaizen Logo"
-            width={currentSize.dimensions.width}
-            height={currentSize.dimensions.height}
-            className={`${currentSize.image} object-contain filter group-hover:opacity-90 transition-opacity`}
-            priority
-            onError={() => setImageError(true)}
+    <Link href="/" className={`group inline-flex items-center gap-2.5 ${className}`}>
+      <span className={`relative inline-flex ${s.mark} rounded-xl overflow-hidden`}>
+        <svg viewBox="0 0 40 40" className="h-full w-full" aria-hidden>
+          <defs>
+            <linearGradient id="k-grad-a" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#a78bfa" />
+              <stop offset="50%" stopColor="#e879f9" />
+              <stop offset="100%" stopColor="#22d3ee" />
+            </linearGradient>
+            <linearGradient id="k-grad-b" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#fff" stopOpacity="0.9" />
+              <stop offset="100%" stopColor="#fff" stopOpacity="0.5" />
+            </linearGradient>
+            <radialGradient id="k-grad-c" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#fff" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#fff" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <rect x="0" y="0" width="40" height="40" rx="10" fill="url(#k-grad-a)" />
+          <rect x="0" y="0" width="40" height="40" rx="10" fill="url(#k-grad-c)" />
+          {/* Stylized K */}
+          <path
+            d="M12 9.5h3.5v9.4l7.6-9.4h4.3l-7.8 9.5 8.4 11.5h-4.6L17.2 22l-1.7 2v6.5H12V9.5z"
+            fill="url(#k-grad-b)"
           />
-        ) : (
-          <div className={`${currentSize.icon} bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg flex items-center justify-center transform group-hover:scale-110 transition-transform`}>
-            <span className="text-white font-bold text-sm md:text-base lg:text-lg">K</span>
-          </div>
-        )}
-      </div>
+          <circle cx="32" cy="9" r="2" fill="#fbbf24" />
+        </svg>
+        <span className="pointer-events-none absolute inset-0 rounded-xl ring-1 ring-inset ring-white/15" />
+      </span>
       {showText && (
-        <span className={`${currentSize.text} font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent hidden sm:block`}>
-          Kaizen
+        <span className={`text-display font-bold tracking-tight text-white ${s.text} group-hover:tracking-normal transition-all`}>
+          Kaizen<span className="text-gradient-aurora">.</span>
         </span>
       )}
     </Link>
   )
 }
-

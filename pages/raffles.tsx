@@ -1,199 +1,181 @@
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import { useTheme } from '@/contexts/ThemeContext'
-import { getThemeClasses } from '@/lib/theme-utils'
 import axios from 'axios'
 import toast from 'react-hot-toast'
-import { format, isPast, isFuture } from 'date-fns'
+import { format, isPast } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
 
-interface Plan {
-  id: string
-  name: string
-  description: string | null
-  price: number
-  duration: number
-}
-
+interface Plan { id: string; name: string; description: string | null; price: number; duration: number }
 interface Raffle {
-  id: string
-  title: string
-  description: string | null
-  prize: string
+  id: string; title: string; description: string | null; prize: string
   prizeType: 'PLAN' | 'GENERATIONS' | 'CUSTOM'
   prizePlanId: string | null
   prizePlan: Plan | null
   endDate: string
-  isActive: boolean
-  isFinished: boolean
+  isActive: boolean; isFinished: boolean
   winnerId: string | null
-  winner: {
-    id: string
-    username: string
-  } | null
-  _count: {
-    participants: number
-  }
+  winner: { id: string; username: string } | null
+  _count: { participants: number }
   createdAt: string
+}
+
+function timeLeft(endDate: Date): { d: number; h: number; m: number; s: number; expired: boolean } {
+  const diff = endDate.getTime() - Date.now()
+  if (diff <= 0) return { d: 0, h: 0, m: 0, s: 0, expired: true }
+  const d = Math.floor(diff / 86400000)
+  const h = Math.floor((diff % 86400000) / 3600000)
+  const m = Math.floor((diff % 3600000) / 60000)
+  const s = Math.floor((diff % 60000) / 1000)
+  return { d, h, m, s, expired: false }
 }
 
 export default function Raffles() {
   const { data: session } = useSession()
-  const { theme } = useTheme()
   const router = useRouter()
   const [raffles, setRaffles] = useState<Raffle[]>([])
   const [loading, setLoading] = useState(true)
   const [participating, setParticipating] = useState<string | null>(null)
-  const themeClasses = getThemeClasses(theme)
+  const [tick, setTick] = useState(0)
 
   useEffect(() => {
     loadRaffles()
-    const interval = setInterval(loadRaffles, 30000) // Atualizar a cada 30 segundos
-    return () => clearInterval(interval)
+    const i = setInterval(loadRaffles, 30000)
+    const t = setInterval(() => setTick(p => p + 1), 1000)
+    return () => { clearInterval(i); clearInterval(t) }
   }, [])
 
   const loadRaffles = async () => {
-    try {
-      const response = await axios.get('/api/raffles?active=true')
-      setRaffles(response.data)
-    } catch (error) {
-      toast.error('Erro ao carregar sorteios')
-    } finally {
-      setLoading(false)
-    }
+    try { const r = await axios.get('/api/raffles?active=true'); setRaffles(r.data) }
+    catch { toast.error('Erro ao carregar sorteios') }
+    finally { setLoading(false) }
   }
 
   const handleParticipate = async (raffleId: string) => {
-    if (!session) {
-      toast.error('Faça login para participar')
-      router.push('/login')
-      return
-    }
-
+    if (!session) { toast.error('Faça login para participar'); router.push('/login'); return }
     setParticipating(raffleId)
     try {
-      const response = await axios.post('/api/raffles/participate', { raffleId })
-      toast.success(response.data.message || 'Você entrou no sorteio!')
+      const r = await axios.post('/api/raffles/participate', { raffleId })
+      toast.success(r.data.message || 'Você entrou no sorteio!')
       loadRaffles()
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erro ao participar do sorteio')
-    } finally {
-      setParticipating(null)
-    }
-  }
-
-  const checkUserParticipated = async (raffleId: string): Promise<boolean> => {
-    if (!session) return false
-    try {
-      // Verificar se o usuário já participou (será verificado pela API)
-      return false // Será verificado no backend
-    } catch {
-      return false
-    }
+      toast.error(error.response?.data?.error || 'Erro ao participar')
+    } finally { setParticipating(null) }
   }
 
   if (loading) {
     return (
-      <div className={`min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
-        <div className="text-center">
-          <div className={`inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${theme === 'dark' ? 'border-purple-500' : 'border-primary-600'}`}></div>
-          <p className={`mt-4 ${themeClasses.text.secondary}`}>Carregando sorteios...</p>
-        </div>
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center text-white/55">
+        <svg className="h-5 w-5 animate-spin mr-2" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4"/></svg>
+        Carregando sorteios...
       </div>
     )
   }
 
   return (
-    <div className={`min-h-screen ${themeClasses.bg} py-12 px-4 sm:px-6 lg:px-8`}>
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8 text-center">
-          <h1 className={`text-4xl font-bold mb-2 ${themeClasses.text.primary}`}>🎲 Sorteios</h1>
-          <p className={themeClasses.text.secondary}>Participe dos sorteios e ganhe prêmios incríveis!</p>
+    <div className="relative">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/4 top-0 h-[500px] w-[500px] rounded-full bg-aurora-magenta/12 blur-[140px]" />
+        <div className="absolute right-1/4 top-1/2 h-[450px] w-[450px] rounded-full bg-aurora-violet/12 blur-[140px]" />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="mb-12 text-center animate-fade-up">
+          <p className="eyebrow">Sorteios ao vivo</p>
+          <h1 className="mt-2 text-display text-5xl sm:text-6xl font-bold">
+            <span className="text-gradient">Concorra a prêmios </span>
+            <span className="text-gradient-aurora">incríveis</span>
+          </h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base text-white/55">
+            Participe gratuitamente e tenha chance de levar planos premium, gerações ilimitadas e mais.
+          </p>
         </div>
 
         {raffles.length === 0 ? (
-          <div className={`${themeClasses.card} rounded-xl shadow-xl p-12 text-center`}>
-            <p className={`text-xl ${themeClasses.text.secondary}`}>Nenhum sorteio ativo no momento</p>
-            <p className={`mt-2 ${themeClasses.text.muted}`}>Volte em breve para participar de novos sorteios!</p>
+          <div className="surface-card-elevated mx-auto max-w-md p-10 text-center animate-fade-up">
+            <div className="text-5xl mb-3">🎲</div>
+            <p className="text-display text-2xl font-bold text-white">Nenhum sorteio ativo</p>
+            <p className="mt-2 text-sm text-white/55">Volte em breve para novos sorteios.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-fade-up delay-100">
             {raffles.map((raffle) => {
-              const endDate = new Date(raffle.endDate)
-              const isExpired = isPast(endDate)
+              const end = new Date(raffle.endDate)
+              const tl = timeLeft(end)
+              const isExpired = tl.expired
               const canParticipate = !isExpired && raffle.isActive && !raffle.isFinished
 
               return (
-                <div key={raffle.id} className={`${themeClasses.card} rounded-xl shadow-xl p-6 hover:shadow-2xl transition-shadow`}>
-                  <div className="mb-4">
-                    <h2 className={`text-2xl font-bold mb-2 ${themeClasses.text.primary}`}>{raffle.title}</h2>
-                    {raffle.description && (
-                      <p className={`${themeClasses.text.secondary} text-sm mb-4`}>{raffle.description}</p>
+                <div key={raffle.id} className="surface-card relative overflow-hidden p-7 transition-all hover:-translate-y-1">
+                  <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-aurora-magenta/15 blur-3xl" />
+                  <div className="relative">
+                    <h2 className="text-display text-2xl font-bold text-white">{raffle.title}</h2>
+                    {raffle.description && <p className="mt-2 text-sm text-white/55">{raffle.description}</p>}
+
+                    <div className="mt-4 rounded-2xl border border-aurora-gold/30 bg-aurora-gold/8 p-4">
+                      <p className="eyebrow text-aurora-gold mb-1">🎁 Prêmio</p>
+                      <p className="text-display text-lg font-bold text-white">
+                        {raffle.prizeType === 'PLAN' && raffle.prizePlan
+                          ? `Plano: ${raffle.prizePlan.name}`
+                          : raffle.prizeType === 'GENERATIONS'
+                            ? `${raffle.prize} gerações grátis`
+                            : raffle.prize}
+                      </p>
+                    </div>
+
+                    {!isExpired && !raffle.isFinished && (
+                      <div className="mt-4 grid grid-cols-4 gap-1.5">
+                        {[
+                          { v: tl.d, l: 'D' },
+                          { v: tl.h, l: 'H' },
+                          { v: tl.m, l: 'M' },
+                          { v: tl.s, l: 'S' }
+                        ].map((u, idx) => (
+                          <div key={idx} className="rounded-xl border border-white/8 bg-black/30 p-2 text-center">
+                            <p className="num-display text-xl text-white">{u.v.toString().padStart(2, '0')}</p>
+                            <p className="text-[10px] uppercase tracking-wider text-white/40">{u.l}</p>
+                          </div>
+                        ))}
+                      </div>
                     )}
+
+                    <div className="mt-4 flex items-center justify-between text-[12.5px]">
+                      <span className="text-white/55">Participantes</span>
+                      <span className="font-semibold text-white">{raffle._count.participants}</span>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between text-[12.5px]">
+                      <span className="text-white/55">Finaliza em</span>
+                      <span className="font-semibold text-white">{format(end, "dd/MM/yy 'às' HH:mm", { locale: ptBR })}</span>
+                    </div>
+
+                    {raffle.winner && (
+                      <div className="mt-4 rounded-2xl border border-aurora-mint/30 bg-aurora-mint/8 p-3 text-center">
+                        <p className="text-aurora-mint font-bold text-sm">🎉 Ganhador: <span className="text-white">{raffle.winner.username}</span></p>
+                      </div>
+                    )}
+
+                    <div className="mt-5">
+                      {canParticipate && !raffle.winner && (
+                        <button
+                          onClick={() => handleParticipate(raffle.id)}
+                          disabled={participating === raffle.id}
+                          className="btn btn-primary w-full"
+                        >
+                          {participating === raffle.id ? 'Participando...' : '🎲 Participar agora'}
+                        </button>
+                      )}
+                      {isExpired && !raffle.isFinished && (
+                        <div className="rounded-xl border border-aurora-gold/30 bg-aurora-gold/8 p-3 text-center text-sm font-semibold text-aurora-gold">
+                          ⏰ Aguardando finalização
+                        </div>
+                      )}
+                      {raffle.isFinished && (
+                        <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-center text-sm text-white/55">
+                          ✅ Sorteio finalizado
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                  <div className={`${theme === 'dark' ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-400/30' : 'bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200'} rounded-lg p-4 mb-4`}>
-                    <p className={`text-sm font-semibold mb-2 ${theme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
-                      🎁 Prêmio:
-                    </p>
-                    <p className={`font-bold text-lg ${themeClasses.text.primary}`}>
-                      {raffle.prizeType === 'PLAN' && raffle.prizePlan
-                        ? `Plano: ${raffle.prizePlan.name}`
-                        : raffle.prizeType === 'GENERATIONS'
-                        ? `${raffle.prize} Gerações Grátis`
-                        : raffle.prize}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex justify-between">
-                      <span className={`text-sm ${themeClasses.text.muted}`}>Participantes:</span>
-                      <span className={`font-semibold ${themeClasses.text.primary}`}>
-                        {raffle._count.participants}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className={`text-sm ${themeClasses.text.muted}`}>Finaliza em:</span>
-                      <span className={`font-semibold ${themeClasses.text.primary}`}>
-                        {format(endDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </span>
-                    </div>
-                  </div>
-
-                  {raffle.winner && (
-                    <div className={`${theme === 'dark' ? 'bg-green-500/20 border border-green-400/30' : 'bg-green-50 border border-green-200'} rounded-lg p-3 mb-4`}>
-                      <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-green-300' : 'text-green-800'}`}>
-                        🎉 Ganhador: {raffle.winner.username}
-                      </p>
-                    </div>
-                  )}
-
-                  {canParticipate && !raffle.winner && (
-                    <button
-                      onClick={() => handleParticipate(raffle.id)}
-                      disabled={participating === raffle.id}
-                      className="w-full px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
-                    >
-                      {participating === raffle.id ? 'Participando...' : '🎲 Participar do Sorteio'}
-                    </button>
-                  )}
-
-                  {isExpired && !raffle.isFinished && (
-                    <div className={`${theme === 'dark' ? 'bg-yellow-500/20 border border-yellow-400/30' : 'bg-yellow-50 border border-yellow-200'} rounded-lg p-3`}>
-                      <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-yellow-300' : 'text-yellow-800'}`}>
-                        ⏰ Sorteio aguardando finalização
-                      </p>
-                    </div>
-                  )}
-
-                  {raffle.isFinished && (
-                    <div className={`${theme === 'dark' ? 'bg-gray-500/20 border border-gray-400/30' : 'bg-gray-50 border border-gray-200'} rounded-lg p-3`}>
-                      <p className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-300' : 'text-gray-800'}`}>
-                        ✅ Sorteio finalizado
-                      </p>
-                    </div>
-                  )}
                 </div>
               )
             })}
@@ -203,4 +185,3 @@ export default function Raffles() {
     </div>
   )
 }
-

@@ -4,7 +4,6 @@ import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getThemeClasses } from '@/lib/theme-utils'
-import Layout from '@/components/Layout'
 import Link from 'next/link'
 import axios from 'axios'
 import toast from 'react-hot-toast'
@@ -130,130 +129,21 @@ export default function ApiKeys() {
 
   if (loading) {
     return (
-      <Layout>
-        <div className="min-h-screen bg-[#000000] flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-            <p className="mt-4 text-gray-500">Carregando...</p>
-          </div>
-        </div>
-      </Layout>
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center text-white/55">
+        <svg className="h-5 w-5 animate-spin mr-2" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4"/></svg>
+        Carregando...
+      </div>
     )
   }
 
   return (
-    <Layout>
-      <div className="min-h-screen bg-[#000000] text-gray-100 pb-20">
-        {/* Advanced Background with Mouse Tracking - Reduced for Mobile */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div 
-            className="absolute w-[600px] h-[400px] sm:w-[1200px] sm:h-[800px] bg-[radial-gradient(circle,rgba(79,70,229,0.15)_0%,transparent_70%)] blur-[100px] sm:blur-[150px] transition-all duration-1000 ease-out hidden sm:block"
-            style={{
-              transform: `translate(${(mousePosition.x - 600) * 0.02}px, ${(mousePosition.y - 400) * 0.02}px)`,
-              left: `${mousePosition.x - 600}px`,
-              top: `${mousePosition.y - 400}px`
-            }}
-          />
-          <div 
-            className="absolute w-[500px] h-[300px] sm:w-[1000px] sm:h-[600px] bg-[radial-gradient(circle,rgba(236,72,153,0.1)_0%,transparent_70%)] blur-[80px] sm:blur-[120px] transition-all duration-1000 ease-out hidden sm:block"
-            style={{
-              transform: `translate(${(mousePosition.x - 500) * -0.01}px, ${(mousePosition.y - 300) * -0.01}px)`,
-              right: `${500 - mousePosition.x}px`,
-              bottom: `${300 - mousePosition.y}px`
-            }}
-          />
-          <div 
-            className="absolute w-[400px] h-[400px] sm:w-[800px] sm:h-[800px] bg-[radial-gradient(circle,rgba(59,130,246,0.08)_0%,transparent_70%)] blur-[60px] sm:blur-[100px] transition-all duration-1000 ease-out hidden sm:block"
-            style={{
-              transform: `translate(${(mousePosition.x - 400) * 0.015}px, ${(mousePosition.y - 400) * 0.015}px)`,
-              left: `${mousePosition.x * 0.1}px`,
-              bottom: `${mousePosition.y * 0.1}px`
-            }}
-          />
-          <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-30 sm:opacity-100" />
-          
-          {/* Floating particles effect - Reduced for Mobile */}
-          <div className="absolute inset-0 hidden sm:block">
-            {[...Array(15)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-1 h-1 bg-white/15 rounded-full animate-float"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 5}s`,
-                  animationDuration: `${3 + Math.random() * 4}s`
-                }}
-              />
-            ))}
-          </div>
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <div className="absolute left-1/4 top-0 h-[500px] w-[500px] rounded-full bg-aurora-violet/10 blur-[140px]" />
+          <div className="absolute right-1/4 top-1/2 h-[450px] w-[450px] rounded-full bg-aurora-cyan/10 blur-[140px]" />
         </div>
 
-        {/* Futuristic Navigation */}
-        <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-black/20 backdrop-blur-2xl">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-            <div className="flex items-center gap-3 sm:gap-4">
-              <div className="relative group">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur-sm opacity-75 group-hover:opacity-100 transition-opacity" />
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center text-lg sm:text-xl font-bold text-white relative">
-                  🔑
-                </div>
-              </div>
-              <div>
-                <h1 className="font-bold text-lg sm:text-xl text-white">API Keys</h1>
-                <p className="text-xs sm:text-sm text-gray-400 hidden sm:block">Integração de Alto Nível</p>
-              </div>
-            </div>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden sm:flex items-center gap-3">
-              <Link href="/api-docs" className="group relative overflow-hidden px-6 py-2.5 rounded-full glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300">
-                <span className="relative z-10">📖 Docs</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </Link>
-              <Link href="/dashboard" className="group relative overflow-hidden px-6 py-2.5 rounded-full glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300">
-                <span className="relative z-10">⚡ Dashboard</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </Link>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={toggleMobileMenu}
-              className="sm:hidden p-2 rounded-lg glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300"
-            >
-              <div className="w-6 h-6 flex flex-col justify-center items-center">
-                <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMobileMenuOpen ? 'rotate-45 translate-y-1' : '-translate-y-0.5'}`}></span>
-                <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm my-0.5 ${isMobileMenuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
-                <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMobileMenuOpen ? '-rotate-45 -translate-y-1' : 'translate-y-0.5'}`}></span>
-              </div>
-            </button>
-          </div>
-
-          {/* Mobile Menu */}
-          {isMobileMenuOpen && (
-            <div className="sm:hidden absolute top-full left-0 w-full bg-black/95 backdrop-blur-xl border-b border-white/10">
-              <div className="px-4 py-4 space-y-3">
-                <Link 
-                  href="/api-docs" 
-                  className="block px-4 py-3 rounded-xl glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300 text-center"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  📖 Docs
-                </Link>
-                <Link 
-                  href="/dashboard" 
-                  className="block px-4 py-3 rounded-xl glass-panel border border-white/20 hover:bg-white/5 transition-all duration-300 text-center"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  ⚡ Dashboard
-                </Link>
-              </div>
-            </div>
-          )}
-        </nav>
-
-        <main className="relative z-10 pt-24 sm:pt-32 pb-24 px-4 sm:px-6">
+        <main className="relative z-10 py-10 sm:py-14 px-4 sm:px-6">
           <div className="max-w-7xl mx-auto">
             
             {/* Hero Section */}
@@ -657,6 +547,5 @@ curl -H "X-API-Key: {apiKey.key}" https://kaizengen.shop/api/v1/services
           }
         `}</style>
       </div>
-    </Layout>
   )
 }

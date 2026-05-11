@@ -148,283 +148,138 @@ export default function AdminDashboard() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className={`min-h-screen ${themeClasses.loading} flex items-center justify-center`}>
-        <div className="text-center">
-          <div className={`inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${theme === 'dark' ? 'border-purple-500' : 'border-primary-600'}`}></div>
-          <p className={`mt-4 ${themeClasses.text.secondary}`}>{t('loading')}</p>
-        </div>
+      <div className="flex min-h-[calc(100vh-64px)] items-center justify-center text-white/55">
+        <svg className="h-5 w-5 animate-spin mr-2" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/><path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4"/></svg>
+        {t('loading')}
       </div>
     )
   }
 
-  if (session?.user?.role !== 'OWNER') {
-    return null
-  }
+  if (session?.user?.role !== 'OWNER') return null
 
   const statCards = stats ? [
-    {
-      title: t('totalUsers'),
-      value: stats.overview.totalUsers,
-      icon: '👥',
-      color: 'bg-blue-500',
-      link: '/admin'
-    },
-    {
-      title: t('totalRevenue'),
-      value: `R$ ${stats.overview.totalRevenue.toFixed(2)}`,
-      icon: '💰',
-      color: 'bg-green-500',
-      link: '/admin'
-    },
-    {
-      title: t('confirmedPayments'),
-      value: stats.overview.paidPayments,
-      icon: '✅',
-      color: 'bg-emerald-500',
-      link: '/admin'
-    },
-    {
-      title: t('availableStocks'),
-      value: stats.overview.availableStocks,
-      icon: '📦',
-      color: 'bg-purple-500',
-      link: '/admin/stocks'
-    },
-    {
-      title: t('activeServices'),
-      value: stats.overview.totalServices,
-      icon: '🛠️',
-      color: 'bg-indigo-500',
-      link: '/admin/services'
-    },
-    {
-      title: t('plans'),
-      value: stats.overview.totalPlans,
-      icon: '📋',
-      color: 'bg-pink-500',
-      link: '/admin/plans'
-    },
-    {
-      title: t('generatedAccounts'),
-      value: stats.overview.totalAccounts,
-      icon: '🎫',
-      color: 'bg-yellow-500',
-      link: '/admin'
-    },
-    {
-      title: t('availableKeys'),
-      value: stats.overview.totalKeys - stats.overview.usedKeys,
-      icon: '🔑',
-      color: 'bg-orange-500',
-      link: '/admin/keys'
-    }
+    { title: t('totalUsers'), value: stats.overview.totalUsers, link: '/admin/users', tone: 'violet' },
+    { title: t('totalRevenue'), value: `R$ ${stats.overview.totalRevenue.toFixed(2)}`, link: '/admin/payments', tone: 'mint' },
+    { title: t('confirmedPayments'), value: stats.overview.paidPayments, link: '/admin/payments', tone: 'mint' },
+    { title: t('availableStocks'), value: stats.overview.availableStocks, link: '/admin/stocks', tone: 'cyan' },
+    { title: t('activeServices'), value: stats.overview.totalServices, link: '/admin/services', tone: 'violet' },
+    { title: t('plans'), value: stats.overview.totalPlans, link: '/admin/plans', tone: 'magenta' },
+    { title: t('generatedAccounts'), value: stats.overview.totalAccounts, link: '/admin', tone: 'gold' },
+    { title: t('availableKeys'), value: stats.overview.totalKeys - stats.overview.usedKeys, link: '/admin/keys', tone: 'gold' }
   ] : []
 
   const quickActions = [
-    { href: '/admin/services', icon: '🛠️', label: t('services'), gradient: 'from-sky-500 via-indigo-500 to-blue-600' },
-    { href: '/admin/stocks', icon: '📦', label: t('stocks'), gradient: 'from-purple-500 via-fuchsia-500 to-pink-500' },
-    { href: '/admin/plans', icon: '📋', label: t('plans'), gradient: 'from-pink-500 via-rose-500 to-orange-500' },
-    { href: '/admin/keys', icon: '🔑', label: t('keys'), gradient: 'from-amber-500 via-orange-500 to-red-500' },
-    { href: '/admin/users', icon: '👥', label: t('users'), gradient: 'from-emerald-500 via-teal-500 to-sky-500' },
-    { href: '/admin/broadcast', icon: '📢', label: t('broadcast'), gradient: 'from-cyan-500 via-blue-500 to-indigo-600' },
-    { href: '/admin/announcement', icon: '📣', label: 'Anúncio', gradient: 'from-violet-500 via-purple-500 to-indigo-500' },
-    { href: '/admin/raffles', icon: '🎲', label: t('raffles'), gradient: 'from-indigo-500 via-purple-500 to-pink-500' },
-    { href: '/admin/events', icon: '🎯', label: 'Eventos', gradient: 'from-violet-500 via-indigo-500 to-cyan-500' },
-    { href: '/admin/coupons', icon: '🏷️', label: 'Cupons', gradient: 'from-rose-500 via-pink-500 to-fuchsia-500' },
-    { href: '/admin/feedback', icon: '💬', label: t('feedbacks'), gradient: 'from-teal-500 via-emerald-500 to-lime-500' },
-    { href: '/admin/withdrawals', icon: '💸', label: 'Resgates', gradient: 'from-green-500 via-emerald-500 to-teal-500' },
-    { href: '/admin/payments', icon: '💰', label: 'Pagamentos', gradient: 'from-emerald-500 via-green-500 to-teal-500' },
-    { href: '/admin/abuse', icon: '🔍', label: 'Abusos', gradient: 'from-red-600 via-red-500 to-orange-500' },
-    { href: '/admin/security', icon: '🛡️', label: 'Segurança', gradient: 'from-blue-600 via-indigo-600 to-purple-700' },
-    { href: '/admin/bot-cleanup', icon: '🤖', label: 'Limpar Bots', gradient: 'from-red-500 via-rose-600 to-pink-600' },
-    { href: '/admin/authorized-ips', icon: '🌐', label: 'IPs Autorizados', gradient: 'from-green-500 via-emerald-500 to-teal-500' },
-    { href: '/admin/logs', icon: '📋', label: 'Logs', gradient: 'from-slate-500 via-gray-600 to-zinc-700' },
-    { href: '/admin/config', icon: '⚙️', label: t('settings'), gradient: 'from-slate-600 via-slate-700 to-slate-900' },
-    { href: '/admin/maintenance', icon: '🧰', label: t('maintenance'), gradient: 'from-orange-500 via-amber-500 to-yellow-500' },
-    { href: '/admin/christmas', icon: '🎄', label: 'Natal', gradient: 'from-red-500 via-red-600 to-green-600' }
+    { href: '/admin/services', label: t('services') },
+    { href: '/admin/stocks', label: t('stocks') },
+    { href: '/admin/plans', label: t('plans') },
+    { href: '/admin/keys', label: t('keys') },
+    { href: '/admin/users', label: t('users') },
+    { href: '/admin/broadcast', label: t('broadcast') },
+    { href: '/admin/announcement', label: 'Anúncio' },
+    { href: '/admin/raffles', label: t('raffles') },
+    { href: '/admin/events', label: 'Eventos' },
+    { href: '/admin/coupons', label: 'Cupons' },
+    { href: '/admin/feedback', label: t('feedbacks') },
+    { href: '/admin/withdrawals', label: 'Resgates' },
+    { href: '/admin/payments', label: 'Pagamentos' },
+    { href: '/admin/abuse', label: 'Abusos' },
+    { href: '/admin/security', label: 'Segurança' },
+    { href: '/admin/bot-cleanup', label: 'Limpar Bots' },
+    { href: '/admin/authorized-ips', label: 'IPs' },
+    { href: '/admin/logs', label: 'Logs' },
+    { href: '/admin/config', label: t('settings') },
+    { href: '/admin/maintenance', label: t('maintenance') },
+    { href: '/admin/christmas', label: 'Natal' }
   ]
 
   return (
-    <div className={`admin-shell relative min-h-screen overflow-hidden ${themeClasses.bg}`}>
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute top-[-20%] right-[-5%] w-[520px] h-[520px] bg-gradient-to-br from-indigo-500/25 via-fuchsia-500/15 to-cyan-400/20 blur-[200px]" />
-        <div className="absolute bottom-[-25%] left-[-10%] w-[540px] h-[540px] bg-gradient-to-br from-sky-400/20 via-transparent to-emerald-400/15 blur-[220px]" />
+    <div className="relative">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/4 top-0 h-[500px] w-[500px] rounded-full bg-aurora-violet/10 blur-[140px]" />
+        <div className="absolute right-1/4 top-1/2 h-[450px] w-[450px] rounded-full bg-aurora-cyan/10 blur-[140px]" />
       </div>
-      {/* Header */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <div className={`${themeClasses.card} neon-shadow`}>
-          <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/15 via-transparent to-cyan-400/10" />
-          <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+        <div className="surface-card-elevated p-7 sm:p-9 mb-6 animate-fade-up">
+          <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-white/70">{t('administrator')}</p>
-              <h1 className="text-3xl md:text-4xl font-black text-white leading-tight">
-                {t('adminPanel')}
-              </h1>
-              <p className="text-sm text-white/60">
-                {t('welcome')}, {session?.user?.username}
-              </p>
+              <p className="eyebrow">{t('administrator')}</p>
+              <h1 className="mt-2 text-display text-4xl sm:text-5xl font-bold text-gradient-aurora">{t('adminPanel')}</h1>
+              <p className="mt-2 text-sm text-white/55">{t('welcome')}, <span className="text-white">{session?.user?.username}</span></p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                onClick={checkPendingPayments}
-                className="inline-flex items-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500/20 transition-all"
-                title="Verificar e ativar pagamentos pendentes (PIX e Bitcoin)"
-              >
-                <span className="mr-2">💰</span>
-                Verificar Pagamentos
-              </button>
-              <button
-                onClick={cleanupExpiredPlans}
-                className="inline-flex items-center rounded-2xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 transition-all"
-                title="Remover planos expirados"
-              >
-                <span className="mr-2">🧹</span>
-                Limpar Planos
-              </button>
-              <button
-                onClick={loadStats}
-                className="inline-flex items-center rounded-2xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 transition-all"
-              >
-                <span className="mr-2">🔄</span>
-                {t('update')}
-              </button>
-              <Link
-                href="/admin"
-                className="inline-flex items-center rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 px-4 py-2 text-sm font-semibold text-white shadow-[0_15px_30px_rgba(15,23,42,0.45)]"
-              >
-                <span className="mr-2">📈</span>
-                {t('dashboard')}
-              </Link>
+            <div className="flex flex-wrap items-center gap-2">
+              <button onClick={checkPendingPayments} className="btn btn-ghost btn-sm">Verificar pagamentos</button>
+              <button onClick={cleanupExpiredPlans} className="btn btn-ghost btn-sm">Limpar planos</button>
+              <button onClick={loadStats} className="btn btn-primary btn-sm">{t('update')}</button>
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {statCards.map((card, index) => (
-            <Link
-              key={index}
-              href={card.link}
-              className={`${themeClasses.card} neon-shadow group overflow-hidden`}
-            >
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br from-indigo-500/20 via-transparent to-cyan-400/15" />
-              <div className="relative z-10 flex items-center justify-between">
-                <div>
-                  <p className={`text-xs uppercase tracking-widest ${themeClasses.text.secondary}`}>{card.title}</p>
-                  <p className={`text-3xl font-black ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{card.value}</p>
-                </div>
-                <div className={`rounded-2xl px-3 py-2 text-xl shadow-inner ${theme === 'dark' ? 'bg-white/10 text-white' : 'bg-slate-900/5 text-slate-900'}`}>
-                  <span>{card.icon}</span>
-                </div>
-              </div>
+        <div className="mb-6 grid grid-cols-2 md:grid-cols-4 gap-px overflow-hidden rounded-3xl bg-white/[0.06] ring-1 ring-white/10 animate-fade-up delay-100">
+          {statCards.map((card, i) => (
+            <Link key={i} href={card.link} className="bg-[#0c0c15]/95 p-5 transition-colors hover:bg-[#0c0c15]/70">
+              <p className="eyebrow">{card.title}</p>
+              <p className={`num-display mt-2 text-2xl ${card.tone === 'mint' ? 'text-aurora-mint' : card.tone === 'gold' ? 'text-gradient-gold' : card.tone === 'cyan' ? 'text-aurora-cyan' : 'text-gradient'}`}>
+                {card.value}
+              </p>
             </Link>
           ))}
         </div>
 
-        {/* Quick Actions */}
-        <div className={`${themeClasses.card} neon-shadow p-6 mb-8`}>
-          <h2 className={`text-xl font-bold mb-4 ${themeClasses.text.primary}`}>{t('quickActions')}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="surface-card p-7 mb-6 animate-fade-up delay-200">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-display text-xl font-bold text-white">{t('quickActions')}</h2>
+            <p className="eyebrow">{quickActions.length} módulos</p>
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
             {quickActions.map((action) => (
-              <Link
-                key={action.href}
-                href={action.href}
-                className={`group relative overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br ${action.gradient} text-white p-4 shadow-lg transition-transform hover:-translate-y-1`}
-              >
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-30 bg-white/40 transition-opacity" />
-                <div className="relative z-10 flex flex-col items-center text-center space-y-2">
-                  <span className="text-3xl">{action.icon}</span>
-                  <span className="text-sm font-semibold">{action.label}</span>
-                </div>
+              <Link key={action.href} href={action.href} className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3 text-center text-xs font-medium text-white/65 transition-all hover:border-white/15 hover:bg-white/[0.04] hover:text-white">
+                {action.label}
               </Link>
             ))}
           </div>
         </div>
 
         {stats && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Recent Users */}
-            <div className={`${themeClasses.card} neon-shadow`}>
-              <h2 className={`text-xl font-bold mb-4 ${themeClasses.text.primary}`}>{t('recentUsers')}</h2>
-              <div className="space-y-3">
-                {stats.recentUsers.length > 0 ? (
-                  stats.recentUsers.map((user) => (
-                    <div
-                      key={user.id}
-                      className={`flex items-center justify-between p-3 ${theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} rounded-lg transition-colors`}
-                    >
-                      <div>
-                        <p className={`font-semibold ${themeClasses.text.primary}`}>{user.username}</p>
-                        <p className={`text-sm ${themeClasses.text.muted}`}>
-                          {user.email || t('noEmail')} • {user.plan?.name || t('noPlan')}
-                        </p>
-                        <p className={`text-xs ${themeClasses.text.muted} mt-1`}>
-                          {format(new Date(user.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
-                        </p>
-                      </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fade-up delay-300">
+            <div className="surface-card p-6">
+              <h2 className="text-display text-lg font-bold text-white mb-4">{t('recentUsers')}</h2>
+              <div className="space-y-1.5">
+                {stats.recentUsers.length > 0 ? stats.recentUsers.map((u) => (
+                  <div key={u.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.04] bg-white/[0.02] p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{u.username}</p>
+                      <p className="text-[11px] text-white/40 truncate">{u.email || t('noEmail')} · {u.plan?.name || t('noPlan')}</p>
                     </div>
-                  ))
-                ) : (
-                  <p className={`${themeClasses.text.muted} text-center py-4`}>{t('noRecentUsers')}</p>
-                )}
+                    <p className="text-[10px] text-white/35 shrink-0">{format(new Date(u.createdAt), "dd MMM yy", { locale: ptBR })}</p>
+                  </div>
+                )) : <p className="text-center py-6 text-sm text-white/40">{t('noRecentUsers')}</p>}
               </div>
             </div>
 
-            {/* Recent Payments */}
-            <div className={`${themeClasses.card} neon-shadow`}>
-              <h2 className={`text-xl font-bold mb-4 ${themeClasses.text.primary}`}>{t('recentPayments')}</h2>
-              <div className="space-y-3">
-                {stats.recentPayments.length > 0 ? (
-                  stats.recentPayments.map((payment) => (
-                    <div
-                      key={payment.id}
-                      className={`flex items-center justify-between p-3 ${theme === 'dark' ? 'bg-white/5 hover:bg-white/10' : 'bg-gray-50 hover:bg-gray-100'} rounded-lg transition-colors`}
-                    >
-                      <div>
-                        <p className={`font-semibold ${themeClasses.text.primary}`}>{payment.user.username}</p>
-                        <p className={`text-sm ${themeClasses.text.muted}`}>
-                          {translatePlanName ? translatePlanName(payment.plan.name) : payment.plan.name} • {payment.method}
-                        </p>
-                        <p className={`text-xs ${themeClasses.text.muted} mt-1`}>
-                          {format(new Date(payment.createdAt), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-green-600">R$ {payment.amount.toFixed(2)}</p>
-                        <span
-                          className={`inline-block px-2 py-1 rounded-full text-xs ${payment.status === 'PAID'
-                              ? 'bg-green-100 text-green-800'
-                              : payment.status === 'PENDING'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                        >
-                          {payment.status === 'PAID' ? t('paid') : payment.status === 'PENDING' ? t('pending') : t('cancelled')}
-                        </span>
-                        {payment.status === 'PAID' && payment.needsActivation && (
-                          <div className="mt-2 space-y-1">
-                            <p className={`text-xs ${themeClasses.text.muted}`}>{t('planActivationPending')}</p>
-                            <button
-                              onClick={() => activatePlanManually(payment.id)}
-                              disabled={activatingPaymentId === payment.id}
-                              className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1 text-xs font-semibold transition ${theme === 'dark'
-                                  ? 'border-amber-400/60 text-amber-200 hover:bg-amber-400/10 disabled:opacity-60'
-                                  : 'border-amber-500 text-amber-700 hover:bg-amber-50 disabled:opacity-60'
-                                }`}
-                            >
-                              <span>⚡</span>
-                              {activatingPaymentId === payment.id ? t('activatingPlan') : t('activatePlanAuto')}
-                            </button>
-                          </div>
-                        )}
-                      </div>
+            <div className="surface-card p-6">
+              <h2 className="text-display text-lg font-bold text-white mb-4">{t('recentPayments')}</h2>
+              <div className="space-y-1.5">
+                {stats.recentPayments.length > 0 ? stats.recentPayments.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.04] bg-white/[0.02] p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{p.user.username}</p>
+                      <p className="text-[11px] text-white/40 truncate">{translatePlanName ? translatePlanName(p.plan.name) : p.plan.name} · {p.method}</p>
+                      {p.status === 'PAID' && p.needsActivation && (
+                        <button onClick={() => activatePlanManually(p.id)} disabled={activatingPaymentId === p.id}
+                          className="mt-2 inline-flex items-center gap-1 rounded-lg border border-aurora-gold/40 px-2 py-0.5 text-[10px] font-semibold text-aurora-gold hover:bg-aurora-gold/10 disabled:opacity-60">
+                          {activatingPaymentId === p.id ? t('activatingPlan') : t('activatePlanAuto')}
+                        </button>
+                      )}
                     </div>
-                  ))
-                ) : (
-                  <p className={`${themeClasses.text.muted} text-center py-4`}>{t('noRecentPayments')}</p>
-                )}
+                    <div className="text-right shrink-0">
+                      <p className="num-display text-sm text-aurora-mint">R$ {p.amount.toFixed(2)}</p>
+                      <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[9px] font-semibold ${p.status === 'PAID' ? 'bg-aurora-mint/15 text-aurora-mint' : p.status === 'PENDING' ? 'bg-aurora-gold/15 text-aurora-gold' : 'bg-red-500/15 text-red-300'}`}>
+                        {p.status === 'PAID' ? t('paid') : p.status === 'PENDING' ? t('pending') : t('cancelled')}
+                      </span>
+                    </div>
+                  </div>
+                )) : <p className="text-center py-6 text-sm text-white/40">{t('noRecentPayments')}</p>}
               </div>
             </div>
           </div>

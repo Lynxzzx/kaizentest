@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import Layout from '@/components/Layout'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -76,23 +75,23 @@ export default function AdminWithdrawals() {
 
   const handleAction = async (id: string, action: 'complete' | 'reject' | 'processing', adminNotes?: string) => {
     const actionNames = {
-      complete: 'marcar como concluído',
+      complete: 'marcar como concluÃ­do',
       reject: 'rejeitar',
       processing: 'marcar como em processamento'
     }
 
-    if (action === 'complete' && !confirm(`Você já fez o PIX para o usuário? Confirma ${actionNames[action]}?`)) {
+    if (action === 'complete' && !confirm(`VocÃª jÃ¡ fez o PIX para o usuÃ¡rio? Confirma ${actionNames[action]}?`)) {
       return
     }
 
-    if (action === 'reject' && !confirm(`Tem certeza que deseja ${actionNames[action]} este resgate? O valor será devolvido ao saldo do afiliado.`)) {
+    if (action === 'reject' && !confirm(`Tem certeza que deseja ${actionNames[action]} este resgate? O valor serÃ¡ devolvido ao saldo do afiliado.`)) {
       return
     }
 
     try {
       setProcessing(id)
       await axios.put(`/api/admin/withdrawals/${id}`, { action, adminNotes })
-      toast.success(`Resgate ${action === 'complete' ? 'concluído' : action === 'reject' ? 'rejeitado' : 'em processamento'}!`)
+      toast.success(`Resgate ${action === 'complete' ? 'concluÃ­do' : action === 'reject' ? 'rejeitado' : 'em processamento'}!`)
       loadData()
     } catch (error: any) {
       toast.error(error.response?.data?.error || 'Erro ao processar')
@@ -103,10 +102,10 @@ export default function AdminWithdrawals() {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { bg: string; text: string; label: string }> = {
-      PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: '⏳ Pendente' },
-      PROCESSING: { bg: 'bg-blue-100', text: 'text-blue-800', label: '🔄 Processando' },
-      COMPLETED: { bg: 'bg-green-100', text: 'text-green-800', label: '✅ Concluído' },
-      REJECTED: { bg: 'bg-red-100', text: 'text-red-800', label: '❌ Rejeitado' }
+      PENDING: { bg: 'bg-yellow-100', text: 'text-yellow-800', label: 'â³ Pendente' },
+      PROCESSING: { bg: 'bg-blue-100', text: 'text-blue-800', label: 'ðŸ”„ Processando' },
+      COMPLETED: { bg: 'bg-green-100', text: 'text-green-800', label: 'âœ… ConcluÃ­do' },
+      REJECTED: { bg: 'bg-red-100', text: 'text-red-800', label: 'âŒ Rejeitado' }
     }
     const badge = badges[status] || badges.PENDING
     return (
@@ -122,28 +121,28 @@ export default function AdminWithdrawals() {
 
   if (status === 'loading' || loading) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-xl">Carregando...</div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-            <span>💸</span>
+            <span>ðŸ’¸</span>
             <span>Resgates de Afiliados</span>
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Gerencie as solicitações de resgate de saldo dos afiliados
+            Gerencie as solicitaÃ§Ãµes de resgate de saldo dos afiliados
           </p>
         </div>
 
-        {/* Estatísticas */}
+        {/* EstatÃ­sticas */}
         {stats && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl p-4 text-center border border-yellow-200 dark:border-yellow-800">
@@ -156,7 +155,7 @@ export default function AdminWithdrawals() {
             </div>
             <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 text-center border border-green-200 dark:border-green-800">
               <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
-              <p className="text-sm text-green-700 dark:text-green-400">Concluídos</p>
+              <p className="text-sm text-green-700 dark:text-green-400">ConcluÃ­dos</p>
             </div>
             <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 text-center border border-red-200 dark:border-red-800">
               <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
@@ -185,7 +184,7 @@ export default function AdminWithdrawals() {
                   : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
               }`}
             >
-              {f === 'ALL' ? 'Todos' : f === 'PENDING' ? 'Pendentes' : f === 'PROCESSING' ? 'Processando' : f === 'COMPLETED' ? 'Concluídos' : 'Rejeitados'}
+              {f === 'ALL' ? 'Todos' : f === 'PENDING' ? 'Pendentes' : f === 'PROCESSING' ? 'Processando' : f === 'COMPLETED' ? 'ConcluÃ­dos' : 'Rejeitados'}
             </button>
           ))}
         </div>
@@ -228,7 +227,7 @@ export default function AdminWithdrawals() {
                         <strong>Total ganho:</strong> R$ {withdrawal.user.totalAffiliateEarnings?.toFixed(2) || '0.00'}
                       </p>
                       <p className="text-gray-600 dark:text-gray-400">
-                        <strong>Solicitado:</strong> {format(new Date(withdrawal.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        <strong>Solicitado:</strong> {format(new Date(withdrawal.createdAt), "dd/MM/yyyy 'Ã s' HH:mm", { locale: ptBR })}
                       </p>
                     </div>
 
@@ -249,7 +248,7 @@ export default function AdminWithdrawals() {
                         }}
                         className="mt-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
                       >
-                        📋 Copiar Chave
+                        ðŸ“‹ Copiar Chave
                       </button>
                     </div>
 
@@ -261,12 +260,12 @@ export default function AdminWithdrawals() {
 
                     {withdrawal.processedAt && withdrawal.processedBy && (
                       <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                        Processado por {withdrawal.processedBy.username} em {format(new Date(withdrawal.processedAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                        Processado por {withdrawal.processedBy.username} em {format(new Date(withdrawal.processedAt), "dd/MM/yyyy 'Ã s' HH:mm", { locale: ptBR })}
                       </p>
                     )}
                   </div>
 
-                  {/* Ações */}
+                  {/* AÃ§Ãµes */}
                   {(withdrawal.status === 'PENDING' || withdrawal.status === 'PROCESSING') && (
                     <div className="flex flex-col gap-2 min-w-[200px]">
                       {withdrawal.status === 'PENDING' && (
@@ -275,7 +274,7 @@ export default function AdminWithdrawals() {
                           disabled={processing === withdrawal.id}
                           className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50"
                         >
-                          🔄 Marcar Processando
+                          ðŸ”„ Marcar Processando
                         </button>
                       )}
                       <button
@@ -283,17 +282,17 @@ export default function AdminWithdrawals() {
                         disabled={processing === withdrawal.id}
                         className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50"
                       >
-                        ✅ PIX Feito - Concluir
+                        âœ… PIX Feito - Concluir
                       </button>
                       <button
                         onClick={() => {
-                          const notes = prompt('Motivo da rejeição (opcional):')
+                          const notes = prompt('Motivo da rejeiÃ§Ã£o (opcional):')
                           handleAction(withdrawal.id, 'reject', notes || undefined)
                         }}
                         disabled={processing === withdrawal.id}
                         className="px-4 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50"
                       >
-                        ❌ Rejeitar
+                        âŒ Rejeitar
                       </button>
                     </div>
                   )}
@@ -303,17 +302,17 @@ export default function AdminWithdrawals() {
           )}
         </div>
 
-        {/* Botão atualizar */}
+        {/* BotÃ£o atualizar */}
         <div className="mt-6 text-center">
           <button
             onClick={loadData}
             className="px-6 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors"
           >
-            🔄 Atualizar Lista
+            ðŸ”„ Atualizar Lista
           </button>
         </div>
       </div>
-    </Layout>
+    </>
   )
 }
 

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import Layout from '@/components/Layout'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 
@@ -69,63 +68,42 @@ export default function AdminTelegram() {
   }
 
   if (loading) {
-    return (
-      <Layout>
-        <div className="min-h-screen pt-12 px-4 sm:px-6">
-          <div className="max-w-3xl mx-auto text-center text-white">Carregando…</div>
-        </div>
-      </Layout>
-    )
+    return <div className="flex min-h-[calc(100vh-64px)] items-center justify-center text-white/55">Carregando…</div>
   }
 
   return (
-    <Layout>
-      <div className="min-h-screen pt-12 pb-16 px-4 sm:px-6">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-3xl font-extrabold text-white mb-6">Configurar Telegram</h1>
+    <div className="relative">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/4 top-0 h-[450px] w-[450px] rounded-full bg-aurora-cyan/10 blur-[140px]" />
+      </div>
 
-          <div className="glass-panel p-6 rounded-2xl border border-white/10 space-y-4">
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">Bot Token</label>
-              <input
-                value={botToken}
-                onChange={(e) => setBotToken(e.target.value)}
-                placeholder="7903...:AAF..."
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-300 mb-1">Chat ID</label>
-              <input
-                value={chatId}
-                onChange={(e) => setChatId(e.target.value)}
-                placeholder="-1003077080172"
-                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none"
-              />
-            </div>
-            <div className="flex gap-3">
-              <button onClick={save} className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-3 rounded-xl font-semibold">
-                Salvar
-              </button>
-              <button onClick={test} disabled={testing} className="bg-white/10 hover:bg-white/20 text-white px-5 py-3 rounded-xl font-semibold border border-white/10 disabled:opacity-50">
-                {testing ? 'Enviando…' : 'Enviar Teste'}
-              </button>
-            </div>
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="mb-8 animate-fade-up">
+          <p className="eyebrow">Integrações</p>
+          <h1 className="mt-2 text-display text-3xl sm:text-4xl font-bold text-gradient-aurora">Telegram</h1>
+        </div>
+
+        <div className="surface-card-elevated p-7 space-y-4 animate-fade-up delay-100">
+          <div>
+            <label className="eyebrow block mb-1.5">Bot Token</label>
+            <input value={botToken} onChange={e => setBotToken(e.target.value)} placeholder="7903...:AAF..." className="input-premium text-mono text-xs" />
           </div>
-
-          <div className="glass-panel p-6 rounded-2xl border border-white/10 mt-6 space-y-4">
-            <label className="block text-sm text-gray-300 mb-1">Mensagem de Teste</label>
-            <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none h-28"
-            />
-            <button onClick={test} disabled={testing} className="bg-white/10 hover:bg-white/20 text-white px-5 py-3 rounded-xl font-semibold border border-white/10 disabled:opacity-50">
-              {testing ? 'Enviando…' : 'Enviar Teste'}
-            </button>
+          <div>
+            <label className="eyebrow block mb-1.5">Chat ID</label>
+            <input value={chatId} onChange={e => setChatId(e.target.value)} placeholder="-1003077080172" className="input-premium text-mono text-xs" />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={save} className="btn btn-primary btn-sm">Salvar</button>
+            <button onClick={test} disabled={testing} className="btn btn-ghost btn-sm">{testing ? 'Enviando…' : 'Enviar teste'}</button>
           </div>
         </div>
+
+        <div className="surface-card p-7 mt-4 space-y-3 animate-fade-up delay-200">
+          <label className="eyebrow block">Mensagem de teste</label>
+          <textarea value={message} onChange={e => setMessage(e.target.value)} className="input-premium h-28" />
+          <button onClick={test} disabled={testing} className="btn btn-ghost btn-sm">{testing ? 'Enviando…' : 'Enviar teste'}</button>
+        </div>
       </div>
-    </Layout>
+    </div>
   )
 }

@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
-import Layout from '@/components/Layout'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import QRCode from 'qrcode.react'
@@ -218,105 +217,76 @@ export default function ApiPlans() {
   }
 
   return (
-    <Layout>
-      <div className="min-h-screen pt-12 pb-12 px-4 sm:px-6 relative overflow-hidden">
-        {/* Background Effects */}
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/20 rounded-full blur-[100px] animate-pulse-slow" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-600/20 rounded-full blur-[100px] animate-pulse-slow delay-1000" />
+    <div className="relative">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute left-1/4 top-0 h-[500px] w-[500px] rounded-full bg-aurora-cyan/10 blur-[140px]" />
+        <div className="absolute right-1/4 top-1/2 h-[450px] w-[450px] rounded-full bg-aurora-violet/10 blur-[140px]" />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="text-center mb-12 animate-fade-up">
+          <p className="eyebrow">Acesso programático</p>
+          <h1 className="mt-2 text-display text-4xl sm:text-5xl md:text-6xl font-bold text-gradient-aurora">API Plans</h1>
+          <p className="mx-auto mt-4 max-w-2xl text-base text-white/55">
+            Integre nossos geradores diretamente em suas aplicações com chaves seguras e limites previsíveis.
+          </p>
         </div>
 
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center mb-16">
-            <h1 className="text-4xl md:text-6xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-500">
-              API Plans
-            </h1>
-            <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Integrate our powerful generators directly into your applications.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-            {plans.map((plan, index) => (
-              <div key={plan.id} className="glass-card p-6 rounded-2xl border border-white/5 hover:border-cyan-500/30 transition-all hover:-translate-y-2 group">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white text-xl font-bold mb-4 shadow-lg shadow-cyan-900/20">
-                  {plan.name.charAt(0)}
-                </div>
-                <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-                <p className="text-gray-400 text-sm mb-4 min-h-[40px]">{plan.description}</p>
-
-                <div className="mb-6">
-                  <span className="text-3xl font-bold text-white">R$ {plan.price.toFixed(2)}</span>
-                </div>
-
-                <ul className="space-y-3 mb-8">
-                  <li className="flex items-center gap-2 text-gray-300 text-sm">
-                    <span className="text-cyan-400">⚡</span>
-                    {plan.maxGenerations} Generations
-                  </li>
-                  <li className="flex items-center gap-2 text-gray-300 text-sm">
-                    <span className="text-cyan-400">🔑</span>
-                    API Key Included
-                  </li>
-                  <li className="flex items-center gap-2 text-gray-300 text-sm">
-                    <span className="text-cyan-400">🛡️</span>
-                    Premium Support
-                  </li>
-                </ul>
-
-                <div className="space-y-2">
-                  <button
-                    onClick={() => handlePayment(plan, 'PIX')}
-                    className="w-full py-2.5 rounded-lg bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold text-sm hover:contrast-125 transition-all"
-                  >
-                    {t('payViaPix')}
-                  </button>
-                  <button
-                    onClick={() => handlePayment(plan, 'CRYPTO')}
-                    className="w-full py-2.5 rounded-lg bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold text-sm hover:contrast-125 transition-all"
-                  >
-                    Crypto
-                  </button>
-                  <button
-                    onClick={() => handlePayment(plan, 'CARD')}
-                    className="w-full py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-sm hover:contrast-125 transition-all"
-                  >
-                    Card
-                  </button>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
+          {plans.map((plan, index) => (
+            <div key={plan.id} className={`surface-card p-6 animate-fade-up delay-${Math.min((index + 1) * 100, 500)}`}>
+              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-aurora-cyan to-aurora-violet text-lg font-bold text-white">
+                {plan.name.charAt(0)}
               </div>
-            ))}
+              <h3 className="text-display text-xl font-bold text-white">{plan.name}</h3>
+              <p className="mt-1 min-h-[40px] text-xs text-white/50">{plan.description}</p>
 
-            {plans.length === 0 && !loading && (
-              <div className="col-span-full text-center py-12 text-gray-500">
-                No API plans found. Please check back later.
+              <div className="mt-5 mb-5">
+                <span className="num-display text-3xl text-gradient">R$ {plan.price.toFixed(2)}</span>
               </div>
-            )}
-          </div>
 
-          <div className="glass-panel p-8 rounded-2xl border border-white/10 max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-white mb-6">Documentation Overview</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                <div className="font-mono text-cyan-400 text-xs mb-1">POST</div>
-                <div className="font-bold text-white">/api/v1/generate</div>
-                <p className="text-gray-400 text-xs mt-2">Generate accounts programmatically.</p>
+              <ul className="mb-6 space-y-2 text-xs text-white/70">
+                <li className="flex items-center gap-2"><span className="text-aurora-cyan">⚡</span> {plan.maxGenerations} gerações</li>
+                <li className="flex items-center gap-2"><span className="text-aurora-cyan">🔑</span> API Key inclusa</li>
+                <li className="flex items-center gap-2"><span className="text-aurora-cyan">🛡️</span> Suporte premium</li>
+              </ul>
+
+              <div className="space-y-2">
+                <button onClick={() => handlePayment(plan, 'PIX')} className="btn btn-primary btn-sm w-full">{t('payViaPix')}</button>
+                <button onClick={() => handlePayment(plan, 'CRYPTO')} className="btn btn-ghost btn-sm w-full">Crypto</button>
+                <button onClick={() => handlePayment(plan, 'CARD')} className="btn btn-ghost btn-sm w-full">Cartão</button>
               </div>
-              <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                <div className="font-mono text-green-400 text-xs mb-1">GET</div>
-                <div className="font-bold text-white">/api/v1/services</div>
-                <p className="text-gray-400 text-xs mt-2">List available services and stock.</p>
-              </div>
-              <div className="bg-white/5 p-4 rounded-xl border border-white/5">
-                <div className="font-mono text-purple-400 text-xs mb-1">GET</div>
-                <div className="font-bold text-white">/api/v1/status</div>
-                <p className="text-gray-400 text-xs mt-2">Check system health and account status.</p>
-              </div>
+            </div>
+          ))}
+
+          {plans.length === 0 && !loading && (
+            <div className="col-span-full text-center py-12 text-white/40">Nenhum plano API disponível no momento.</div>
+          )}
+        </div>
+
+        <div className="surface-card-elevated p-7 max-w-4xl mx-auto animate-fade-up delay-500">
+          <h2 className="text-display text-2xl font-bold text-white mb-5">Endpoints principais</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <div className="text-mono text-[10px] text-aurora-cyan mb-1">POST</div>
+              <div className="font-bold text-white text-sm">/api/v1/generate</div>
+              <p className="mt-2 text-[11px] text-white/40">Gere contas programaticamente.</p>
+            </div>
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <div className="text-mono text-[10px] text-aurora-mint mb-1">GET</div>
+              <div className="font-bold text-white text-sm">/api/v1/services</div>
+              <p className="mt-2 text-[11px] text-white/40">Liste serviços e estoque.</p>
+            </div>
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <div className="text-mono text-[10px] text-aurora-violet mb-1">GET</div>
+              <div className="font-bold text-white text-sm">/api/v1/status</div>
+              <p className="mt-2 text-[11px] text-white/40">Saúde do sistema e conta.</p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Email Modal */}
+      {/* Email Modal */}
         {showEmailModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="glass-panel p-8 rounded-2xl max-w-md w-full border border-white/10">
@@ -526,6 +496,5 @@ export default function ApiPlans() {
         )}
 
       </div>
-    </Layout>
   )
 }

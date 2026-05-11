@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import Layout from '@/components/Layout'
 import axios from 'axios'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
@@ -84,17 +83,17 @@ export default function AdminAbuse() {
   }
 
   const banUser = async (userId: string, username: string) => {
-    if (!confirm(`Tem certeza que deseja banir o usuário ${username}?`)) return
+    if (!confirm(`Tem certeza que deseja banir o usuÃ¡rio ${username}?`)) return
 
     try {
       await axios.put('/api/admin/users', {
         userId,
         isBanned: true
       })
-      toast.success(`Usuário ${username} banido!`)
+      toast.success(`UsuÃ¡rio ${username} banido!`)
       loadData()
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Erro ao banir usuário')
+      toast.error(error.response?.data?.error || 'Erro ao banir usuÃ¡rio')
     }
   }
 
@@ -107,33 +106,33 @@ export default function AdminAbuse() {
 
   if (status === 'loading' || loading) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-xl">Carregando...</div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-            <span>🔍</span>
-            <span>Detecção de Abuso</span>
+            <span>ðŸ”</span>
+            <span>DetecÃ§Ã£o de Abuso</span>
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
             Monitore contas suspeitas criadas no mesmo IP ou dispositivo
           </p>
         </div>
 
-        {/* Estatísticas */}
+        {/* EstatÃ­sticas */}
         {data && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center shadow-lg">
               <p className="text-2xl font-bold text-blue-600">{data.stats.totalUsers}</p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Total Usuários</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Total UsuÃ¡rios</p>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center shadow-lg">
               <p className="text-2xl font-bold text-green-600">{data.stats.usersWithIp}</p>
@@ -168,7 +167,7 @@ export default function AdminAbuse() {
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
             }`}
           >
-            🌐 IPs Suspeitos ({data?.suspiciousIps.length || 0})
+            ðŸŒ IPs Suspeitos ({data?.suspiciousIps.length || 0})
           </button>
           <button
             onClick={() => setActiveTab('fingerprints')}
@@ -178,7 +177,7 @@ export default function AdminAbuse() {
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
             }`}
           >
-            📱 Dispositivos Suspeitos ({data?.suspiciousFingerprints.length || 0})
+            ðŸ“± Dispositivos Suspeitos ({data?.suspiciousFingerprints.length || 0})
           </button>
           <button
             onClick={() => setActiveTab('all')}
@@ -188,17 +187,17 @@ export default function AdminAbuse() {
                 : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
             }`}
           >
-            👥 Todos os Usuários
+            ðŸ‘¥ Todos os UsuÃ¡rios
           </button>
         </div>
 
-        {/* Conteúdo baseado na tab */}
+        {/* ConteÃºdo baseado na tab */}
         {activeTab === 'ips' && data?.suspiciousIps && (
           <div className="space-y-6">
             {data.suspiciousIps.length === 0 ? (
               <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-8 text-center">
                 <p className="text-green-700 dark:text-green-300 text-lg">
-                  ✅ Nenhum IP suspeito detectado
+                  âœ… Nenhum IP suspeito detectado
                 </p>
               </div>
             ) : (
@@ -207,14 +206,14 @@ export default function AdminAbuse() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-bold text-red-800 dark:text-red-200">
-                        🌐 IP: {group.ip}
+                        ðŸŒ IP: {group.ip}
                       </h3>
                       <p className="text-sm text-red-600 dark:text-red-400">
                         {group.count} contas criadas neste IP
                       </p>
                     </div>
                     <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                      ⚠️ SUSPEITO
+                      âš ï¸ SUSPEITO
                     </span>
                   </div>
                   <div className="grid gap-2">
@@ -232,10 +231,10 @@ export default function AdminAbuse() {
                             {user.username} {user.isBanned && '(BANIDO)'}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {user.email || 'Sem email'} • {user.plan} • Gerações grátis: {user.freeGenerationsUsed}
+                            {user.email || 'Sem email'} â€¢ {user.plan} â€¢ GeraÃ§Ãµes grÃ¡tis: {user.freeGenerationsUsed}
                           </p>
                           <p className="text-xs text-gray-400">
-                            Criado: {format(new Date(user.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            Criado: {format(new Date(user.createdAt), "dd/MM/yyyy 'Ã s' HH:mm", { locale: ptBR })}
                           </p>
                         </div>
                         {!user.isBanned && (
@@ -260,7 +259,7 @@ export default function AdminAbuse() {
             {data.suspiciousFingerprints.length === 0 ? (
               <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-8 text-center">
                 <p className="text-green-700 dark:text-green-300 text-lg">
-                  ✅ Nenhum dispositivo suspeito detectado
+                  âœ… Nenhum dispositivo suspeito detectado
                 </p>
               </div>
             ) : (
@@ -269,14 +268,14 @@ export default function AdminAbuse() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-lg font-bold text-orange-800 dark:text-orange-200">
-                        📱 Dispositivo: {group.fingerprint}
+                        ðŸ“± Dispositivo: {group.fingerprint}
                       </h3>
                       <p className="text-sm text-orange-600 dark:text-orange-400">
                         {group.count} contas neste dispositivo
                       </p>
                     </div>
                     <span className="bg-orange-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                      ⚠️ SUSPEITO
+                      âš ï¸ SUSPEITO
                     </span>
                   </div>
                   <div className="grid gap-2">
@@ -294,10 +293,10 @@ export default function AdminAbuse() {
                             {user.username} {user.isBanned && '(BANIDO)'}
                           </p>
                           <p className="text-sm text-gray-500">
-                            {user.email || 'Sem email'} • {user.plan} • IP: {user.registrationIp || 'N/A'}
+                            {user.email || 'Sem email'} â€¢ {user.plan} â€¢ IP: {user.registrationIp || 'N/A'}
                           </p>
                           <p className="text-xs text-gray-400">
-                            Criado: {format(new Date(user.createdAt), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                            Criado: {format(new Date(user.createdAt), "dd/MM/yyyy 'Ã s' HH:mm", { locale: ptBR })}
                           </p>
                         </div>
                         {!user.isBanned && (
@@ -332,13 +331,13 @@ export default function AdminAbuse() {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Usuário</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">UsuÃ¡rio</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">IP Registro</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Último IP</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ãšltimo IP</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Fingerprint</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Plano</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">Ações</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">AÃ§Ãµes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -389,17 +388,17 @@ export default function AdminAbuse() {
           </div>
         )}
 
-        {/* Botão de atualizar */}
+        {/* BotÃ£o de atualizar */}
         <div className="mt-6 text-center">
           <button
             onClick={loadData}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
           >
-            🔄 Atualizar Dados
+            ðŸ”„ Atualizar Dados
           </button>
         </div>
       </div>
-    </Layout>
+    </>
   )
 }
 

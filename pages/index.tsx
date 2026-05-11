@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import axios from 'axios'
-import Logo from '@/components/Logo'
 
 interface Feedback {
   id: string
@@ -11,9 +10,7 @@ interface Feedback {
   message: string
   rating: number | null
   createdAt: string
-  user: {
-    username: string
-  } | null
+  user: { username: string } | null
 }
 
 type PlanPopup = {
@@ -23,53 +20,45 @@ type PlanPopup = {
   emoji: string
 }
 
+const PARTNERS = ['Netflix', 'Spotify', 'Disney+', 'HBO Max', 'Paramount+', 'Crunchyroll', 'Prime Video', 'Apple TV+', 'YouTube Premium', 'Deezer', 'Tidal', 'Adobe CC']
+
 export default function Home() {
   const { t, locale } = useTranslation()
   const { translate } = useDynamicTranslation()
   const { data: session } = useSession()
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([])
   const [translatedFeedbacks, setTranslatedFeedbacks] = useState<Record<string, string>>({})
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
-  const [scrollY, setScrollY] = useState(0)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.5 })
 
   const stats = [
-    { value: '25k+', label: t('metricsUsers'), desc: t('metricsUsersDesc') },
-    { value: '480k+', label: t('metricsAccounts'), desc: t('metricsAccountsDesc') },
-    { value: '99,98%', label: t('metricsUptime'), desc: t('metricsUptimeDesc') },
-    { value: '<5min', label: t('metricsSupport'), desc: t('metricsSupportDesc') }
+    { value: '25K+',   label: t('metricsUsers'),    desc: t('metricsUsersDesc') },
+    { value: '480K+',  label: t('metricsAccounts'), desc: t('metricsAccountsDesc') },
+    { value: '99.98%', label: t('metricsUptime'),   desc: t('metricsUptimeDesc') },
+    { value: '<5min',  label: t('metricsSupport'),  desc: t('metricsSupportDesc') }
   ]
-
-  const partners = ['Netflix', 'Spotify', 'Disney+', 'HBO Max', 'Paramount+', 'Crunchyroll']
 
   const features = [
-    { icon: '⚡', title: t('fastInstant'), desc: t('fastInstantDesc'), color: 'from-yellow-400 to-orange-500' },
-    { icon: '🔒', title: t('secure100'), desc: t('secure100Desc'), color: 'from-green-400 to-emerald-500' },
-    { icon: '🎯', title: t('multipleServices'), desc: t('multipleServicesDesc'), color: 'from-blue-400 to-cyan-500' },
-    { icon: '💎', title: t('premiumQuality'), desc: t('premiumQualityDesc'), color: 'from-purple-400 to-pink-500' },
-    { icon: '🛰️', title: t('support247'), desc: t('support247Desc'), color: 'from-indigo-400 to-purple-500' },
-    { icon: '🎁', title: t('freePlan'), desc: t('freePlanDesc'), color: 'from-pink-400 to-rose-500' }
-  ]
-
-  const liveHighlights = [
-    { value: '18ms', label: t('metricsLatency') },
-    { value: '32+', label: t('metricsCountries') },
-    { value: '4.9k', label: t('availableStocks') }
+    { icon: '⚡', title: t('fastInstant'),        desc: t('fastInstantDesc'),       accent: 'from-amber-400/30 to-rose-500/20',   border: 'border-amber-400/30' },
+    { icon: '🔒', title: t('secure100'),          desc: t('secure100Desc'),         accent: 'from-emerald-400/30 to-teal-500/20', border: 'border-emerald-400/30' },
+    { icon: '🎯', title: t('multipleServices'),   desc: t('multipleServicesDesc'),  accent: 'from-cyan-400/30 to-blue-500/20',    border: 'border-cyan-400/30' },
+    { icon: '💎', title: t('premiumQuality'),     desc: t('premiumQualityDesc'),    accent: 'from-fuchsia-400/30 to-violet-500/20', border: 'border-fuchsia-400/30' },
+    { icon: '🛰️', title: t('support247'),         desc: t('support247Desc'),        accent: 'from-indigo-400/30 to-purple-500/20', border: 'border-indigo-400/30' },
+    { icon: '🎁', title: t('freePlan'),           desc: t('freePlanDesc'),          accent: 'from-pink-400/30 to-rose-500/20',     border: 'border-pink-400/30' }
   ]
 
   const steps = [
-    { number: '01', title: t('workflowStep1Title'), desc: t('workflowStep1Desc'), icon: '🚀' },
-    { number: '02', title: t('workflowStep2Title'), desc: t('workflowStep2Desc'), icon: '⚙️' },
-    { number: '03', title: t('workflowStep3Title'), desc: t('workflowStep3Desc'), icon: '✨' }
+    { number: '01', title: t('workflowStep1Title'), desc: t('workflowStep1Desc') },
+    { number: '02', title: t('workflowStep2Title'), desc: t('workflowStep2Desc') },
+    { number: '03', title: t('workflowStep3Title'), desc: t('workflowStep3Desc') }
   ]
 
   const planPopups = useMemo<PlanPopup[]>(() => ([
-    { name: 'Luan', planKey: 'planMonthly', price: 'R$ 12,50', emoji: '🔥' },
-    { name: 'Priscila', planKey: 'planDaily', price: 'R$ 5,00', emoji: '⚡' },
-    { name: 'Yuri', planKey: 'planLifetime', price: 'R$ 20,00', emoji: '🎯' },
-    { name: 'Camila', planKey: 'planMonthly', price: 'R$ 12,50', emoji: '🚀' },
-    { name: 'Rafael', planKey: 'planDaily', price: 'R$ 5,00', emoji: '💥' },
-    { name: 'Ana', planKey: 'planLifetime', price: 'R$ 20,00', emoji: '💎' }
+    { name: 'Luan',     planKey: 'planMonthly',  price: 'R$ 12,50', emoji: '🔥' },
+    { name: 'Priscila', planKey: 'planDaily',    price: 'R$ 5,00',  emoji: '⚡' },
+    { name: 'Yuri',     planKey: 'planLifetime', price: 'R$ 20,00', emoji: '🎯' },
+    { name: 'Camila',   planKey: 'planMonthly',  price: 'R$ 12,50', emoji: '🚀' },
+    { name: 'Rafael',   planKey: 'planDaily',    price: 'R$ 5,00',  emoji: '💥' },
+    { name: 'Ana',      planKey: 'planLifetime', price: 'R$ 20,00', emoji: '💎' }
   ]), [locale])
 
   const [currentPopup, setCurrentPopup] = useState<PlanPopup>(planPopups[0])
@@ -79,28 +68,20 @@ export default function Home() {
   useEffect(() => {
     axios.get('/api/feedback')
       .then(response => setFeedbacks(response.data.slice(0, 3)))
-      .catch(() => { })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
     if (feedbacks.length > 0 && locale === 'en') {
-      const translateFeedbacks = async () => {
+      ;(async () => {
         const translations: Record<string, string> = {}
-        for (const feedback of feedbacks) {
-          if (feedback.message) {
-            try {
-              const translated = await translate(feedback.message)
-              translations[feedback.id] = translated
-            } catch (error) {
-              translations[feedback.id] = feedback.message
-            }
+        for (const f of feedbacks) {
+          if (f.message) {
+            try { translations[f.id] = await translate(f.message) } catch { translations[f.id] = f.message }
           }
         }
-        if (Object.keys(translations).length > 0) {
-          setTranslatedFeedbacks(translations)
-        }
-      }
-      translateFeedbacks()
+        if (Object.keys(translations).length > 0) setTranslatedFeedbacks(translations)
+      })()
     } else if (locale !== 'en') {
       setTranslatedFeedbacks({})
     }
@@ -115,482 +96,274 @@ export default function Home() {
         setPopupVisible(true)
       }, 250)
     }, 6000)
-
     return () => {
       clearInterval(interval)
-      if (popupTimeoutRef.current) {
-        clearTimeout(popupTimeoutRef.current)
-      }
+      if (popupTimeoutRef.current) clearTimeout(popupTimeoutRef.current)
     }
   }, [planPopups])
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY })
+    const handleMove = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight })
     }
-    const handleScroll = () => {
-      setScrollY(window.scrollY)
-    }
-
-    window.addEventListener('mousemove', handleMouseMove)
-    window.addEventListener('scroll', handleScroll)
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('scroll', handleScroll)
-    }
+    window.addEventListener('mousemove', handleMove)
+    return () => window.removeEventListener('mousemove', handleMove)
   }, [])
 
   return (
-    <div className="relative min-h-screen bg-[#000000] text-white overflow-hidden">
-      {/* Advanced Background with Mouse Tracking */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div 
-          className="absolute w-[1200px] h-[800px] bg-[radial-gradient(circle,rgba(79,70,229,0.2)_0%,transparent_70%)] blur-[150px] transition-all duration-1000 ease-out hidden sm:block"
-          style={{
-            transform: `translate(${(mousePosition.x - 600) * 0.02}px, ${(mousePosition.y - 400) * 0.02}px)`,
-            left: `${mousePosition.x - 600}px`,
-            top: `${mousePosition.y - 400}px`
-          }}
-        />
-        <div 
-          className="absolute w-[1000px] h-[600px] bg-[radial-gradient(circle,rgba(236,72,153,0.15)_0%,transparent_70%)] blur-[120px] transition-all duration-1000 ease-out hidden sm:block"
-          style={{
-            transform: `translate(${(mousePosition.x - 500) * -0.01}px, ${(mousePosition.y - 300) * -0.01}px)`,
-            right: `${500 - mousePosition.x}px`,
-            bottom: `${300 - mousePosition.y}px`
-          }}
-        />
-        <div 
-          className="absolute w-[800px] h-[800px] bg-[radial-gradient(circle,rgba(59,130,246,0.1)_0%,transparent_70%)] blur-[100px] transition-all duration-1000 ease-out hidden sm:block"
-          style={{
-            transform: `translate(${(mousePosition.x - 400) * 0.015}px, ${(mousePosition.y - 400) * 0.015}px)`,
-            left: `${mousePosition.x * 0.1}px`,
-            bottom: `${mousePosition.y * 0.1}px`
-          }}
-        />
-        <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))]" />
-        
-        {/* Floating particles effect */}
-        <div className="absolute inset-0">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-white/20 rounded-full animate-float hidden sm:block"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 5}s`,
-                animationDuration: `${3 + Math.random() * 4}s`
-              }}
-            />
-          ))}
+    <div className="relative">
+      {/* HERO */}
+      <section className="relative isolate overflow-hidden pt-16 sm:pt-24 pb-20 sm:pb-28">
+        {/* Aurora ambient overlay */}
+        <div className="pointer-events-none absolute inset-0 -z-10">
+          <div
+            className="absolute h-[700px] w-[700px] rounded-full bg-aurora-violet/25 blur-[140px] transition-transform duration-700"
+            style={{ top: `${10 + mousePos.y * 8}%`, left: `${5 + mousePos.x * 8}%` }}
+          />
+          <div
+            className="absolute h-[600px] w-[600px] rounded-full bg-aurora-cyan/20 blur-[140px] transition-transform duration-700"
+            style={{ top: `${20 - mousePos.y * 6}%`, right: `${5 - mousePos.x * 6}%` }}
+          />
+          <div className="absolute inset-0 bg-grid" />
         </div>
-      </div>
 
-      {/* Mobile-Optimized Navigation */}
-      <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-black/30 backdrop-blur-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-3 group">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur-sm opacity-75 group-hover:opacity-100 transition-opacity" />
-              <Logo size="sm" showText={false} />
-            </div>
-            <span className="font-bold text-lg sm:text-xl tracking-tight">
-              Kaizen<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Gens</span>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 backdrop-blur-md animate-fade-up">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-aurora-mint opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-aurora-mint" />
             </span>
-          </div>
-          
-          {/* Desktop Navigation */}
-          <div className="hidden sm:flex items-center gap-3">
-            {!session && (
-              <>
-                <Link href="/login" className="text-sm font-medium text-white/70 hover:text-white transition-all duration-300 hover:scale-105">
-                  {t('signIn')}
-                </Link>
-                <Link href="/register" className="text-sm font-medium bg-gradient-to-r from-white to-gray-200 text-black px-4 sm:px-6 py-2.5 rounded-full hover:shadow-lg hover:shadow-white/20 transition-all duration-300 hover:scale-105">
-                  {t('signUp')}
-                </Link>
-              </>
-            )}
-            {session && (
-              <Link href="/dashboard" className="text-sm font-medium bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 sm:px-6 py-2.5 rounded-full hover:shadow-lg hover:shadow-indigo-500/50 transition-all duration-300 hover:scale-105">
-                {t('dashboard')}
-              </Link>
-            )}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button 
-            className="sm:hidden p-2 rounded-lg glass-panel border border-white/10"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            <div className="w-6 h-6 flex flex-col justify-center items-center">
-              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMobileMenuOpen ? 'rotate-45 translate-y-1' : '-translate-y-0.5'}`}></span>
-              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm my-0.5 ${isMobileMenuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
-              <span className={`bg-white block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm ${isMobileMenuOpen ? '-rotate-45 -translate-y-1' : 'translate-y-0.5'}`}></span>
-            </div>
-          </button>
-        </div>
-
-        {/* Mobile Menu */}
-        <div className={`sm:hidden absolute top-16 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10 transition-all duration-300 ${isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-          <div className="p-4 space-y-3">
-            {!session && (
-              <>
-                <Link href="/login" className="block w-full text-center py-3 px-4 rounded-xl glass-panel border border-white/10 text-white font-medium">
-                  {t('signIn')}
-                </Link>
-                <Link href="/register" className="block w-full text-center py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold">
-                  {t('signUp')}
-                </Link>
-              </>
-            )}
-            {session && (
-              <Link href="/dashboard" className="block w-full text-center py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold">
-                {t('dashboard')}
-              </Link>
-            )}
-            <div className="pt-3 border-t border-white/10">
-              <Link href="/plans" className="block py-2 text-white/70 hover:text-white">Planos</Link>
-              <Link href="/api-docs" className="block py-2 text-white/70 hover:text-white">API Docs</Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero Section with Mobile Optimization */}
-      <main className="relative z-10 pt-24 sm:pt-40 pb-16 sm:pb-32 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs sm:text-sm font-medium mb-6 sm:mb-10 animate-pulse">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/85">
+              {locale === 'pt-BR' ? 'Plataforma #1 do mundo' : t('heroBadge')}
             </span>
-            {locale === 'pt-BR' ? 'MAIOR gerador de contas do PLANETA' : t('heroBadge')}
+            <span className="text-[11px] text-white/40">•</span>
+            <span className="text-[11px] font-medium text-white/55">+25k membros ativos</span>
           </div>
 
-          <div className="mb-8 sm:mb-12">
-            <h1 className="text-4xl sm:text-6xl lg:text-8xl font-bold tracking-tight mb-4 sm:mb-6 leading-[1.05]">
-              <span className="block bg-gradient-to-br from-white to-gray-300 bg-clip-text text-transparent">
-                {locale === 'pt-BR' ? 'Somos o MAIOR' : t('heroSubtitle')}
-              </span>
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 animate-gradient bg-[length:200%_auto]">
-                {locale === 'pt-BR' ? 'gerador de contas do planeta' : 'Account Generator'}
-              </span>
-            </h1>
+          <h1 className="mt-8 text-display text-[clamp(2.5rem,9vw,8.5rem)] font-extrabold text-balance animate-fade-up delay-100">
+            <span className="text-gradient block">
+              {locale === 'pt-BR' ? 'O maior gerador' : t('heroSubtitle')}
+            </span>
+            <span className="text-gradient-aurora block">
+              {locale === 'pt-BR' ? 'do planeta.' : 'on the planet.'}
+            </span>
+          </h1>
+
+          <p className="mx-auto mt-7 max-w-2xl text-pretty text-base sm:text-lg text-white/65 leading-relaxed animate-fade-up delay-200">
+            {locale === 'pt-BR'
+              ? 'Operação 24/7 em escala global. Centenas de milhares de credenciais premium geradas com qualidade absurda e latência abaixo de 18ms.'
+              : t('heroTrustedBy')}
+          </p>
+
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-up delay-300">
+            <Link
+              href={session ? '/dashboard' : '/register'}
+              className="btn btn-primary btn-lg group"
+            >
+              {session ? t('dashboard') : t('startNow')}
+              <svg className="ml-1 h-4 w-4 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 12h14M13 5l7 7-7 7" />
+              </svg>
+            </Link>
+            <Link href="/plans" className="btn btn-ghost btn-lg">
+              {t('viewPlans')}
+            </Link>
+            <Link href="/api-docs" className="btn btn-ghost btn-lg text-aurora-cyan border-aurora-cyan/30 hover:border-aurora-cyan/60">
+              <span className="font-mono text-xs">{`</>`}</span>
+              API Docs
+            </Link>
           </div>
 
-          <div className="max-w-2xl sm:max-w-4xl mx-auto mb-12 sm:mb-16">
-            <p className="text-base sm:text-xl text-gray-300 leading-relaxed px-4">
-              {locale === 'pt-BR' ? 'Operação 24/7 em escala global. Centenas de milhares de credenciais geradas com qualidade premium.' : t('heroTrustedBy')}
+          {/* Marquee partners */}
+          <div className="relative mt-20 sm:mt-24">
+            <div className="mb-5 flex items-center justify-center gap-3">
+              <span className="h-px w-16 bg-gradient-to-r from-transparent to-white/20" />
+              <span className="eyebrow">Trusted across platforms</span>
+              <span className="h-px w-16 bg-gradient-to-l from-transparent to-white/20" />
+            </div>
+            <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_15%,#000_85%,transparent)]">
+              <div className="marquee-track">
+                {[...PARTNERS, ...PARTNERS].map((p, i) => (
+                  <div key={i} className="flex items-center gap-2 shrink-0">
+                    <span className="inline-block h-1 w-1 rounded-full bg-white/30" />
+                    <span className="text-display text-2xl sm:text-3xl font-bold text-white/30 hover:text-white/80 transition-colors whitespace-nowrap">
+                      {p}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Stat strip */}
+          <div className="mt-20 sm:mt-28 grid grid-cols-2 lg:grid-cols-4 gap-px overflow-hidden rounded-3xl bg-white/[0.06] ring-1 ring-white/10">
+            {stats.map((s, i) => (
+              <div
+                key={i}
+                className="bg-[#06060c]/85 p-6 sm:p-10 text-left animate-fade-up"
+                style={{ animationDelay: `${0.3 + i * 0.1}s` }}
+              >
+                <p className="num-display text-4xl sm:text-6xl text-white">{s.value}</p>
+                <p className="mt-3 text-sm font-semibold text-aurora-violet">{s.label}</p>
+                <p className="mt-1.5 text-xs sm:text-sm text-white/55">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section className="relative py-20 sm:py-32">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-14 sm:mb-20 text-center">
+            <p className="eyebrow">{locale === 'pt-BR' ? 'Por que somos #1' : 'Why we are #1'}</p>
+            <h2 className="mt-3 text-display text-4xl sm:text-6xl font-bold text-gradient">
+              {locale === 'pt-BR' ? 'Engenharia obsessiva' : 'Obsessive engineering'}
+            </h2>
+            <p className="mx-auto mt-5 max-w-2xl text-base sm:text-lg text-white/60">
+              {locale === 'pt-BR' ? 'Cada detalhe foi pensado para entregar a melhor experiência possível em geração de contas.' : 'Every detail engineered for the best generation experience possible.'}
             </p>
           </div>
 
-          {/* Mobile-Optimized CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-6 mb-16 sm:mb-24">
-            <Link
-              href={session ? '/dashboard' : '/register'}
-              className="group relative overflow-hidden w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-5 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-base sm:text-lg hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-500 hover:scale-105"
-            >
-              <span className="relative z-10">{session ? t('dashboard') : t('startNow')}</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            </Link>
-            <Link
-              href="/plans"
-              className="group relative overflow-hidden w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-5 rounded-full glass-panel border border-white/20 hover:border-white/40 transition-all duration-500 hover:scale-105 font-semibold text-base sm:text-lg"
-            >
-              <span className="relative z-10">{t('viewPlans')}</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            </Link>
-            <Link
-              href="/api-docs"
-              className="group relative overflow-hidden w-full sm:w-auto px-6 sm:px-10 py-3 sm:py-5 rounded-full glass-panel border border-indigo-500/30 hover:border-indigo-500/60 transition-all duration-500 hover:scale-105 font-semibold text-base sm:text-lg text-indigo-200"
-            >
-              <span className="relative z-10">API Docs</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            </Link>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+            {features.map((f, i) => (
+              <article
+                key={i}
+                className="surface-card spotlight group relative overflow-hidden p-7 sm:p-8 transition-all hover:-translate-y-1"
+                style={{ animationDelay: `${i * 0.05}s` }}
+                onMouseMove={(e) => {
+                  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                  ;(e.currentTarget as HTMLElement).style.setProperty('--mx', `${e.clientX - r.left}px`)
+                  ;(e.currentTarget as HTMLElement).style.setProperty('--my', `${e.clientY - r.top}px`)
+                }}
+              >
+                <div className={`absolute -right-12 -top-12 h-44 w-44 rounded-full bg-gradient-to-br ${f.accent} blur-3xl opacity-50 group-hover:opacity-90 transition-opacity duration-500`} />
+                <div className={`relative inline-flex h-12 w-12 items-center justify-center rounded-2xl border ${f.border} bg-white/[0.03] text-2xl backdrop-blur-md`}>
+                  {f.icon}
+                </div>
+                <h3 className="relative mt-6 text-display text-2xl font-bold text-white">{f.title}</h3>
+                <p className="relative mt-3 text-[15px] leading-relaxed text-white/60">{f.desc}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* WORKFLOW */}
+      <section className="relative py-20 sm:py-32">
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-grid-fine opacity-40" />
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mb-14 sm:mb-20 text-center">
+            <p className="eyebrow">Processo</p>
+            <h2 className="mt-3 text-display text-4xl sm:text-6xl font-bold text-gradient">
+              {locale === 'pt-BR' ? 'Três passos, infinitas contas' : 'Three steps, infinite accounts'}
+            </h2>
           </div>
 
-          {/* Mobile-Optimized Partners Grid */}
-          <div className="max-w-6xl mx-auto mb-20 sm:mb-32">
-            <p className="text-xs sm:text-sm text-gray-400 mb-4 sm:mb-8 tracking-widest uppercase">Trusted by Industry Leaders</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 sm:gap-6">
-              {partners.map((p, i) => (
-                <div key={i} className="group relative">
-                  <div className="glass-panel px-3 sm:px-6 py-2 sm:py-4 rounded-xl sm:rounded-2xl border border-white/10 text-center hover:border-white/20 transition-all duration-500 hover:-translate-y-1">
-                    <div className="text-xs sm:text-sm text-gray-300 group-hover:text-white transition-colors">{p}</div>
-                  </div>
-                  <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+          <div className="relative grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Connection line */}
+            <div className="pointer-events-none absolute left-1/2 top-12 hidden h-px w-[70%] -translate-x-1/2 bg-gradient-to-r from-transparent via-aurora-violet/40 to-transparent md:block" />
+            {steps.map((s, i) => (
+              <div key={i} className="surface-card relative p-7 sm:p-9">
+                <div className="flex items-center gap-3">
+                  <span className="num-display text-5xl text-gradient-aurora">{s.number}</span>
+                  <span className="h-px flex-1 bg-gradient-to-r from-aurora-violet/40 to-transparent" />
                 </div>
+                <h3 className="mt-5 text-display text-xl sm:text-2xl font-bold text-white">{s.title}</h3>
+                <p className="mt-3 text-[15px] text-white/60">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS */}
+      {feedbacks.length > 0 && (
+        <section className="relative py-20 sm:py-28">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mb-14 text-center">
+              <p className="eyebrow">Reviews</p>
+              <h2 className="mt-3 text-display text-4xl sm:text-5xl font-bold text-gradient">
+                Amado por milhares
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {feedbacks.map((f) => (
+                <article key={f.id} className="surface-card p-7">
+                  <div className="flex items-center gap-1 text-aurora-gold">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                      <svg key={idx} viewBox="0 0 20 20" fill={idx < (f.rating ?? 5) ? 'currentColor' : 'rgba(255,255,255,0.12)'} className="h-4 w-4">
+                        <path d="M10 1.5l2.6 5.3 5.9.9-4.3 4.1 1 5.9L10 14.9 4.8 17.7l1-5.9L1.5 7.7l5.9-.9L10 1.5z" />
+                      </svg>
+                    ))}
+                  </div>
+                  <p className="mt-4 text-[15px] leading-relaxed text-white/80">
+                    "{translatedFeedbacks[f.id] || f.message}"
+                  </p>
+                  <div className="mt-5 flex items-center gap-3">
+                    <span className="relative inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-full">
+                      <span className="absolute inset-0 bg-gradient-to-br from-aurora-violet via-aurora-magenta to-aurora-cyan" />
+                      <span className="absolute inset-[1.5px] rounded-full bg-[#0a0a13]" />
+                      <span className="relative text-xs font-bold text-white">
+                        {(f.user?.username || f.name)?.charAt(0).toUpperCase()}
+                      </span>
+                    </span>
+                    <div className="leading-tight">
+                      <p className="text-sm font-semibold text-white">{f.user?.username || f.name}</p>
+                      <p className="text-[11px] uppercase tracking-wider text-white/40">Verified user</p>
+                    </div>
+                  </div>
+                </article>
               ))}
             </div>
           </div>
+        </section>
+      )}
 
-          {/* Mobile-Optimized Stats Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 max-w-6xl mx-auto">
-            {stats.map((stat, i) => (
-              <div key={i} className="group relative">
-                <div className="glass-card p-6 sm:p-10 rounded-2xl sm:rounded-3xl text-center border border-white/10 hover:border-indigo-500/40 transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl hover:shadow-indigo-500/20">
-                  <div className="text-2xl sm:text-4xl font-bold text-white mb-1 sm:mb-2 group-hover:scale-110 transition-transform duration-300">{stat.value}</div>
-                  <div className="text-indigo-300 font-bold text-sm sm:text-lg">{stat.label}</div>
-                  <p className="text-gray-400 text-xs sm:text-sm mt-2 sm:mt-3">{stat.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="mt-12 sm:mt-16">
-            <Link
-              href="/plans"
-              className="group inline-flex items-center gap-3 px-6 sm:px-10 py-3 sm:py-4 rounded-full bg-white/10 text-white font-semibold border border-white/10 hover:bg-white/20 hover:border-white/30 transition-all duration-500 hover:scale-105"
-            >
-              <span>Ver planos agora</span>
-              <span className="group-hover:translate-x-1 transition-transform duration-300">→</span>
-            </Link>
-          </div>
-        </div>
-      </main>
-
-      {/* Enhanced Features Section - Mobile Optimized */}
-      <section className="py-16 sm:py-32 relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12 sm:mb-24">
-            <h2 className="text-3xl sm:text-5xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-              Por que somos #1
+      {/* CTA */}
+      <section className="relative py-20 sm:py-32">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+          <div className="relative overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-aurora-violet/15 via-aurora-magenta/10 to-aurora-cyan/15 p-10 sm:p-16 text-center">
+            <div className="pointer-events-none absolute -inset-px -z-10">
+              <div className="absolute -left-20 top-0 h-80 w-80 rounded-full bg-aurora-violet/40 blur-3xl animate-pulse-glow" />
+              <div className="absolute -right-20 bottom-0 h-80 w-80 rounded-full bg-aurora-cyan/30 blur-3xl animate-pulse-glow" style={{ animationDelay: '1s' }} />
+            </div>
+            <p className="eyebrow">Ready when you are</p>
+            <h2 className="mt-3 text-display text-4xl sm:text-6xl font-bold text-gradient">
+              {locale === 'pt-BR' ? 'Pronto para gerar em nível planetário?' : t('readyToStart')}
             </h2>
-            <p className="text-lg sm:text-xl text-gray-400 max-w-2xl mx-auto">
-              Tecnologia de ponta combinada com experiência superior
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
-            {features.map((feature, i) => (
-              <div key={i} className="group relative">
-                <div className="glass-card p-6 sm:p-10 rounded-2xl sm:rounded-3xl border border-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-2 overflow-hidden">
-                  <div className={`w-12 sm:w-16 h-12 sm:h-16 rounded-xl sm:rounded-2xl bg-gradient-to-r ${feature.color} flex items-center justify-center text-xl sm:text-3xl mb-6 sm:mb-8 group-hover:scale-110 transition-transform duration-500 shadow-lg`}>
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-lg sm:text-2xl font-bold mb-3 sm:mb-4 text-gray-100 group-hover:text-white transition-colors">{feature.title}</h3>
-                  <p className="text-gray-400 leading-relaxed group-hover:text-gray-300 transition-colors text-sm sm:text-base">
-                    {feature.desc}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <div className="mt-12 sm:mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            <div className="group relative overflow-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 hover:border-indigo-500/50 transition-all duration-500">
-              <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <p className="text-sm text-indigo-300 mb-2 sm:mb-3 font-semibold">Diferencial</p>
-              <h4 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">Atividade constante</h4>
-              <p className="text-gray-300 text-sm sm:text-base">Infra confiável e filas otimizadas para gerar credenciais em ritmo de produção, o dia todo.</p>
-            </div>
-            <div className="group relative overflow-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 hover:border-emerald-500/50 transition-all duration-500">
-              <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <p className="text-sm text-emerald-300 mb-2 sm:mb-3 font-semibold">Escala</p>
-              <h4 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">Operação global</h4>
-              <p className="text-gray-300 text-sm sm:text-base">Latência baixa e disponibilidade alta, atendendo usuários em dezenas de países.</p>
-            </div>
-            <div className="group relative overflow-hidden p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-pink-500/20 to-purple-500/20 border border-pink-500/30 hover:border-pink-500/50 transition-all duration-500">
-              <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <p className="text-sm text-pink-300 mb-2 sm:mb-3 font-semibold">Qualidade</p>
-              <h4 className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">UX premium</h4>
-              <p className="text-gray-300 text-sm sm:text-base">Experiência refinada com design moderno, animações sutis e foco em conversão.</p>
+            <p className="mx-auto mt-5 max-w-xl text-base sm:text-lg text-white/65">{t('readyToStartDesc')}</p>
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link href="/register" className="btn btn-primary btn-lg">{t('createFreeAccount')}</Link>
+              <Link href="/plans" className="btn btn-ghost btn-lg">{t('viewPlans')}</Link>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Enhanced Workflow Section - Mobile Optimized */}
-      <section className="py-16 sm:py-32 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/10 via-purple-900/10 to-pink-900/10 skew-y-3 transform origin-bottom-left" />
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative">
-          <div className="text-center mb-12 sm:mb-24">
-            <h2 className="text-3xl sm:text-5xl font-bold mb-4 sm:mb-6">{t('workflowDesc')}</h2>
-            <div className="h-1 w-16 sm:w-24 bg-gradient-to-r from-indigo-500 to-purple-500 mx-auto rounded-full" />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-12">
-            {steps.map((step, i) => (
-              <div key={i} className="group relative text-center">
-                <div className="glass-panel p-8 sm:p-12 rounded-2xl sm:rounded-3xl h-full border border-white/10 hover:border-white/20 transition-all duration-500">
-                  <div className="text-4xl sm:text-6xl mb-6 sm:mb-6 group-hover:scale-110 transition-transform duration-500">{step.icon}</div>
-                  <span className="text-5xl sm:text-7xl font-bold text-white/10 absolute top-4 right-4 sm:top-6 sm:right-6 select-none">
-                    {step.number}
-                  </span>
-                  <h4 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6 text-indigo-300">{step.title}</h4>
-                  <p className="text-gray-400 text-sm sm:text-lg leading-relaxed">{step.desc}</p>
-                </div>
-                {i < steps.length - 1 && (
-                  <div className="hidden lg:block absolute top-1/2 -right-6 w-12 h-px bg-gradient-to-r from-indigo-500 to-transparent" />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Enhanced CTA Section - Mobile Optimized */}
-      <section className="py-16 sm:py-32 px-4 sm:px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="glass-card rounded-[2rem] sm:rounded-[3rem] p-8 sm:p-16 text-center relative overflow-hidden group">
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.05)_0%,transparent_50%)]" />
-            <div className="relative z-10">
-              <h2 className="text-3xl sm:text-6xl font-bold mb-4 sm:mb-8 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                {locale === 'pt-BR' ? 'Pronto para gerar em nível planetário?' : t('readyToStart')}
-              </h2>
-              <p className="text-base sm:text-xl text-gray-400 mb-6 sm:mb-12 max-w-xl mx-auto">{t('readyToStartDesc')}</p>
-              <div className="flex flex-col sm:flex-row justify-center gap-3 sm:gap-6">
-                <Link href="/register" className="group relative overflow-hidden px-6 sm:px-12 py-3 sm:py-5 rounded-full bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-bold text-base sm:text-xl hover:shadow-2xl hover:shadow-purple-500/50 transition-all duration-500">
-                  <span className="relative z-10">{t('createFreeAccount')}</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                </Link>
-                <Link href="/contact" className="group relative overflow-hidden px-6 sm:px-12 py-3 sm:py-5 rounded-full glass-panel border border-white/20 hover:border-white/40 transition-all duration-500 font-semibold text-base sm:text-xl">
-                  <span className="relative z-10">Falar com especialista</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Enhanced Popup Notifications - Mobile Optimized */}
+      {/* Floating live notification */}
       {currentPopup && (
-        <div className={`fixed bottom-4 sm:bottom-8 left-4 sm:left-8 z-50 transition-all duration-700 transform ${popupVisible ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-          <div className="glass-panel pl-3 sm:pl-4 pr-4 sm:pr-8 py-2 sm:py-4 rounded-xl sm:rounded-2xl flex items-center gap-3 sm:gap-5 shadow-2xl border border-white/10 hover:border-white/20 transition-all duration-500">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-full blur-sm" />
-              <div className="w-8 sm:w-12 h-8 sm:h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-base sm:text-xl shadow-lg relative">
-                {currentPopup.emoji}
-              </div>
-            </div>
-            <div>
-              <p className="text-sm sm:text-base font-semibold text-white">
-                <span className="font-bold text-indigo-300">{currentPopup.name}</span> {t('popupUserActivated')}
+        <div
+          className={`fixed bottom-5 left-5 z-30 transition-all duration-500 ${
+            popupVisible ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'
+          }`}
+        >
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[rgba(12,12,21,0.85)] py-2.5 pl-2.5 pr-5 backdrop-blur-xl shadow-2xl">
+            <span className="relative inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl">
+              <span className="absolute inset-0 bg-gradient-to-br from-aurora-violet to-aurora-magenta" />
+              <span className="relative text-base">{currentPopup.emoji}</span>
+            </span>
+            <div className="leading-tight">
+              <p className="text-sm font-semibold text-white">
+                <span className="text-aurora-violet">{currentPopup.name}</span> {t('popupUserActivated')}
               </p>
-              <p className="text-xs sm:text-sm text-gray-400">
-                {t(currentPopup.planKey)} • <span className="text-emerald-400 font-semibold">{currentPopup.price}</span>
+              <p className="text-[11px] text-white/55">
+                {t(currentPopup.planKey)} · <span className="text-aurora-mint font-semibold">{currentPopup.price}</span>
               </p>
             </div>
           </div>
         </div>
       )}
-
-      {/* Enhanced Footer - Mobile Optimized */}
-      <footer className="py-8 sm:py-16 text-center text-gray-600 text-sm border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Logo size="sm" showText={false} />
-            <span className="font-bold text-base sm:text-lg text-gray-400">Kaizen Gens</span>
-          </div>
-          <p>&copy; {new Date().getFullYear()} Kaizen Gens. All rights reserved.</p>
-          <p className="mt-2 text-xs sm:text-sm text-gray-600">The future of account generation is here.</p>
-        </div>
-      </footer>
-
-      <style jsx>{`
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-        
-        .animate-gradient {
-          animation: gradient 3s ease infinite;
-        }
-        
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-        
-        .glass-panel {
-          background: rgba(25, 25, 25, 0.4);
-          backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .glass-card {
-          background: rgba(25, 25, 25, 0.5);
-          backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        
-        .animate-fade-in {
-          animation: fadeIn 0.5s ease-out;
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* Mobile-specific optimizations */
-        @media (max-width: 640px) {
-          .glass-panel {
-            backdrop-filter: blur(12px);
-          }
-          
-          .glass-card {
-            backdrop-filter: blur(8px);
-          }
-        }
-        
-        /* Enhanced mobile performance */
-        @media (max-width: 768px) {
-          * {
-            -webkit-tap-highlight-color: transparent;
-          }
-          
-          .overflow-hidden {
-            overflow-x: hidden;
-          }
-          
-          /* Prevent horizontal overflow */
-          body {
-            overflow-x: hidden;
-            max-width: 100vw;
-          }
-          
-          /* Smooth scrolling for mobile */
-          html {
-            scroll-behavior: smooth;
-          }
-          
-          /* Enhanced touch targets */
-          button, a, input, select, textarea {
-            min-height: 44px;
-            min-width: 44px;
-          }
-          
-          /* Reduce motion for users who prefer it */
-          @media (prefers-reduced-motion: reduce) {
-            * {
-              animation-duration: 0.01ms !important;
-              animation-iteration-count: 1 !important;
-              transition-duration: 0.01ms !important;
-            }
-          }
-          
-          /* Touch-friendly improvements */
-          @media (hover: none) and (pointer: coarse) {
-            .group:hover {
-              transform: none !important;
-            }
-            
-            button:active {
-              transform: scale(0.98);
-            }
-          }
-        }
-      `}</style>
     </div>
   )
 }

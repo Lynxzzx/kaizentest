@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import Layout from '@/components/Layout'
 import { useTheme } from '@/contexts/ThemeContext'
 import axios from 'axios'
 import toast from 'react-hot-toast'
@@ -35,10 +34,10 @@ export default function AdminMaintenance() {
     try {
       const response = await axios.get('/api/admin/maintenance')
       setIsMaintenanceMode(response.data.isMaintenanceMode || false)
-      setMaintenanceMessage(response.data.message || 'O site está em manutenção. Volte em breve!')
+      setMaintenanceMessage(response.data.message || 'O site estÃ¡ em manutenÃ§Ã£o. Volte em breve!')
     } catch (error: any) {
       console.error('Error loading maintenance settings:', error)
-      toast.error('Erro ao carregar configurações de manutenção')
+      toast.error('Erro ao carregar configuraÃ§Ãµes de manutenÃ§Ã£o')
     } finally {
       setLoading(false)
     }
@@ -46,7 +45,7 @@ export default function AdminMaintenance() {
 
   const handleSave = async () => {
     if (isMaintenanceMode && !maintenanceMessage.trim()) {
-      toast.error('Digite uma mensagem de manutenção')
+      toast.error('Digite uma mensagem de manutenÃ§Ã£o')
       return
     }
 
@@ -56,10 +55,10 @@ export default function AdminMaintenance() {
         isMaintenanceMode,
         message: maintenanceMessage.trim()
       })
-      toast.success('Configurações de manutenção salvas com sucesso!')
+      toast.success('ConfiguraÃ§Ãµes de manutenÃ§Ã£o salvas com sucesso!')
     } catch (error: any) {
       console.error('Error saving maintenance settings:', error)
-      toast.error(error.response?.data?.error || 'Erro ao salvar configurações')
+      toast.error(error.response?.data?.error || 'Erro ao salvar configuraÃ§Ãµes')
     } finally {
       setSaving(false)
     }
@@ -67,21 +66,21 @@ export default function AdminMaintenance() {
 
   if (status === 'loading' || loading) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-xl">Carregando...</div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2">Modo de Manutenção</h1>
+          <h1 className="text-3xl font-bold mb-2">Modo de ManutenÃ§Ã£o</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Ative ou desative o modo de manutenção do site. Quando ativo, apenas o owner pode acessar o site.
+            Ative ou desative o modo de manutenÃ§Ã£o do site. Quando ativo, apenas o owner pode acessar o site.
           </p>
         </div>
 
@@ -97,10 +96,10 @@ export default function AdminMaintenance() {
                 />
                 <div>
                   <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    Ativar Modo de Manutenção
+                    Ativar Modo de ManutenÃ§Ã£o
                   </span>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Quando ativo, todos os usuários (exceto o owner) verão a mensagem de manutenção
+                    Quando ativo, todos os usuÃ¡rios (exceto o owner) verÃ£o a mensagem de manutenÃ§Ã£o
                   </p>
                 </div>
               </label>
@@ -109,12 +108,12 @@ export default function AdminMaintenance() {
             {isMaintenanceMode && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Mensagem de Manutenção
+                  Mensagem de ManutenÃ§Ã£o
                 </label>
                 <textarea
                   value={maintenanceMessage}
                   onChange={(e) => setMaintenanceMessage(e.target.value)}
-                  placeholder="Digite a mensagem que será exibida para os usuários..."
+                  placeholder="Digite a mensagem que serÃ¡ exibida para os usuÃ¡rios..."
                   rows={6}
                   className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none ${
                     theme === 'dark'
@@ -123,7 +122,7 @@ export default function AdminMaintenance() {
                   }`}
                 />
                 <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                  Esta mensagem será exibida para todos os usuários quando o modo de manutenção estiver ativo.
+                  Esta mensagem serÃ¡ exibida para todos os usuÃ¡rios quando o modo de manutenÃ§Ã£o estiver ativo.
                 </p>
               </div>
             )}
@@ -138,7 +137,7 @@ export default function AdminMaintenance() {
                     : 'bg-green-600 hover:bg-green-700 text-white'
                 } disabled:opacity-50`}
               >
-                {saving ? 'Salvando...' : isMaintenanceMode ? 'Ativar Manutenção' : 'Desativar Manutenção'}
+                {saving ? 'Salvando...' : isMaintenanceMode ? 'Ativar ManutenÃ§Ã£o' : 'Desativar ManutenÃ§Ã£o'}
               </button>
             </div>
           </div>
@@ -151,7 +150,7 @@ export default function AdminMaintenance() {
         }`}>
           <div className="flex items-start space-x-3">
             <div className={`text-2xl ${isMaintenanceMode ? 'text-red-600' : 'text-green-600'}`}>
-              {isMaintenanceMode ? '⚠️' : '✅'}
+              {isMaintenanceMode ? 'âš ï¸' : 'âœ…'}
             </div>
             <div>
               <h3 className={`font-semibold mb-1 ${
@@ -159,7 +158,7 @@ export default function AdminMaintenance() {
                   ? 'text-red-900 dark:text-red-200'
                   : 'text-green-900 dark:text-green-200'
               }`}>
-                Status Atual: {isMaintenanceMode ? 'Modo de Manutenção ATIVO' : 'Site OPERACIONAL'}
+                Status Atual: {isMaintenanceMode ? 'Modo de ManutenÃ§Ã£o ATIVO' : 'Site OPERACIONAL'}
               </h3>
               <p className={`text-sm ${
                 isMaintenanceMode
@@ -167,8 +166,8 @@ export default function AdminMaintenance() {
                   : 'text-green-800 dark:text-green-300'
               }`}>
                 {isMaintenanceMode
-                  ? 'O site está em manutenção. Apenas você (owner) pode acessar.'
-                  : 'O site está operacional e acessível para todos os usuários.'}
+                  ? 'O site estÃ¡ em manutenÃ§Ã£o. Apenas vocÃª (owner) pode acessar.'
+                  : 'O site estÃ¡ operacional e acessÃ­vel para todos os usuÃ¡rios.'}
               </p>
             </div>
           </div>
@@ -187,7 +186,7 @@ export default function AdminMaintenance() {
           </div>
         )}
       </div>
-    </Layout>
+    </>
   )
 }
 

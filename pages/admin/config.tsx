@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import Layout from '@/components/Layout'
 
 interface SystemConfig {
   id: string
@@ -55,13 +54,13 @@ export default function AdminConfig() {
       if (!res.ok) throw new Error('Failed to load configs')
       const data = await res.json()
       
-      // Garantir que configurações padrão apareçam na lista
+      // Garantir que configuraÃ§Ãµes padrÃ£o apareÃ§am na lista
       const defaultConfigs = [
         { key: 'ASAAS_API_KEY', description: 'Chave de API do Asaas (para pagamentos PIX)' },
         { key: 'ASAAS_API_URL', description: 'URL da API do Asaas' },
-        { key: 'PAGSEGURO_APP_KEY', description: 'Chave de Aplicação do PagSeguro (para pagamentos PIX)' },
-        { key: 'PAGSEGURO_TOKEN', description: 'Token do PagSeguro (alternativa à chave de aplicação)' },
-        { key: 'PAGSEGURO_SELLER_EMAIL', description: 'Email do vendedor/conta PagSeguro (obrigatório em alguns casos)' },
+        { key: 'PAGSEGURO_APP_KEY', description: 'Chave de AplicaÃ§Ã£o do PagSeguro (para pagamentos PIX)' },
+        { key: 'PAGSEGURO_TOKEN', description: 'Token do PagSeguro (alternativa Ã  chave de aplicaÃ§Ã£o)' },
+        { key: 'PAGSEGURO_SELLER_EMAIL', description: 'Email do vendedor/conta PagSeguro (obrigatÃ³rio em alguns casos)' },
         { key: 'PAGSEGURO_API_URL', description: 'URL da API do PagSeguro (ex: https://api.pagseguro.com ou https://sandbox.api.pagseguro.com)' },
         { key: 'PAGSEGURO_SANDBOX', description: 'Usar ambiente sandbox do PagSeguro (true/false) - ignorado se PAGSEGURO_API_URL estiver configurada' }
       ]
@@ -84,7 +83,7 @@ export default function AdminConfig() {
       setConfigs([...data.configs, ...missingConfigs].sort((a, b) => a.key.localeCompare(b.key)))
     } catch (error: any) {
       console.error('Error loading configs:', error)
-      setMessage({ type: 'error', text: 'Erro ao carregar configurações' })
+      setMessage({ type: 'error', text: 'Erro ao carregar configuraÃ§Ãµes' })
     } finally {
       setLoading(false)
     }
@@ -98,7 +97,7 @@ export default function AdminConfig() {
 
   const saveConfig = async (key: string) => {
     if (!editValue.trim()) {
-      setMessage({ type: 'error', text: 'Valor não pode estar vazio' })
+      setMessage({ type: 'error', text: 'Valor nÃ£o pode estar vazio' })
       return
     }
 
@@ -119,13 +118,13 @@ export default function AdminConfig() {
         throw new Error(error.error || 'Failed to update config')
       }
 
-      setMessage({ type: 'success', text: 'Configuração atualizada com sucesso!' })
+      setMessage({ type: 'success', text: 'ConfiguraÃ§Ã£o atualizada com sucesso!' })
       setEditingKey(null)
       setEditValue('')
       await loadConfigs()
     } catch (error: any) {
       console.error('Error saving config:', error)
-      setMessage({ type: 'error', text: error.message || 'Erro ao salvar configuração' })
+      setMessage({ type: 'error', text: error.message || 'Erro ao salvar configuraÃ§Ã£o' })
     } finally {
       setSaving(false)
     }
@@ -139,7 +138,7 @@ export default function AdminConfig() {
 
   const handleAddConfig = async () => {
     if (!newConfigKey.trim() || !newConfigValue.trim()) {
-      setMessage({ type: 'error', text: 'Chave e valor são obrigatórios' })
+      setMessage({ type: 'error', text: 'Chave e valor sÃ£o obrigatÃ³rios' })
       return
     }
 
@@ -160,7 +159,7 @@ export default function AdminConfig() {
         throw new Error(error.error || 'Failed to create config')
       }
 
-      setMessage({ type: 'success', text: 'Configuração criada com sucesso!' })
+      setMessage({ type: 'success', text: 'ConfiguraÃ§Ã£o criada com sucesso!' })
       setShowAddForm(false)
       setNewConfigKey('')
       setNewConfigValue('')
@@ -168,7 +167,7 @@ export default function AdminConfig() {
       await loadConfigs()
     } catch (error: any) {
       console.error('Error creating config:', error)
-      setMessage({ type: 'error', text: error.message || 'Erro ao criar configuração' })
+      setMessage({ type: 'error', text: error.message || 'Erro ao criar configuraÃ§Ã£o' })
     } finally {
       setSaving(false)
     }
@@ -183,36 +182,36 @@ export default function AdminConfig() {
 
   if (status === 'loading' || loading) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-xl">Carregando...</div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6 flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Configurações do Sistema</h1>
+            <h1 className="text-3xl font-bold mb-2">ConfiguraÃ§Ãµes do Sistema</h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Gerencie as configurações do sistema, incluindo chaves de API
+              Gerencie as configuraÃ§Ãµes do sistema, incluindo chaves de API
             </p>
           </div>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
             className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
-            {showAddForm ? 'Cancelar' : '+ Adicionar Configuração'}
+            {showAddForm ? 'Cancelar' : '+ Adicionar ConfiguraÃ§Ã£o'}
           </button>
         </div>
 
         {showAddForm && (
           <div className="mb-6 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">
-              Adicionar Nova Configuração
+              Adicionar Nova ConfiguraÃ§Ã£o
             </h2>
             <div className="space-y-4">
               <div>
@@ -241,13 +240,13 @@ export default function AdminConfig() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Descrição (opcional)
+                  DescriÃ§Ã£o (opcional)
                 </label>
                 <input
                   type="text"
                   value={newConfigDescription}
                   onChange={(e) => setNewConfigDescription(e.target.value)}
-                  placeholder="Descrição da configuração..."
+                  placeholder="DescriÃ§Ã£o da configuraÃ§Ã£o..."
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
@@ -278,7 +277,7 @@ export default function AdminConfig() {
 
         <div className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
           <h3 className="font-semibold text-yellow-900 dark:text-yellow-200 mb-2">
-            Configurações Rápidas:
+            ConfiguraÃ§Ãµes RÃ¡pidas:
           </h3>
           <div className="flex gap-2 flex-wrap">
             <button
@@ -294,19 +293,19 @@ export default function AdminConfig() {
               + ASAAS_API_URL
             </button>
             <button
-              onClick={() => quickAddConfig('PAGSEGURO_APP_KEY', 'Chave de Aplicação do PagSeguro (para pagamentos PIX)')}
+              onClick={() => quickAddConfig('PAGSEGURO_APP_KEY', 'Chave de AplicaÃ§Ã£o do PagSeguro (para pagamentos PIX)')}
               className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
             >
               + PAGSEGURO_APP_KEY
             </button>
             <button
-              onClick={() => quickAddConfig('PAGSEGURO_TOKEN', 'Token do PagSeguro (alternativa à chave de aplicação)')}
+              onClick={() => quickAddConfig('PAGSEGURO_TOKEN', 'Token do PagSeguro (alternativa Ã  chave de aplicaÃ§Ã£o)')}
               className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
             >
               + PAGSEGURO_TOKEN
             </button>
             <button
-              onClick={() => quickAddConfig('PAGSEGURO_SELLER_EMAIL', 'Email do vendedor/conta PagSeguro (obrigatório em alguns casos)')}
+              onClick={() => quickAddConfig('PAGSEGURO_SELLER_EMAIL', 'Email do vendedor/conta PagSeguro (obrigatÃ³rio em alguns casos)')}
               className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
             >
               + PAGSEGURO_SELLER_EMAIL
@@ -347,7 +346,7 @@ export default function AdminConfig() {
                     Chave
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Descrição
+                    DescriÃ§Ã£o
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     Status
@@ -356,7 +355,7 @@ export default function AdminConfig() {
                     Atualizado por
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Ações
+                    AÃ§Ãµes
                   </th>
                 </tr>
               </thead>
@@ -364,7 +363,7 @@ export default function AdminConfig() {
                 {configs.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                      Nenhuma configuração encontrada
+                      Nenhuma configuraÃ§Ã£o encontrada
                     </td>
                   </tr>
                 ) : (
@@ -388,7 +387,7 @@ export default function AdminConfig() {
                               : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                           }`}
                         >
-                          {config.isConfigured ? 'Configurado' : 'Não configurado'}
+                          {config.isConfigured ? 'Configurado' : 'NÃ£o configurado'}
                         </span>
                         {config.isConfigured && (
                           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -454,33 +453,33 @@ export default function AdminConfig() {
           </h3>
           <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1">
             <li>
-              • As configurações são armazenadas no banco de dados como alternativa às variáveis de ambiente
+              â€¢ As configuraÃ§Ãµes sÃ£o armazenadas no banco de dados como alternativa Ã s variÃ¡veis de ambiente
             </li>
             <li>
-              • O sistema tenta primeiro usar variáveis de ambiente, depois busca no banco de dados
+              â€¢ O sistema tenta primeiro usar variÃ¡veis de ambiente, depois busca no banco de dados
             </li>
             <li>
-              • Para ASAAS_API_KEY: Cole a chave completa do Asaas (deve começar com $aact_prod_ ou $aact_hmlg_)
+              â€¢ Para ASAAS_API_KEY: Cole a chave completa do Asaas (deve comeÃ§ar com $aact_prod_ ou $aact_hmlg_)
             </li>
             <li>
-              • Para PAGSEGURO_APP_KEY ou PAGSEGURO_TOKEN: Cole a chave/token do PagSeguro obtida no painel
+              â€¢ Para PAGSEGURO_APP_KEY ou PAGSEGURO_TOKEN: Cole a chave/token do PagSeguro obtida no painel
             </li>
             <li>
-              • Para PAGSEGURO_SELLER_EMAIL: Configure o email da conta PagSeguro/vendedor (obrigatório em alguns casos de autenticação)
+              â€¢ Para PAGSEGURO_SELLER_EMAIL: Configure o email da conta PagSeguro/vendedor (obrigatÃ³rio em alguns casos de autenticaÃ§Ã£o)
             </li>
             <li>
-              • Para PAGSEGURO_API_URL: Configure a URL completa da API (ex: https://api.pagseguro.com para produção ou https://sandbox.api.pagseguro.com para sandbox)
+              â€¢ Para PAGSEGURO_API_URL: Configure a URL completa da API (ex: https://api.pagseguro.com para produÃ§Ã£o ou https://sandbox.api.pagseguro.com para sandbox)
             </li>
             <li>
-              • Para PAGSEGURO_SANDBOX: Use "true" para ambiente de testes ou "false" para produção (ignorado se PAGSEGURO_API_URL estiver configurada)
+              â€¢ Para PAGSEGURO_SANDBOX: Use "true" para ambiente de testes ou "false" para produÃ§Ã£o (ignorado se PAGSEGURO_API_URL estiver configurada)
             </li>
             <li>
-              • Após atualizar, a configuração será usada automaticamente nas próximas requisições
+              â€¢ ApÃ³s atualizar, a configuraÃ§Ã£o serÃ¡ usada automaticamente nas prÃ³ximas requisiÃ§Ãµes
             </li>
           </ul>
         </div>
       </div>
-    </Layout>
+    </>
   )
 }
 

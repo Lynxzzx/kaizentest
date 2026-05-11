@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
-import Layout from '@/components/Layout'
 import { useTranslation } from '@/lib/i18n-helper'
 import { useTheme } from '@/contexts/ThemeContext'
 import { getThemeClasses } from '@/lib/theme-utils'
@@ -77,7 +76,7 @@ export default function SecurityAdmin() {
     } catch (error: any) {
       console.error('Erro ao carregar dados:', error)
       if (error.response?.status === 403) {
-        toast.error('Sem permissão para acessar esta página')
+        toast.error('Sem permissÃ£o para acessar esta pÃ¡gina')
         router.push('/dashboard')
       }
     } finally {
@@ -168,23 +167,23 @@ export default function SecurityAdmin() {
 
   if (status === 'loading' || loading) {
     return (
-      <Layout>
+      <>
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500"></div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout>
+    <>
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className={`text-3xl font-bold ${themeClasses.text.primary}`}>
-            🛡️ Segurança
+            ðŸ›¡ï¸ SeguranÃ§a
           </h1>
           <p className={themeClasses.text.secondary}>
-            Gerencie IPs banidos e visualize logs de segurança
+            Gerencie IPs banidos e visualize logs de seguranÃ§a
           </p>
         </div>
 
@@ -198,7 +197,7 @@ export default function SecurityAdmin() {
                 : `${themeClasses.card} ${themeClasses.text.secondary} hover:bg-primary-600/10`
             }`}
           >
-            🚫 IPs Banidos ({bannedIps.length})
+            ðŸš« IPs Banidos ({bannedIps.length})
           </button>
           <button
             onClick={() => setActiveTab('logs')}
@@ -208,22 +207,22 @@ export default function SecurityAdmin() {
                 : `${themeClasses.card} ${themeClasses.text.secondary} hover:bg-primary-600/10`
             }`}
           >
-            📋 Logs de Segurança
+            ðŸ“‹ Logs de SeguranÃ§a
           </button>
         </div>
 
         {/* Tab: IPs Banidos */}
         {activeTab === 'banned' && (
           <div className="space-y-6">
-            {/* Formulário para banir IP */}
+            {/* FormulÃ¡rio para banir IP */}
             <div className={`${themeClasses.card} rounded-xl p-6`}>
               <h2 className={`text-xl font-bold mb-4 ${themeClasses.text.primary}`}>
-                ➕ Banir Novo IP
+                âž• Banir Novo IP
               </h2>
               <form onSubmit={handleBanIp} className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${themeClasses.text.secondary}`}>
-                    Endereço IP
+                    EndereÃ§o IP
                   </label>
                   <input
                     type="text"
@@ -247,7 +246,7 @@ export default function SecurityAdmin() {
                 </div>
                 <div>
                   <label className={`block text-sm font-medium mb-1 ${themeClasses.text.secondary}`}>
-                    Duração
+                    DuraÃ§Ã£o
                   </label>
                   <select
                     value={banDuration}
@@ -267,7 +266,7 @@ export default function SecurityAdmin() {
                     disabled={banning}
                     className="w-full bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-all disabled:opacity-50"
                   >
-                    {banning ? 'Banindo...' : '🚫 Banir IP'}
+                    {banning ? 'Banindo...' : 'ðŸš« Banir IP'}
                   </button>
                 </div>
               </form>
@@ -284,7 +283,7 @@ export default function SecurityAdmin() {
                       <th className={`px-4 py-3 text-left ${themeClasses.text.primary}`}>Banido por</th>
                       <th className={`px-4 py-3 text-left ${themeClasses.text.primary}`}>Tentativas</th>
                       <th className={`px-4 py-3 text-left ${themeClasses.text.primary}`}>Expira em</th>
-                      <th className={`px-4 py-3 text-left ${themeClasses.text.primary}`}>Ações</th>
+                      <th className={`px-4 py-3 text-left ${themeClasses.text.primary}`}>AÃ§Ãµes</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -321,7 +320,7 @@ export default function SecurityAdmin() {
                               onClick={() => handleUnbanIp(ban.ip)}
                               className="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700 transition-all"
                             >
-                              ✓ Desbanir
+                              âœ“ Desbanir
                             </button>
                           </td>
                         </tr>
@@ -334,7 +333,7 @@ export default function SecurityAdmin() {
           </div>
         )}
 
-        {/* Tab: Logs de Segurança */}
+        {/* Tab: Logs de SeguranÃ§a */}
         {activeTab === 'logs' && (
           <div className={`${themeClasses.card} rounded-xl overflow-hidden`}>
             <div className="overflow-x-auto">
@@ -347,14 +346,14 @@ export default function SecurityAdmin() {
                     <th className={`px-4 py-3 text-left ${themeClasses.text.primary}`}>Status</th>
                     <th className={`px-4 py-3 text-left ${themeClasses.text.primary}`}>Motivo</th>
                     <th className={`px-4 py-3 text-left ${themeClasses.text.primary}`}>Data</th>
-                    <th className={`px-4 py-3 text-left ${themeClasses.text.primary}`}>Ações</th>
+                    <th className={`px-4 py-3 text-left ${themeClasses.text.primary}`}>AÃ§Ãµes</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {securityLogs.length === 0 ? (
                     <tr>
                       <td colSpan={7} className={`px-4 py-8 text-center ${themeClasses.text.muted}`}>
-                        Nenhum log de segurança
+                        Nenhum log de seguranÃ§a
                       </td>
                     </tr>
                   ) : (
@@ -375,9 +374,9 @@ export default function SecurityAdmin() {
                           </td>
                           <td className="px-4 py-3">
                             {log.success ? (
-                              <span className="text-green-500">✓ Sucesso</span>
+                              <span className="text-green-500">âœ“ Sucesso</span>
                             ) : (
-                              <span className="text-red-500">✗ Falha</span>
+                              <span className="text-red-500">âœ— Falha</span>
                             )}
                           </td>
                           <td className={`px-4 py-3 ${themeClasses.text.secondary} text-sm max-w-xs truncate`}>
@@ -392,7 +391,7 @@ export default function SecurityAdmin() {
                                 onClick={() => handleQuickBan(log.ip)}
                                 className="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 transition-all"
                               >
-                                🚫 Banir
+                                ðŸš« Banir
                               </button>
                             )}
                           </td>
@@ -406,7 +405,7 @@ export default function SecurityAdmin() {
           </div>
         )}
       </div>
-    </Layout>
+    </>
   )
 }
 
