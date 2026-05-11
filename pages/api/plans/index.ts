@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { filterSitePlansForPublicStore } from '@/lib/plan-filters'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'GET') {
@@ -26,14 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           where: { isActive: true },
           orderBy: { price: 'asc' }
         })
-        const rows = allActive.filter(
-          (p) =>
-            p.type !== 'API' &&
-            !String(p.name || '')
-              .toLowerCase()
-              .includes('api')
-        )
-        return res.json(rows)
+        return res.json(filterSitePlansForPublicStore(allActive))
       }
       const plans = await prisma.plan.findMany({
         where: { isActive: true },

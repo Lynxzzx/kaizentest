@@ -1,6 +1,60 @@
 import axios from 'axios'
 import { prisma } from '@/lib/prisma'
 
+const PAGSEGURO_HTTP_TIMEOUT_MS = Number(process.env.PAGSEGURO_HTTP_TIMEOUT_MS || 45000)
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms))
+}
+
+/** Extrai copia-e-cola + imagem do body de GET/POST /orders. */
+function extractPixPayload(orderData_response: any): {
+  qrCode: string
+  qrCodeImage: string | null
+  expiresAt: string
+} {
+  const qrCodeData =
+    orderData_response.qr_codes?.[0] ||
+    orderData_response.charges?.[0]?.qr_codes?.[0] ||
+    orderData_response.charges?.[0]?.payment_method?.pix ||
+    orderData_response
+
+  const qrCode =
+    qrCodeData?.text ||
+    qrCodeData?.qr_code ||
+    qrCodeData?.qr_code_text ||
+    qrCodeData?.pix_copy_paste ||
+    orderData_response.qr_codes?.[0]?.text ||
+    orderData_response.qr_codes?.[0]?.qr_code ||
+    orderData_response.qr_codes?.[0]?.qr_code_text ||
+    orderData_response.qr_codes?.[0]?.pix_copy_paste ||
+    orderData_response.charges?.[0]?.qr_codes?.[0]?.text ||
+    orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code ||
+    orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code_text ||
+    orderData_response.charges?.[0]?.qr_codes?.[0]?.pix_copy_paste ||
+    ''
+
+  const qrCodeImage =
+    qrCodeData?.qr_code_image ||
+    qrCodeData?.qr_code_base64 ||
+    orderData_response.qr_codes?.[0]?.qr_code_image ||
+    orderData_response.qr_codes?.[0]?.qr_code_base64 ||
+    orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code_image ||
+    orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code_base64 ||
+    null
+
+  const expiresAt =
+    qrCodeData?.expiration_date ||
+    qrCodeData?.expires_at ||
+    orderData_response.qr_codes?.[0]?.expiration_date ||
+    orderData_response.qr_codes?.[0]?.expires_at ||
+    orderData_response.charges?.[0]?.qr_codes?.[0]?.expiration_date ||
+    orderData_response.charges?.[0]?.qr_codes?.[0]?.expires_at ||
+    new Date(Date.now() + 30 * 60 * 1000).toISOString()
+
+  return { qrCode: qrCode || '', qrCodeImage, expiresAt }
+}
+
 // Função para obter o email do vendedor (se configurado)
 async function getPagSeguroSellerEmail(): Promise<string | null> {
   // Primeiro verificar variável de ambiente
@@ -313,11 +367,17 @@ export async function createPagSeguroPixPayment(data: {
     console.log(JSON.stringify(orderData, null, 2))
     console.log('='.repeat(80))
 
-    const orderResponse = await axios.post(
-      `${apiUrl}/orders`,
-      orderData,
-      { headers }
-    )
+    const orderResponse = await axios.post(`${apiUrl}/orders`, orderData, {
+      headers,
+      timeout: PAGSEGURO_HTTP_TIMEOUT_MS,
+      validateStatus: () => true
+    })
+
+    if (orderResponse.status >= 400) {
+      const httpErr: any = new Error(`PagSeguro POST /orders HTTP ${orderResponse.status}`)
+      httpErr.response = { status: orderResponse.status, data: orderResponse.data }
+      throw httpErr
+    }
 
     // ============================================
     // LOG COMPLETO DO RESPONSE - PRODUÇÃO
@@ -335,55 +395,55 @@ export async function createPagSeguroPixPayment(data: {
 
     console.log('✅ Pedido PIX criado no PagSeguro:', orderResponse.data.id)
 
-    // Extrair dados do QR code da resposta
-    const orderData_response = orderResponse.data
+    let orderData_response = orderResponse.data
 
-    // Priorizar Order ID (formato ORD-) porque é mais confiável para consultas
-    // Order ID é o ID principal que pode ser consultado via /orders/{id}
     const orderId = orderData_response.id
     const chargeId = orderData_response.charges?.[0]?.id
-
-    // Usar Order ID como padrão, mas se houver Charge ID no formato correto (CHG-), usá-lo também
     const paymentId = orderId || chargeId || ''
+
+    let { qrCode, qrCodeImage, expiresAt } = extractPixPayload(orderData_response)
+
+    if (!orderId) {
+      throw new Error('Resposta do PagSeguro sem ID do pedido.')
+    }
+
+    if (!qrCode || qrCode.trim().length === 0) {
+      const maxAttempts = 8
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        console.log(`🔄 PIX sem código na resposta inicial — consultando pedido (${attempt}/${maxAttempts})…`)
+        await sleep(1200)
+        try {
+          const pollHeaders: any = {
+            Authorization: `Bearer ${key}`,
+            'App-Token': key
+          }
+          if (sellerEmail) pollHeaders['X-Seller-Email'] = sellerEmail
+          const poll = await axios.get(`${apiUrl}/orders/${orderId}`, {
+            headers: pollHeaders,
+            timeout: PAGSEGURO_HTTP_TIMEOUT_MS
+          })
+          orderData_response = poll.data
+          const extracted = extractPixPayload(orderData_response)
+          qrCode = extracted.qrCode
+          qrCodeImage = extracted.qrCodeImage
+          expiresAt = extracted.expiresAt
+          if (qrCode && qrCode.trim().length > 0) break
+        } catch (pollErr: any) {
+          console.warn('⚠️ GET /orders/:id:', pollErr.response?.data || pollErr.message)
+        }
+      }
+    }
+
+    if (!qrCode || qrCode.trim().length === 0) {
+      throw new Error(
+        'PagSeguro não devolveu o código PIX. Confira token, sandbox/produção (PAGSEGURO_SANDBOX) e o painel do PagBank.'
+      )
+    }
 
     console.log('📋 IDs extraídos da resposta:')
     console.log('   Order ID:', orderId)
     console.log('   Charge ID:', chargeId)
     console.log('   ID que será salvo:', paymentId)
-
-    // O QR code PIX deve vir na resposta do /orders dentro de qr_codes
-    const qrCodeData = orderData_response.qr_codes?.[0] ||
-      orderData_response.charges?.[0]?.qr_codes?.[0] ||
-      orderData_response.charges?.[0]?.payment_method?.pix ||
-      orderData_response
-    const qrCode = qrCodeData?.text ||
-      qrCodeData?.qr_code ||
-      qrCodeData?.qr_code_text ||
-      qrCodeData?.pix_copy_paste ||
-      orderData_response.qr_codes?.[0]?.text ||
-      orderData_response.qr_codes?.[0]?.qr_code ||
-      orderData_response.qr_codes?.[0]?.qr_code_text ||
-      orderData_response.qr_codes?.[0]?.pix_copy_paste ||
-      orderData_response.charges?.[0]?.qr_codes?.[0]?.text ||
-      orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code ||
-      orderData_response.charges?.[0]?.qr_codes?.[0]?.pix_copy_paste ||
-      ''
-
-    const qrCodeImage = qrCodeData?.qr_code_image ||
-      qrCodeData?.qr_code_base64 ||
-      orderData_response.qr_codes?.[0]?.qr_code_image ||
-      orderData_response.qr_codes?.[0]?.qr_code_base64 ||
-      orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code_image ||
-      orderData_response.charges?.[0]?.qr_codes?.[0]?.qr_code_base64 ||
-      null
-
-    const expiresAt = qrCodeData?.expiration_date ||
-      qrCodeData?.expires_at ||
-      orderData_response.qr_codes?.[0]?.expiration_date ||
-      orderData_response.qr_codes?.[0]?.expires_at ||
-      orderData_response.charges?.[0]?.qr_codes?.[0]?.expiration_date ||
-      orderData_response.charges?.[0]?.qr_codes?.[0]?.expires_at ||
-      new Date(Date.now() + 30 * 60 * 1000).toISOString()
 
     return {
       id: paymentId,
@@ -430,7 +490,7 @@ export async function createPagSeguroPixPayment(data: {
     console.error('='.repeat(80))
 
     // Verificar se é erro de rede/API fora do ar
-    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' ||
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' || error.code === 'ECONNABORTED' ||
       error.message?.includes('timeout') || error.message?.includes('ECONNREFUSED') ||
       error.response?.status === 503 || error.response?.status === 502 || error.response?.status === 504) {
       const networkError = new Error('A API do PagSeguro está temporariamente indisponível. O serviço pode estar fora do ar ou em manutenção. Tente novamente em alguns minutos.')
@@ -800,7 +860,7 @@ export async function createPagSeguroCardPayment(data: CreateCardPaymentData) {
     console.error('='.repeat(80))
 
     // Verificar se é erro de rede/API fora do ar
-    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' ||
+    if (error.code === 'ECONNREFUSED' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND' || error.code === 'ECONNABORTED' ||
       error.message?.includes('timeout') || error.message?.includes('ECONNREFUSED') ||
       error.response?.status === 503 || error.response?.status === 502 || error.response?.status === 504) {
       const networkError = new Error('A API do PagSeguro está temporariamente indisponível. Tente novamente em alguns minutos.')

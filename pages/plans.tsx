@@ -141,10 +141,16 @@ export default function Plans() {
     setLoading(true); setPaymentMethod('PIX'); setShowEmailModal(false)
     const normalizedCoupon = couponCode.trim().toUpperCase()
     try {
-      const response = await axios.post('/api/payments/create', {
-        planId: plan.id, method: 'PIX', customerEmail: email,
-        couponCode: normalizedCoupon || undefined
-      })
+      const response = await axios.post(
+        '/api/payments/create',
+        {
+          planId: plan.id,
+          method: 'PIX',
+          customerEmail: email,
+          couponCode: normalizedCoupon || undefined
+        },
+        { timeout: 120000 }
+      )
       setPaymentData({
         id: response.data.paymentId || response.data.id,
         pixQrCodeImage: response.data.qrCodeImage || response.data.pixQrCodeImage,
@@ -159,7 +165,15 @@ export default function Plans() {
         setAppliedCoupon({ code: normalizedCoupon, planId: plan.id, discountAmount: response.data.discountAmount, finalAmount: response.data.finalAmount ?? plan.price })
       }
       toast.success(t('pixPaymentCreated'))
-    } catch (error: any) { toast.error(error.response?.data?.error || t('errorCreatingPix')) }
+    } catch (error: any) {
+      const msg =
+        error.response?.data?.message ||
+        error.response?.data?.details ||
+        error.response?.data?.error ||
+        (error.code === 'ECONNABORTED' ? 'Tempo esgotado ao gerar PIX. Tente de novo.' : error.message) ||
+        t('errorCreatingPix')
+      toast.error(typeof msg === 'string' ? msg : t('errorCreatingPix'))
+    }
     finally { setLoading(false) }
   }
 
