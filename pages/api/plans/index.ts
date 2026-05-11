@@ -25,17 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const sitePlans = await prisma.plan.findMany({
         where: {
           isActive: true,
-          OR: [
-            { type: 'SITE' },
-            { NOT: { name: { contains: 'API', mode: 'insensitive' } } }
-          ],
-          NOT: {
-            OR: [
-              { name: { equals: 'KAIZEN DAILY', mode: 'insensitive' } },
-              { name: { equals: 'KAIZEN MONTHLY', mode: 'insensitive' } },
-              { name: { equals: 'KAIZEN LIFETIME', mode: 'insensitive' } }
-            ]
-          }
+          type: 'SITE'
         },
         orderBy: { price: 'asc' }
       })
