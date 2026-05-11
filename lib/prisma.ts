@@ -5,17 +5,40 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 /**
- * Parâmetros extras para Atlas + Vercel (serverless):
- * - maxPoolSize baixo: cada instância serverless usa poucas conexões e não esgota o cluster.
- * - timeouts explícitos: evita pendurar quando a rede oscila.
- * Se já existirem na DATABASE_URL, não duplicamos.
+ * Atlas + Vercel: mescla parâmetros na DATABASE_URL sem apagar os que já existem.
+ *
+ * readPreference=secondaryPreferred: quando o primary some do topology (ex.: TLS "InternalError"
+ * só em um host), leituras podem usar os secondaries — útil para GET /api/plans.
+ * Escritas ainda precisam de um primary saudável; corrija o cluster no Atlas.
+ *
+ * Desligar o desvio: DATABASE_URL sem readPreference e defina MONGODB_READ_PREFERENCE=primary
  */
 function effectiveDatabaseUrl(): string | undefined {
   const url = process.env.DATABASE_URL
   if (!url) return undefined
-  if (url.includes('maxPoolSize=')) return url
-  const joiner = url.includes('?') ? '&' : '?'
-  return `${url}${joiner}maxPoolSize=10&minPoolSize=0&serverSelectionTimeoutMS=10000&connectTimeoutMS=10000`
+
+  const qIndex = url.indexOf('?')
+  const base = qIndex === -1 ? url : url.substring(0, qIndex)
+  const query = qIndex === -1 ? '' : url.substring(qIndex + 1)
+  const params = new URLSearchParams(query)
+
+  const addIfMissing = (key: string, value: string) => {
+    if (!params.has(key)) params.set(key, value)
+  }
+
+  addIfMissing('maxPoolSize', '10')
+  addIfMissing('minPoolSize', '0')
+  addIfMissing('serverSelectionTimeoutMS', '45000')
+  addIfMissing('connectTimeoutMS', '15000')
+
+  const forcePrimary = process.env.MONGODB_READ_PREFERENCE === 'primary'
+  if (!forcePrimary) {
+    addIfMissing('readPreference', 'secondaryPreferred')
+    addIfMissing('maxStalenessSeconds', '120')
+  }
+
+  const qs = params.toString()
+  return qs ? `${base}?${qs}` : base
 }
 
 const databaseUrl = process.env.DATABASE_URL
@@ -28,8 +51,6 @@ if (!databaseUrl) {
   )
 }
 
-// Sempre reutilizar a mesma instância no mesmo processo (dev e produção).
-// Em produção sem isso, cold starts / reavaliações podem abrir vários pools → "pool cleared" / TLS no Atlas.
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
