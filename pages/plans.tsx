@@ -93,8 +93,18 @@ export default function Plans() {
   }, [paymentData?.id, paymentMethod, checkingPayment])
 
   const loadPlans = async () => {
-    try { const response = await axios.get('/api/plans?type=SITE'); setPlans(response.data) }
-    catch { toast.error(t('errorLoadingPlans')) }
+    try {
+      const response = await axios.get('/api/plans?type=SITE')
+      setPlans(Array.isArray(response.data) ? response.data : [])
+    } catch (e: any) {
+      const msg =
+        e.response?.data?.message ||
+        e.response?.data?.error ||
+        e.message ||
+        t('errorLoadingPlans')
+      console.error('[plans] loadPlans:', e.response?.data || e)
+      toast.error(typeof msg === 'string' ? msg : t('errorLoadingPlans'))
+    }
   }
 
   const validateCouponForPlan = async (plan: Plan, silent = false) => {
