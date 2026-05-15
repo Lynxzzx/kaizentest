@@ -171,6 +171,9 @@ export default function AdminDashboard() {
   const quickActions = [
     { href: '/admin/services', label: t('services') },
     { href: '/admin/stocks', label: t('stocks') },
+    { href: '/admin/cookies', label: '🍪 Estoque Cookies', highlight: true },
+    { href: '/admin/cookies?tab=gerenciamento', label: '🍪 Gerenc. Cookies', highlight: true },
+    { href: '/admin/cookies?tab=servicos', label: '🍪 Serv. Cookies', highlight: true },
     { href: '/admin/plans', label: t('plans') },
     { href: '/admin/keys', label: t('keys') },
     { href: '/admin/users', label: t('users') },
@@ -233,7 +236,15 @@ export default function AdminDashboard() {
           </div>
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
             {quickActions.map((action) => (
-              <Link key={action.href} href={action.href} className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3 text-center text-xs font-medium text-white/65 transition-all hover:border-white/15 hover:bg-white/[0.04] hover:text-white">
+              <Link
+                key={action.href}
+                href={action.href}
+                className={`group rounded-2xl border p-3 text-center text-xs font-medium transition-all ${
+                  (action as any).highlight
+                    ? 'border-amber-400/30 bg-amber-400/8 text-amber-300 hover:border-amber-400/50 hover:bg-amber-400/12 hover:text-amber-200'
+                    : 'border-white/[0.06] bg-white/[0.02] text-white/65 hover:border-white/15 hover:bg-white/[0.04] hover:text-white'
+                }`}
+              >
                 {action.label}
               </Link>
             ))}

@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [selectedService, setSelectedService] = useState<string>('')
   const [generatedAccount, setGeneratedAccount] = useState<any>(null)
   const [loading, setLoading] = useState(false)
+  const [generatorTab, setGeneratorTab] = useState<'contas' | 'cookies'>('contas')
 
   const [accountHistory, setAccountHistory] = useState<any[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
@@ -202,6 +203,13 @@ export default function Dashboard() {
   const planLabel = planActive ? (translatePlanName ? translatePlanName(userPlan!.plan!.name) : userPlan!.plan!.name) : 'Free'
   const activeStocksCount = services.filter(s => s._count.stocks > 0).length
 
+  const isCookieService = (s: Service) =>
+    s.icon === '🍪' || s.name.toLowerCase().includes('cookie')
+
+  const regularServices = services.filter(s => s._count.stocks > 0 && !isCookieService(s))
+  const cookieServices  = services.filter(s => s._count.stocks > 0 && isCookieService(s))
+  const activeTabServices = generatorTab === 'cookies' ? cookieServices : regularServices
+
   return (
     <div className="relative">
       <div className="pointer-events-none absolute inset-0 -z-10">
@@ -256,32 +264,77 @@ export default function Dashboard() {
           {/* Generator */}
           <div className="lg:col-span-3 surface-card-elevated p-6 sm:p-8 relative overflow-hidden">
             <div className="pointer-events-none absolute -right-32 -top-32 h-72 w-72 rounded-full bg-aurora-violet/20 blur-3xl" />
-            <div className="flex items-center gap-3 mb-6 relative">
+            <div className="flex items-center gap-3 mb-5 relative">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-aurora-violet to-aurora-magenta text-xl">⚡</div>
               <div>
                 <h2 className="text-display text-2xl font-bold text-white">Gerador</h2>
-                <p className="text-xs text-white/55">Selecione o serviço e gere instantaneamente</p>
+                <p className="text-xs text-white/55">Selecione o tipo e gere instantaneamente</p>
               </div>
+            </div>
+
+            {/* Sub-tabs: Contas / Cookies */}
+            <div className="flex gap-1 mb-5 p-1 rounded-2xl bg-white/[0.04] border border-white/[0.06] relative">
+              <button
+                onClick={() => { setGeneratorTab('contas'); setSelectedService('') }}
+                className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-sm font-semibold transition-all ${
+                  generatorTab === 'contas'
+                    ? 'bg-gradient-to-r from-aurora-violet to-aurora-magenta text-white shadow-lg'
+                    : 'text-white/50 hover:text-white/80'
+                }`}
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
+                Contas Premium
+              </button>
+              <button
+                onClick={() => { setGeneratorTab('cookies'); setSelectedService('') }}
+                className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2 text-sm font-semibold transition-all ${
+                  generatorTab === 'cookies'
+                    ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg'
+                    : 'text-white/50 hover:text-white/80'
+                }`}
+              >
+                <span className="text-base leading-none">🍪</span>
+                Gerador de Cookies
+                {cookieServices.length > 0 && (
+                  <span className={`inline-flex items-center justify-center h-4 min-w-[1rem] rounded-full px-1 text-[9px] font-bold ${
+                    generatorTab === 'cookies' ? 'bg-white/20' : 'bg-amber-500/20 text-amber-300'
+                  }`}>
+                    {cookieServices.length}
+                  </span>
+                )}
+              </button>
             </div>
 
             <div className="space-y-4 relative">
               <div>
-                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">Serviço</label>
+                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">
+                  {generatorTab === 'cookies' ? 'Serviço de Cookies' : 'Serviço'}
+                </label>
                 <div className="relative">
                   <select
                     value={selectedService}
                     onChange={(e) => setSelectedService(e.target.value)}
                     className="input-premium appearance-none pr-10"
                   >
-                    <option value="">Escolha um serviço...</option>
-                    {services.filter(s => s._count.stocks > 0).map((s) => (
+                    <option value="">
+                      {generatorTab === 'cookies' ? 'Escolha um serviço de cookies...' : 'Escolha um serviço...'}
+                    </option>
+                    {activeTabServices.map((s) => (
                       <option key={s.id} value={s.id}>
-                        {s.icon || '⚡'} {s.name} · {s._count.stocks} disponíveis {requiresPaidPlan(s) ? '· 🔒' : ''}
+                        {s.icon || (generatorTab === 'cookies' ? '🍪' : '⚡')} {s.name} · {s._count.stocks} disponíveis {requiresPaidPlan(s) ? '· 🔒' : ''}
                       </option>
                     ))}
                   </select>
                   <svg className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
                 </div>
+
+                {generatorTab === 'cookies' && cookieServices.length === 0 && (
+                  <div className="mt-2 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3">
+                    <p className="text-[12px] text-amber-300/80">
+                      Nenhum serviço de cookies disponível. O Owner precisa criar um serviço com "Cookie" no nome ou ícone 🍪.
+                    </p>
+                  </div>
+                )}
                 {selectedService && (() => {
                   const chosen = services.find(s => s.id === selectedService)
                   if (!chosen || !requiresPaidPlan(chosen)) return null
@@ -321,7 +374,7 @@ export default function Dashboard() {
               <button
                 onClick={handleGenerateAccount}
                 disabled={loading || !selectedService || cooldownRemaining > 0}
-                className="btn btn-primary btn-lg w-full"
+                className={`btn btn-lg w-full ${generatorTab === 'cookies' ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-2xl' : 'btn-primary'}`}
               >
                 {loading ? (
                   <>
@@ -333,6 +386,11 @@ export default function Dashboard() {
                   </>
                 ) : cooldownRemaining > 0 ? (
                   <>Aguarde {formatCooldown(cooldownRemaining)}</>
+                ) : generatorTab === 'cookies' ? (
+                  <>
+                    <span className="text-base leading-none">🍪</span>
+                    Gerar Cookies
+                  </>
                 ) : (
                   <>
                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"/></svg>
@@ -356,30 +414,44 @@ export default function Dashboard() {
           {/* Result */}
           <div className="lg:col-span-2 surface-card p-6 sm:p-7">
             <div className="flex items-center gap-3 mb-5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-aurora-mint to-aurora-cyan text-xl">✓</div>
+              <div className={`flex h-11 w-11 items-center justify-center rounded-2xl text-xl ${
+                generatedAccount?.extraData?.type === 'cookie'
+                  ? 'bg-gradient-to-br from-amber-500 to-orange-500'
+                  : 'bg-gradient-to-br from-aurora-mint to-aurora-cyan'
+              }`}>
+                {generatedAccount?.extraData?.type === 'cookie' ? '🍪' : '✓'}
+              </div>
               <div>
                 <h2 className="text-display text-2xl font-bold text-white">Resultado</h2>
-                <p className="text-xs text-white/55">Conta gerada</p>
+                <p className="text-xs text-white/55">
+                  {generatedAccount?.extraData?.type === 'cookie' ? 'Cookies gerados' : 'Conta gerada'}
+                </p>
               </div>
             </div>
 
             {generatedAccount ? (
-              <div className="space-y-3 animate-scale-in">
-                <CredField label="Email / Usuário" value={generatedAccount.email || generatedAccount.username} />
-                <CredField label="Senha" value={generatedAccount.password} type="password" />
-                <div className="rounded-2xl border border-aurora-mint/30 bg-aurora-mint/8 p-3.5">
-                  <p className="eyebrow text-aurora-mint mb-2">Formato completo</p>
-                  <code className="block break-all rounded-xl bg-black/40 px-3 py-2.5 text-[13px] text-mono text-aurora-mint border border-aurora-mint/20 select-all">
-                    {generatedAccount.email || generatedAccount.username}:{generatedAccount.password}
-                  </code>
+              generatedAccount.extraData?.type === 'cookie' ? (
+                <CookieResult cookieData={generatedAccount.extraData} />
+              ) : (
+                <div className="space-y-3 animate-scale-in">
+                  <CredField label="Email / Usuário" value={generatedAccount.email || generatedAccount.username} />
+                  <CredField label="Senha" value={generatedAccount.password} type="password" />
+                  <div className="rounded-2xl border border-aurora-mint/30 bg-aurora-mint/8 p-3.5">
+                    <p className="eyebrow text-aurora-mint mb-2">Formato completo</p>
+                    <code className="block break-all rounded-xl bg-black/40 px-3 py-2.5 text-[13px] text-mono text-aurora-mint border border-aurora-mint/20 select-all">
+                      {generatedAccount.email || generatedAccount.username}:{generatedAccount.password}
+                    </code>
+                  </div>
                 </div>
-              </div>
+              )
             ) : (
               <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] text-2xl text-white/30">
-                  ⚡
+                  {generatorTab === 'cookies' ? '🍪' : '⚡'}
                 </div>
-                <p className="text-sm text-white/55">Nenhuma conta gerada ainda</p>
+                <p className="text-sm text-white/55">
+                  {generatorTab === 'cookies' ? 'Nenhum cookie gerado ainda' : 'Nenhuma conta gerada ainda'}
+                </p>
                 <p className="text-[12px] text-white/35">Selecione um serviço e clique em gerar</p>
               </div>
             )}
@@ -561,6 +633,65 @@ function MiniStat({ label, value, hint, icon }: { label: string; value: string; 
       </div>
       <p className="num-display text-2xl text-white">{value}</p>
       <p className="text-[11px] text-white/45 mt-0.5">{label}</p>
+    </div>
+  )
+}
+
+function CookieResult({ cookieData }: { cookieData: { raw?: string; netflixId?: string; secureNetflixId?: string } }) {
+  const raw = cookieData.raw || ''
+  return (
+    <div className="space-y-3 animate-scale-in">
+      {cookieData.netflixId && (
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3.5">
+          <p className="eyebrow mb-2 text-amber-300">NetflixId</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 break-all rounded-xl bg-black/40 px-3 py-2 text-[11px] text-mono text-amber-200 border border-amber-400/20 select-all">
+              {cookieData.netflixId}
+            </code>
+            <button
+              onClick={() => { navigator.clipboard.writeText(cookieData.netflixId!); toast.success('Copiado!') }}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/5 text-amber-300 hover:bg-amber-400/10"
+              title="Copiar"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+      )}
+      {cookieData.secureNetflixId && (
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-3.5">
+          <p className="eyebrow mb-2 text-amber-300">SecureNetflixId</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 break-all rounded-xl bg-black/40 px-3 py-2 text-[11px] text-mono text-amber-200 border border-amber-400/20 select-all">
+              {cookieData.secureNetflixId}
+            </code>
+            <button
+              onClick={() => { navigator.clipboard.writeText(cookieData.secureNetflixId!); toast.success('Copiado!') }}
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-400/20 bg-amber-400/5 text-amber-300 hover:bg-amber-400/10"
+              title="Copiar"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+      )}
+      {raw && (
+        <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-3.5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="eyebrow text-amber-300">Formato Netscape (completo)</p>
+            <button
+              onClick={() => { navigator.clipboard.writeText(raw); toast.success('Cookies copiados!') }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-[11px] font-semibold text-amber-300 hover:bg-amber-400/15"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              Copiar tudo
+            </button>
+          </div>
+          <pre className="block w-full overflow-x-auto rounded-xl bg-black/50 px-3 py-2.5 text-[10px] text-mono text-amber-100/80 border border-amber-400/15 select-all whitespace-pre-wrap break-all leading-relaxed">
+            {raw}
+          </pre>
+        </div>
+      )}
     </div>
   )
 }
