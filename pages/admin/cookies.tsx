@@ -46,10 +46,13 @@ export default function AdminCookies() {
   const [deleting, setDeleting]           = useState(false)
 
   // ── Gerenciamento / Import ────────────────────────────────
-  const [services, setServices]           = useState<Service[]>([])
+  const [services, setServices]             = useState<Service[]>([])
   const [importServiceId, setImportServiceId] = useState<string>('')
-  const [cookieText, setCookieText]       = useState<string>('')
-  const [importLoading, setImportLoading] = useState(false)
+  const [cookieText, setCookieText]         = useState<string>('')
+  const [importLoading, setImportLoading]   = useState(false)
+  const [importMode, setImportMode]         = useState<'text' | 'files'>('files')
+  const [selectedFiles, setSelectedFiles]   = useState<File[]>([])
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null)
 
   // ── Serviços de cookies ───────────────────────────────────
   const [newServiceName, setNewServiceName] = useState<string>('')
@@ -133,6 +136,75 @@ export default function AdminCookies() {
       toast.error(err.response?.data?.error || 'Erro ao importar cookies')
     } finally {
       setImportLoading(false)
+    }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Import via arquivos .txt
+  // ──────────────────────────────────────────────────────────
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter(f =>
+      f.name.toLowerCase().endsWith('.txt')
+    )
+    setSelectedFiles(files)
+  }
+
+  const readFileAsText = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = () => reject(new Error(`Erro ao ler ${file.name}`))
+      reader.readAsText(file, 'utf-8')
+    })
+
+  const handleFileImport = async () => {
+    if (!importServiceId) { toast.error('Selecione um serviço'); return }
+    if (selectedFiles.length === 0) { toast.error('Selecione pelo menos um arquivo .txt'); return }
+
+    setImportLoading(true)
+    setImportProgress({ done: 0, total: selectedFiles.length })
+
+    const filePayloads: { name: string; content: string }[] = []
+
+    for (const file of selectedFiles) {
+      try {
+        const content = await readFileAsText(file)
+        filePayloads.push({ name: file.name, content })
+      } catch {
+        toast.error(`Erro ao ler: ${file.name}`)
+      }
+    }
+
+    try {
+      const res = await axios.post('/api/cookies/bulk', {
+        serviceId: importServiceId,
+        files: filePayloads
+      })
+
+      const { created, filesProcessed, fileResults, errors } = res.data
+
+      toast.success(`✅ ${created} sessão(ões) importada(s) de ${filesProcessed} arquivo(s)!`)
+
+      if (errors?.length) {
+        toast.error(`⚠️ ${errors.length} erro(s) durante importação`)
+        console.warn('Erros de importação:', errors)
+      }
+
+      // Mostra resultado por arquivo no console
+      if (fileResults) {
+        console.table(fileResults)
+      }
+
+      setSelectedFiles([])
+      ;(document.getElementById('cookie-file-input') as HTMLInputElement | null)?.value && 
+        ((document.getElementById('cookie-file-input') as HTMLInputElement).value = '')
+      loadStocks()
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Erro ao importar arquivos')
+    } finally {
+      setImportLoading(false)
+      setImportProgress(null)
     }
   }
 
@@ -494,88 +566,259 @@ export default function AdminCookies() {
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 text-xl">⚙️</div>
                 <div>
                   <h2 className="text-display text-xl font-bold text-white">Importar Cookies</h2>
-                  <p className="text-xs text-white/55">Cole cookies no formato Netscape — múltiplas sessões aceitas</p>
+                  <p className="text-xs text-white/55">Pasta de arquivos .txt ou cole o texto — cada arquivo = uma sessão</p>
                 </div>
               </div>
 
-              <form onSubmit={handleImport} className="space-y-5">
-                <div>
-                  <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">
-                    Serviço de destino
-                  </label>
-                  {services.length === 0 ? (
-                    <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-amber-300/80">
-                      Nenhum serviço de cookies encontrado. Crie um na aba <strong>Serviços</strong> primeiro.
-                    </div>
-                  ) : (
-                    <select
-                      value={importServiceId}
-                      onChange={e => setImportServiceId(e.target.value)}
-                      className="input-premium"
-                      style={{ colorScheme: 'dark' }}
-                      required
-                    >
-                      <option value="">Selecione o serviço de cookies...</option>
-                      {services.map(s => (
-                        <option key={s.id} value={s.id}>{s.icon || '🍪'} {s.name}</option>
-                      ))}
-                    </select>
-                  )}
-                </div>
+              {/* Serviço de destino */}
+              <div className="mb-5">
+                <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">
+                  Serviço de destino
+                </label>
+                {services.length === 0 ? (
+                  <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-amber-300/80">
+                    Nenhum serviço de cookies encontrado. Crie um na aba <strong>Serviços</strong> primeiro.
+                  </div>
+                ) : (
+                  <select
+                    value={importServiceId}
+                    onChange={e => setImportServiceId(e.target.value)}
+                    className="input-premium"
+                    style={{ colorScheme: 'dark' }}
+                  >
+                    <option value="">Selecione o serviço de cookies...</option>
+                    {services.map(s => (
+                      <option key={s.id} value={s.id}>{s.icon || '🍪'} {s.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
 
-                <div>
-                  <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">
-                    Cookies (formato Netscape — colunas separadas por TAB)
-                  </label>
-                  <textarea
-                    value={cookieText}
-                    onChange={e => setCookieText(e.target.value)}
-                    className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 font-mono text-[11px] text-white/80 placeholder-white/20 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 transition-colors resize-y"
-                    rows={10}
-                    placeholder={`.netflix.com\tTRUE\t/\tTRUE\t1793639790\tNetflixId\tct%3D...\n.netflix.com\tTRUE\t/\tTRUE\t1793639790\tSecureNetflixId\tv%3D3...\n\n(nova sessão — linhas com expiração diferente ou bloco separado por linha em branco)`}
-                    spellCheck={false}
-                  />
-                  <p className="mt-2 text-[11px] text-white/35 leading-relaxed">
-                    Cada sessão Netflix = 2 linhas (<code className="text-amber-400/70">NetflixId</code> + <code className="text-amber-400/70">SecureNetflixId</code>).
-                    Cole múltiplas sessões de uma vez — elas são detectadas automaticamente por timestamp de expiração.
-                  </p>
-                </div>
-
+              {/* Mode switcher */}
+              <div className="flex gap-1 mb-5 p-1 rounded-xl bg-white/[0.04] border border-white/[0.06]">
                 <button
-                  type="submit"
-                  disabled={importLoading || services.length === 0}
-                  className="btn btn-lg bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl hover:from-amber-400 hover:to-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setImportMode('files')}
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold transition-all ${
+                    importMode === 'files'
+                      ? 'bg-amber-500/80 text-white'
+                      : 'text-white/45 hover:text-white/70'
+                  }`}
                 >
-                  {importLoading ? (
-                    <>
-                      <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
-                        <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4"/>
-                      </svg>
-                      Importando...
-                    </>
-                  ) : (
-                    <>🍪 Importar Cookies</>
-                  )}
+                  📁 Upload de Arquivos / Pasta
                 </button>
-              </form>
+                <button
+                  onClick={() => setImportMode('text')}
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold transition-all ${
+                    importMode === 'text'
+                      ? 'bg-amber-500/80 text-white'
+                      : 'text-white/45 hover:text-white/70'
+                  }`}
+                >
+                  📋 Colar Texto
+                </button>
+              </div>
+
+              {/* ── Modo: upload de arquivos ── */}
+              {importMode === 'files' && (
+                <div className="space-y-4">
+                  {/* Drop zone / file input */}
+                  <label
+                    htmlFor="cookie-file-input"
+                    className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-amber-400/30 bg-amber-400/5 py-10 cursor-pointer hover:border-amber-400/50 hover:bg-amber-400/8 transition-all"
+                  >
+                    <span className="text-4xl">📁</span>
+                    <div className="text-center">
+                      <p className="text-sm font-semibold text-white/80">Clique para selecionar pasta ou arquivos</p>
+                      <p className="text-[12px] text-white/40 mt-1">Aceita pasta inteira ou múltiplos .txt — cada arquivo = uma sessão de cookie</p>
+                    </div>
+                    <div className="flex gap-2 mt-1">
+                      <span className="rounded-lg bg-amber-500/20 px-3 py-1 text-[11px] font-semibold text-amber-300">
+                        .txt
+                      </span>
+                      <span className="rounded-lg bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/50">
+                        múltiplos arquivos
+                      </span>
+                      <span className="rounded-lg bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/50">
+                        pasta inteira
+                      </span>
+                    </div>
+                  </label>
+
+                  {/* Inputs separados: pasta e múltiplos arquivos */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold text-white/40 uppercase tracking-wider">
+                        Selecionar Pasta
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 hover:border-amber-400/30 hover:bg-amber-400/5 transition-all">
+                        <span className="text-lg">📂</span>
+                        <span className="text-sm text-white/60">Escolher pasta de cookies</span>
+                        <input
+                          type="file"
+                          // @ts-ignore
+                          webkitdirectory=""
+                          multiple
+                          accept=".txt"
+                          className="hidden"
+                          onChange={e => {
+                            const files = Array.from(e.target.files || []).filter(f =>
+                              f.name.toLowerCase().endsWith('.txt')
+                            )
+                            setSelectedFiles(prev => {
+                              const existing = new Set(prev.map(f => f.name))
+                              return [...prev, ...files.filter(f => !existing.has(f.name))]
+                            })
+                          }}
+                        />
+                      </label>
+                    </div>
+                    <div>
+                      <label className="mb-1.5 block text-[11px] font-semibold text-white/40 uppercase tracking-wider">
+                        Selecionar Arquivos
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 hover:border-amber-400/30 hover:bg-amber-400/5 transition-all">
+                        <span className="text-lg">📄</span>
+                        <span className="text-sm text-white/60">Escolher .txt individuais</span>
+                        <input
+                          id="cookie-file-input"
+                          type="file"
+                          multiple
+                          accept=".txt"
+                          className="hidden"
+                          onChange={handleFileSelect}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Preview dos arquivos selecionados */}
+                  {selectedFiles.length > 0 && (
+                    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
+                        <p className="text-sm font-semibold text-white">
+                          {selectedFiles.length} arquivo(s) selecionado(s)
+                        </p>
+                        <button
+                          onClick={() => setSelectedFiles([])}
+                          className="text-[12px] text-white/40 hover:text-rose-300 transition-colors"
+                        >
+                          Limpar tudo
+                        </button>
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {selectedFiles.map((file, idx) => (
+                          <div
+                            key={file.name + idx}
+                            className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02]"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-sm">🍪</span>
+                              <span className="text-[13px] text-white/80 font-mono truncate">{file.name}</span>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-[11px] text-white/35">{(file.size / 1024).toFixed(1)} KB</span>
+                              <button
+                                onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== idx))}
+                                className="text-[11px] text-white/30 hover:text-rose-300"
+                                title="Remover"
+                              >✕</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Progresso */}
+                  {importLoading && importProgress && (
+                    <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-amber-300">Importando arquivos...</span>
+                        <span className="text-sm text-amber-300/70">{importProgress.done}/{importProgress.total}</span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+                        <div
+                          className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-300"
+                          style={{ width: `${(importProgress.done / importProgress.total) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleFileImport}
+                    disabled={importLoading || services.length === 0 || selectedFiles.length === 0}
+                    className="btn btn-lg w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl hover:from-amber-400 hover:to-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {importLoading ? (
+                      <>
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
+                          <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4"/>
+                        </svg>
+                        Importando {selectedFiles.length} arquivo(s)...
+                      </>
+                    ) : (
+                      <>📁 Importar {selectedFiles.length > 0 ? `${selectedFiles.length} arquivo(s)` : 'Arquivos'}</>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* ── Modo: colar texto ── */}
+              {importMode === 'text' && (
+                <form onSubmit={handleImport} className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-[12px] font-semibold uppercase tracking-wider text-white/55">
+                      Cookies (formato Netscape — colunas separadas por TAB)
+                    </label>
+                    <textarea
+                      value={cookieText}
+                      onChange={e => setCookieText(e.target.value)}
+                      className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 font-mono text-[11px] text-white/80 placeholder-white/20 focus:border-amber-500/50 focus:outline-none focus:ring-1 focus:ring-amber-500/30 transition-colors resize-y"
+                      rows={10}
+                      placeholder={`.netflix.com\tTRUE\t/\tTRUE\t1793639790\tNetflixId\tct%3D...\n.netflix.com\tTRUE\t/\tTRUE\t1793639790\tSecureNetflixId\tv%3D3...`}
+                      spellCheck={false}
+                    />
+                    <p className="mt-2 text-[11px] text-white/35 leading-relaxed">
+                      Cada sessão = 2 linhas (<code className="text-amber-400/70">NetflixId</code> + <code className="text-amber-400/70">SecureNetflixId</code>).
+                      Múltiplas sessões são detectadas automaticamente pelo timestamp de expiração.
+                    </p>
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={importLoading || services.length === 0}
+                    className="btn btn-lg w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold rounded-2xl hover:from-amber-400 hover:to-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {importLoading ? (
+                      <>
+                        <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" opacity="0.25"/>
+                          <path d="M4 12a8 8 0 018-8" stroke="currentColor" strokeWidth="4"/>
+                        </svg>
+                        Importando...
+                      </>
+                    ) : <>🍪 Importar Cookies</>}
+                  </button>
+                </form>
+              )}
             </div>
 
             {/* Info box */}
             <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5">
-              <h3 className="text-sm font-semibold text-white mb-3">📋 Formato esperado</h3>
-              <pre className="text-[11px] text-white/50 font-mono leading-relaxed overflow-x-auto">
+              <h3 className="text-sm font-semibold text-white mb-3">📋 Formato esperado (cada .txt)</h3>
+              <pre className="text-[11px] text-white/50 font-mono leading-relaxed overflow-x-auto whitespace-pre">
 {`.netflix.com\tTRUE\t/\tTRUE\t1793639790\tNetflixId\tct%3DBgjHlO...
 .netflix.com\tTRUE\t/\tTRUE\t1793639790\tSecureNetflixId\tv%3D3%26mac...`}
               </pre>
               <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-white/40">
-                <span><strong className="text-white/60">Col 1:</strong> domínio</span>
-                <span><strong className="text-white/60">Col 2:</strong> subdomínios</span>
-                <span><strong className="text-white/60">Col 3:</strong> path</span>
-                <span><strong className="text-white/60">Col 4:</strong> secure</span>
-                <span><strong className="text-white/60">Col 5:</strong> expiração</span>
-                <span><strong className="text-white/60">Col 6:</strong> nome</span>
-                <span><strong className="text-white/60">Col 7:</strong> valor</span>
+                {['domínio','subdomínios','path','secure','expiração','nome','valor'].map((col, i) => (
+                  <span key={i}><strong className="text-white/60">Col {i+1}:</strong> {col}</span>
+                ))}
+              </div>
+              <div className="mt-4 rounded-xl border border-amber-400/15 bg-amber-400/5 p-3 text-[12px] text-amber-300/80">
+                <strong>Dica de pasta:</strong> Cada arquivo .txt deve conter os cookies de <em>uma</em> conta/sessão.
+                O nome do arquivo (ex: <code>conta1.txt</code>) será usado como identificador no estoque.
               </div>
             </div>
           </div>

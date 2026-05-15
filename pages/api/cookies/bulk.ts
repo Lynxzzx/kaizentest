@@ -31,12 +31,11 @@ function parseCookieLine(line: string): CookieLine | null {
 }
 
 /**
- * Agrupa linhas de cookies em "sessões".
- * Estratégia: cookies com o mesmo expiry formam uma sessão.
- * Se não der para agrupar por expiry, agrupa sequencialmente em pares.
+ * Agrupa cookies em sessões.
+ * - Se múltiplos expiry → agrupa por expiry (cada timestamp = uma sessão)
+ * - Se expiry único → agrupa em blocos de 2 (NetflixId + SecureNetflixId)
  */
 function groupCookiesIntoSessions(cookies: CookieLine[]): CookieLine[][] {
-  // Primeiro: tenta agrupar por expiry timestamp
   const byExpiry = new Map<number, CookieLine[]>()
 
   for (const cookie of cookies) {
@@ -45,9 +44,7 @@ function groupCookiesIntoSessions(cookies: CookieLine[]): CookieLine[][] {
     byExpiry.get(key)!.push(cookie)
   }
 
-  // Se só há um expiry único, trata cada linha como uma sessão diferente
   if (byExpiry.size === 1 && cookies.length > 2) {
-    // Agrupa em blocos de 2 (NetflixId + SecureNetflixId)
     const sessions: CookieLine[][] = []
     for (let i = 0; i < cookies.length; i += 2) {
       const block = cookies.slice(i, i + 2)
@@ -67,25 +64,12 @@ function buildRawNetscape(cookies: CookieLine[]): string {
     .join('\n')
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
-  const session = await getServerSession(req, res, authOptions)
-
-  if (!session || session.user.role !== 'OWNER') {
-    return res.status(403).json({ error: 'Unauthorized' })
-  }
-
-  const { serviceId, cookieText } = req.body
-
-  if (!serviceId || !cookieText) {
-    return res.status(400).json({ error: 'serviceId e cookieText são obrigatórios' })
-  }
-
-  // Fazer parse de todas as linhas
-  const lines: string[] = String(cookieText).split('\n')
+async function importSingleText(
+  serviceId: string,
+  cookieText: string,
+  sessionLabel: string | null
+): Promise<{ created: string[]; errors: string[] }> {
+  const lines = String(cookieText).split('\n')
   const parsedCookies: CookieLine[] = []
 
   for (const line of lines) {
@@ -94,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (parsedCookies.length === 0) {
-    return res.status(400).json({ error: 'Nenhum cookie válido encontrado. Verifique o formato (7 colunas separadas por TAB).' })
+    return { created: [], errors: ['Nenhum cookie válido encontrado'] }
   }
 
   const sessions = groupCookiesIntoSessions(parsedCookies)
@@ -132,25 +116,99 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         extraData.otherCookies = otherCookies.map(c => ({ name: c.name, value: c.value }))
       }
 
+      // Nome da sessão: usa o nome do arquivo se disponível
+      let username: string
+      if (sessionLabel) {
+        const clean = sessionLabel.replace(/\.txt$/i, '').trim()
+        username = sessions.length === 1 ? clean : `${clean} #${sessionNum}`
+        extraData.sourceFile = sessionLabel
+      } else {
+        username = `Cookie Session #${sessionNum}`
+      }
+
       await prisma.stock.create({
         data: {
           serviceId,
-          username: `Cookie Session #${sessionNum}`,
+          username,
           password: mainCookie.value,
           extraData: JSON.stringify(extraData)
         }
       })
 
-      created.push(`Sessão ${sessionNum}`)
+      created.push(username)
     } catch (e: any) {
       errors.push(`Sessão ${sessionNum}: ${e.message || 'erro desconhecido'}`)
     }
   }
 
+  return { created, errors }
+}
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const session = await getServerSession(req, res, authOptions)
+
+  if (!session || session.user.role !== 'OWNER') {
+    return res.status(403).json({ error: 'Unauthorized' })
+  }
+
+  const { serviceId, cookieText, sessionLabel, files } = req.body
+
+  if (!serviceId) {
+    return res.status(400).json({ error: 'serviceId é obrigatório' })
+  }
+
+  // ── Modo: múltiplos arquivos ────────────────────────────────────────────
+  // files = [{ name: "arquivo.txt", content: "..." }, ...]
+  if (Array.isArray(files) && files.length > 0) {
+    const allCreated: string[] = []
+    const allErrors: string[] = []
+    const fileResults: Array<{ name: string; created: number; errors: number }> = []
+
+    for (const file of files) {
+      if (!file.content || typeof file.content !== 'string') {
+        allErrors.push(`${file.name || 'arquivo'}: conteúdo inválido`)
+        continue
+      }
+      const label = file.name ? String(file.name) : null
+      const result = await importSingleText(serviceId, file.content, label)
+      allCreated.push(...result.created)
+      allErrors.push(...result.errors.map((e: string) => `${file.name}: ${e}`))
+      fileResults.push({
+        name: file.name || 'arquivo',
+        created: result.created.length,
+        errors: result.errors.length
+      })
+    }
+
+    return res.json({
+      success: true,
+      created: allCreated.length,
+      filesProcessed: files.length,
+      fileResults,
+      errors: allErrors.length > 0 ? allErrors : undefined
+    })
+  }
+
+  // ── Modo: texto único ───────────────────────────────────────────────────
+  if (!cookieText) {
+    return res.status(400).json({ error: 'cookieText ou files são obrigatórios' })
+  }
+
+  const label = sessionLabel ? String(sessionLabel) : null
+  const result = await importSingleText(serviceId, cookieText, label)
+
+  if (result.created.length === 0 && result.errors.length > 0) {
+    return res.status(400).json({ error: result.errors[0] })
+  }
+
   return res.json({
     success: true,
-    created: created.length,
-    sessionsDetected: sessions.length,
-    errors: errors.length > 0 ? errors : undefined
+    created: result.created.length,
+    sessionsDetected: result.created.length + result.errors.length,
+    errors: result.errors.length > 0 ? result.errors : undefined
   })
 }
