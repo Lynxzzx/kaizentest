@@ -120,11 +120,13 @@ export default function AdminCookies() {
   }
 
   const loadStocks = async () => {
-    setStocksLoading(true)
     try {
+      setStocksLoading(true)
       const res = await axios.get('/api/stocks')
-      setStocks(res.data.filter((s: CookieStock) => isCookieStock(s)))
-    } catch {
+      const allStocks: CookieStock[] = Array.isArray(res.data) ? res.data : []
+      setStocks(allStocks.filter(s => isCookieStock(s)))
+    } catch (err) {
+      console.error('Erro ao carregar stocks:', err)
       toast.error('Erro ao carregar estoque de cookies')
     } finally {
       setStocksLoading(false)
@@ -237,7 +239,7 @@ export default function AdminCookies() {
       }
 
       setSelectedFiles([])
-      loadStocks()
+      await loadStocks()
 
     } catch (err: any) {
       console.error('Erro ao importar cookies:', err)
@@ -340,10 +342,14 @@ export default function AdminCookies() {
     used: stocks.filter(s => s.isUsed).length
   }
 
-  // All services that exist in current stocks (for filter)
+  // Serviços presentes no estoque (para o filtro) — exclui stocks sem service
   const stockServices = Array.from(
-    new Map(stocks.map(s => [s.serviceId, s.service])).values()
-  )
+    new Map(
+      stocks
+        .filter(s => s.service != null)
+        .map(s => [s.serviceId, s.service])
+    ).values()
+  ) as Service[]
 
   if (status === 'loading') {
     return (
@@ -530,8 +536,13 @@ export default function AdminCookies() {
                     </thead>
                     <tbody>
                       {filteredStocks.map(stock => {
-                        const extra = parseCookieExtra(stock.extraData)
-                        const preview = stock.password.slice(0, 24) + '…'
+                        const preview = stock.password ? stock.password.slice(0, 24) + '…' : '—'
+                        const serviceName = stock.service?.name ?? 'Serviço'
+                        const serviceIcon = stock.service?.icon ?? '🍪'
+                        const createdDate = (() => {
+                          try { return format(new Date(stock.createdAt), 'dd/MM/yy', { locale: ptBR }) }
+                          catch { return '—' }
+                        })()
                         return (
                           <tr
                             key={stock.id}
@@ -554,11 +565,11 @@ export default function AdminCookies() {
                             </td>
                             <td className="px-4 py-3">
                               <span className="text-sm font-medium text-white">
-                                {stock.service.icon || '🍪'} {stock.service.name}
+                                {serviceIcon} {serviceName}
                               </span>
                             </td>
                             <td className="px-4 py-3">
-                              <span className="text-sm text-white/70 font-mono">{stock.username}</span>
+                              <span className="text-sm text-white/70 font-mono">{stock.username ?? '—'}</span>
                             </td>
                             <td className="px-4 py-3">
                               <code className="text-[11px] text-amber-200/70 font-mono bg-amber-400/5 rounded px-1.5 py-0.5">
@@ -575,7 +586,7 @@ export default function AdminCookies() {
                               </span>
                             </td>
                             <td className="px-4 py-3 text-[12px] text-white/40">
-                              {format(new Date(stock.createdAt), 'dd/MM/yy', { locale: ptBR })}
+                              {createdDate}
                             </td>
                             <td className="px-4 py-3">
                               <button
