@@ -65,10 +65,11 @@ export default function AdminCookies() {
     input.setAttribute('webkitdirectory', '')
     input.setAttribute('directory', '')
     input.setAttribute('mozdirectory', '')
-    input.style.display = 'none'
+    // Mantém no DOM (fora da tela) — remover imediatamente invalida File objects em alguns browsers
+    input.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;'
     document.body.appendChild(input)
 
-    input.onchange = () => {
+    input.addEventListener('change', () => {
       const files = Array.from(input.files || []).filter(f =>
         f.name.toLowerCase().endsWith('.txt')
       )
@@ -76,8 +77,11 @@ export default function AdminCookies() {
         const existing = new Set(prev.map(f => f.name))
         return [...prev, ...files.filter(f => !existing.has(f.name))]
       })
-      document.body.removeChild(input)
-    }
+      // Remove só após 60s — tempo suficiente para leitura async dos arquivos
+      setTimeout(() => {
+        if (document.body.contains(input)) document.body.removeChild(input)
+      }, 60000)
+    })
 
     input.click()
   }, [])
@@ -194,43 +198,50 @@ export default function AdminCookies() {
     setImportLoading(true)
     setImportProgress({ done: 0, total: selectedFiles.length })
 
-    const filePayloads: { name: string; content: string }[] = []
-
-    for (const file of selectedFiles) {
-      try {
-        const content = await readFileAsText(file)
-        filePayloads.push({ name: file.name, content })
-      } catch {
-        toast.error(`Erro ao ler: ${file.name}`)
-      }
-    }
-
     try {
+      // ── Leitura dos arquivos ──────────────────────────────
+      const filePayloads: { name: string; content: string }[] = []
+      let done = 0
+
+      for (const file of selectedFiles) {
+        try {
+          const content = await readFileAsText(file)
+          filePayloads.push({ name: file.name, content })
+        } catch (readErr) {
+          console.warn(`Não foi possível ler "${file.name}":`, readErr)
+        }
+        done++
+        setImportProgress({ done, total: selectedFiles.length })
+      }
+
+      if (filePayloads.length === 0) {
+        toast.error('Nenhum arquivo pôde ser lido. Verifique os arquivos selecionados.')
+        return
+      }
+
+      // ── Envio para a API ──────────────────────────────────
       const res = await axios.post('/api/cookies/bulk', {
         serviceId: importServiceId,
         files: filePayloads
       })
 
-      const { created, filesProcessed, fileResults, errors } = res.data
+      const created: number       = res.data.created       ?? 0
+      const filesProcessed: number = res.data.filesProcessed ?? filePayloads.length
+      const errors: string[]       = res.data.errors        ?? []
 
       toast.success(`✅ ${created} sessão(ões) importada(s) de ${filesProcessed} arquivo(s)!`)
 
-      if (errors?.length) {
+      if (errors.length > 0) {
         toast.error(`⚠️ ${errors.length} erro(s) durante importação`)
         console.warn('Erros de importação:', errors)
       }
 
-      // Mostra resultado por arquivo no console
-      if (fileResults) {
-        console.table(fileResults)
-      }
-
       setSelectedFiles([])
-      ;(document.getElementById('cookie-file-input') as HTMLInputElement | null)?.value && 
-        ((document.getElementById('cookie-file-input') as HTMLInputElement).value = '')
       loadStocks()
+
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Erro ao importar arquivos')
+      console.error('Erro ao importar cookies:', err)
+      toast.error(err.response?.data?.error || err.message || 'Erro ao importar arquivos')
     } finally {
       setImportLoading(false)
       setImportProgress(null)
