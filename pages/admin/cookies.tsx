@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import axios from 'axios'
@@ -54,6 +54,9 @@ export default function AdminCookies() {
   const [selectedFiles, setSelectedFiles]   = useState<File[]>([])
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null)
 
+  // Ref para o input de pasta (webkitdirectory não é tipado no React — definido via useEffect)
+  const folderInputRef = useRef<HTMLInputElement>(null)
+
   // ── Serviços de cookies ───────────────────────────────────
   const [newServiceName, setNewServiceName] = useState<string>('')
   const [newServiceDesc, setNewServiceDesc] = useState<string>('')
@@ -71,6 +74,15 @@ export default function AdminCookies() {
       loadServices()
     }
   }, [session])
+
+  // Ativa seleção de pasta no input via atributo DOM (não suportado em tipos React/TS)
+  useEffect(() => {
+    if (folderInputRef.current) {
+      folderInputRef.current.setAttribute('webkitdirectory', '')
+      folderInputRef.current.setAttribute('directory', '')
+      folderInputRef.current.setAttribute('mozdirectory', '')
+    }
+  }, [])
 
   // ──────────────────────────────────────────────────────────
   // Data helpers
@@ -621,10 +633,10 @@ export default function AdminCookies() {
               {/* ── Modo: upload de arquivos ── */}
               {importMode === 'files' && (
                 <div className="space-y-4">
-                  {/* Drop zone / file input */}
-                  <label
-                    htmlFor="cookie-file-input"
-                    className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-amber-400/30 bg-amber-400/5 py-10 cursor-pointer hover:border-amber-400/50 hover:bg-amber-400/8 transition-all"
+                  {/* Drop zone — clique abre seleção de pasta */}
+                  <div
+                    onClick={() => folderInputRef.current?.click()}
+                    className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-amber-400/30 bg-amber-400/5 py-10 cursor-pointer hover:border-amber-400/50 hover:bg-amber-400/8 transition-all select-none"
                   >
                     <span className="text-4xl">📁</span>
                     <div className="text-center">
@@ -642,7 +654,7 @@ export default function AdminCookies() {
                         pasta inteira
                       </span>
                     </div>
-                  </label>
+                  </div>
 
                   {/* Inputs separados: pasta e múltiplos arquivos */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -650,27 +662,31 @@ export default function AdminCookies() {
                       <label className="mb-1.5 block text-[11px] font-semibold text-white/40 uppercase tracking-wider">
                         Selecionar Pasta
                       </label>
-                      <label className="flex items-center gap-2 cursor-pointer rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 hover:border-amber-400/30 hover:bg-amber-400/5 transition-all">
+                      <label
+                        className="flex items-center gap-2 cursor-pointer rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 hover:border-amber-400/30 hover:bg-amber-400/5 transition-all"
+                        onClick={() => folderInputRef.current?.click()}
+                      >
                         <span className="text-lg">📂</span>
                         <span className="text-sm text-white/60">Escolher pasta de cookies</span>
-                        <input
-                          type="file"
-                          // @ts-ignore
-                          webkitdirectory=""
-                          multiple
-                          accept=".txt"
-                          className="hidden"
-                          onChange={e => {
-                            const files = Array.from(e.target.files || []).filter(f =>
-                              f.name.toLowerCase().endsWith('.txt')
-                            )
-                            setSelectedFiles(prev => {
-                              const existing = new Set(prev.map(f => f.name))
-                              return [...prev, ...files.filter(f => !existing.has(f.name))]
-                            })
-                          }}
-                        />
                       </label>
+                      {/* Input de pasta — webkitdirectory definido via ref/useEffect */}
+                      <input
+                        ref={folderInputRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={e => {
+                          const files = Array.from(e.target.files || []).filter(f =>
+                            f.name.toLowerCase().endsWith('.txt')
+                          )
+                          setSelectedFiles(prev => {
+                            const existing = new Set(prev.map(f => f.name))
+                            return [...prev, ...files.filter(f => !existing.has(f.name))]
+                          })
+                          // Limpa o input para permitir re-seleção da mesma pasta
+                          e.target.value = ''
+                        }}
+                      />
                     </div>
                     <div>
                       <label className="mb-1.5 block text-[11px] font-semibold text-white/40 uppercase tracking-wider">
@@ -685,7 +701,10 @@ export default function AdminCookies() {
                           multiple
                           accept=".txt"
                           className="hidden"
-                          onChange={handleFileSelect}
+                          onChange={e => {
+                            handleFileSelect(e)
+                            e.target.value = ''
+                          }}
                         />
                       </label>
                     </div>
