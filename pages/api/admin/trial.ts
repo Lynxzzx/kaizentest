@@ -8,6 +8,7 @@ import {
   normalizePremiumTrialConfig,
   parsePremiumTrialConfig
 } from '@/lib/premium-trial'
+import { filterSitePlansForPublicStore } from '@/lib/plan-filters'
 import { logAdminAction, getIpFromRequest } from '@/lib/admin-log'
 
 async function requireOwner(req: NextApiRequest, res: NextApiResponse) {
@@ -25,13 +26,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === 'GET') {
-    const [configRow, plans, totalRedemptions] = await Promise.all([
+    const [configRow, activePlans, totalRedemptions] = await Promise.all([
       prisma.systemConfig.findUnique({ where: { key: PREMIUM_TRIAL_CONFIG_KEY } }),
       prisma.plan.findMany({
-        where: {
-          isActive: true,
-          type: 'SITE'
-        },
+        where: { isActive: true },
         orderBy: { price: 'asc' },
         select: {
           id: true,
@@ -40,11 +38,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           price: true,
           duration: true,
           maxGenerations: true,
-          generationCooldownSeconds: true
+          generationCooldownSeconds: true,
+          type: true
         }
       }),
       prisma.premiumTrialRedemption.count()
     ])
+
+    const plans = filterSitePlansForPublicStore(activePlans)
 
     return res.json({
       config: parsePremiumTrialConfig(configRow?.value),
@@ -67,13 +68,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const plan = await prisma.plan.findFirst({
         where: {
           id: config.planId,
-          isActive: true,
-          type: 'SITE'
-        },
-        select: { id: true }
+          isActive: true
+        }
       })
 
-      if (!plan) {
+      if (!plan || filterSitePlansForPublicStore([plan]).length === 0) {
         return res.status(400).json({ error: 'Plano do trial inválido ou inativo.' })
       }
     }

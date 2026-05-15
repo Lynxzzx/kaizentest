@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { addDays, getPremiumTrialConfig } from '@/lib/premium-trial'
 import { isUserPlanActive } from '@/lib/plan-utils'
 import { getClientIp, getUserAgent } from '@/lib/security'
+import { filterSitePlansForPublicStore } from '@/lib/plan-filters'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -49,12 +50,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const plan = await prisma.plan.findFirst({
     where: {
       id: config.planId,
-      isActive: true,
-      type: 'SITE'
+      isActive: true
     }
   })
 
-  if (!plan) {
+  if (!plan || filterSitePlansForPublicStore([plan]).length === 0) {
     return res.status(400).json({ error: 'Plano do trial não está disponível.' })
   }
 

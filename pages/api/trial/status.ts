@@ -4,6 +4,7 @@ import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 import { getPremiumTrialConfig } from '@/lib/premium-trial'
 import { isUserPlanActive } from '@/lib/plan-utils'
+import { filterSitePlansForPublicStore } from '@/lib/plan-filters'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -37,22 +38,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ? await prisma.plan.findFirst({
         where: {
           id: config.planId,
-          isActive: true,
-          type: 'SITE'
+          isActive: true
         },
         select: {
           id: true,
           name: true,
           description: true,
           maxGenerations: true,
-          generationCooldownSeconds: true
+          generationCooldownSeconds: true,
+          type: true
         }
       })
+    : null
+  const availableTrialPlan = trialPlan && filterSitePlansForPublicStore([trialPlan]).length > 0
+    ? trialPlan
     : null
 
   const hasActivePlan = isUserPlanActive(user.planId, user.planExpiresAt)
   const redemption = user.premiumTrialRedemptions[0] || null
-  const canOffer = Boolean(config.enabled && trialPlan && !redemption && !hasActivePlan && !user.isBanned)
+  const canOffer = Boolean(config.enabled && availableTrialPlan && !redemption && !hasActivePlan && !user.isBanned)
 
   return res.json({
     enabled: config.enabled,
@@ -65,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       description: config.description,
       buttonText: config.buttonText
     },
-    plan: trialPlan,
+    plan: availableTrialPlan,
     redemption: redemption
       ? {
           startsAt: redemption.startsAt,
