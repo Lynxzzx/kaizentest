@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import { useTranslation } from '@/lib/i18n-helper'
+import toast from 'react-hot-toast'
 import Logo from './Logo'
 import BroadcastBanner from './BroadcastBanner'
 import MaintenanceBanner from './MaintenanceBanner'
@@ -12,6 +13,20 @@ interface LayoutProps {
 }
 
 type NavItem = { href: string; label: string; icon: ReactNode }
+
+type TrialStatus = {
+  shouldOffer: boolean
+  config: {
+    durationDays: number
+    title: string
+    description: string
+    buttonText: string
+  }
+  plan: {
+    name: string
+    maxGenerations: number
+  } | null
+}
 
 const Icon = {
   dashboard: (
@@ -108,6 +123,9 @@ export default function Layout({ children }: LayoutProps) {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [trialStatus, setTrialStatus] = useState<TrialStatus | null>(null)
+  const [trialModalOpen, setTrialModalOpen] = useState(false)
+  const [trialRedeeming, setTrialRedeeming] = useState(false)
   const isAdminRoute = router.pathname.startsWith('/admin')
   const isPublic = PUBLIC_ROUTES.includes(router.pathname) || router.pathname === '/api-plans'
 
@@ -134,6 +152,7 @@ export default function Layout({ children }: LayoutProps) {
     { href: '/admin/services',  label: t('services'),  icon: Icon.dashboard },
     { href: '/admin/stocks',    label: t('stocks'),    icon: Icon.api },
     { href: '/admin/plans',     label: t('plans'),     icon: Icon.plans },
+    { href: '/admin/trial',     label: 'Trial',        icon: Icon.plans },
     { href: '/admin/users',     label: t('users'),     icon: Icon.user },
     { href: '/tickets',         label: t('tickets'),   icon: Icon.support }
   ]), [t])
@@ -181,6 +200,59 @@ export default function Layout({ children }: LayoutProps) {
     }
     return () => { document.body.style.overflow = '' }
   }, [mobileMenuOpen])
+
+  useEffect(() => {
+    if (!session?.user?.id || isAdminRoute) {
+      setTrialModalOpen(false)
+      return
+    }
+
+    const dismissedKey = `premiumTrialDismissed:${session.user.id}`
+    if (typeof window !== 'undefined' && window.sessionStorage.getItem(dismissedKey) === '1') {
+      return
+    }
+
+    ;(async () => {
+      try {
+        const res = await fetch('/api/trial/status')
+        if (!res.ok) return
+        const data = await res.json()
+        setTrialStatus(data)
+        setTrialModalOpen(Boolean(data.shouldOffer))
+      } catch {}
+    })()
+  }, [session?.user?.id, isAdminRoute])
+
+  const dismissTrialModal = () => {
+    if (typeof window !== 'undefined' && session?.user?.id) {
+      window.sessionStorage.setItem(`premiumTrialDismissed:${session.user.id}`, '1')
+    }
+    setTrialModalOpen(false)
+  }
+
+  const redeemTrial = async () => {
+    setTrialRedeeming(true)
+    try {
+      const res = await fetch('/api/trial/redeem', { method: 'POST' })
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data?.error || 'Erro ao resgatar trial premium.')
+      }
+
+      toast.success('Trial premium ativado!')
+      setTrialModalOpen(false)
+
+      if (typeof window !== 'undefined') {
+        window.location.reload()
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao resgatar trial premium.')
+      setTrialModalOpen(false)
+    } finally {
+      setTrialRedeeming(false)
+    }
+  }
 
   const languages: Array<{ code: 'pt-BR' | 'en' | 'es'; label: string; flag: string }> = [
     { code: 'pt-BR', label: 'PT', flag: 'br' },
@@ -469,6 +541,63 @@ export default function Layout({ children }: LayoutProps) {
       <main className="relative z-10 min-h-[calc(100vh-64px)]">
         {children}
       </main>
+
+      {trialModalOpen && trialStatus?.shouldOffer && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={dismissTrialModal} />
+          <div className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-aurora-violet/30 bg-[#0b0b14] p-6 shadow-2xl ring-1 ring-white/10 sm:p-8">
+            <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-aurora-violet/30 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-aurora-cyan/20 blur-3xl" />
+
+            <div className="relative">
+              <p className="eyebrow text-aurora-mint">Oferta unica</p>
+              <h2 className="mt-2 text-display text-3xl font-bold text-white">
+                {trialStatus.config.title}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-white/65">
+                {trialStatus.config.description}
+              </p>
+
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-bold text-white">
+                      {trialStatus.plan?.name || 'Plano premium'}
+                    </p>
+                    <p className="mt-1 text-xs text-white/50">
+                      {trialStatus.config.durationDays} dia(s) de acesso ao gerador premium
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-aurora-mint/30 bg-aurora-mint/10 px-3 py-1 text-xs font-bold text-aurora-mint">
+                    {trialStatus.plan?.maxGenerations === 0 ? 'Ilimitado' : `${trialStatus.plan?.maxGenerations || 0} geracoes`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={redeemTrial}
+                  disabled={trialRedeeming}
+                  className="btn btn-primary flex-1 disabled:opacity-50"
+                >
+                  {trialRedeeming ? 'Ativando...' : trialStatus.config.buttonText}
+                </button>
+                <button
+                  onClick={dismissTrialModal}
+                  disabled={trialRedeeming}
+                  className="btn btn-ghost flex-1 disabled:opacity-50"
+                >
+                  Agora nao
+                </button>
+              </div>
+
+              <p className="mt-4 text-center text-[11px] text-white/35">
+                Resgate limitado a uma vez por conta, dispositivo e IP.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!isAdminRoute && (
         <footer className="relative z-10 mt-24 border-t border-white/[0.06]">

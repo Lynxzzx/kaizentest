@@ -95,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (!captchaId || !captchaCode) {
     return res.status(400).json({ error: 'CAPTCHA obrigatório para gerar conta.' })
   }
-  const captchaResult = validateCaptcha(captchaId, captchaCode)
+  const captchaResult = await validateCaptcha(captchaId, captchaCode)
   if (!captchaResult.valid) {
     return res.status(403).json({ error: captchaResult.error || 'CAPTCHA inválido.' })
   }

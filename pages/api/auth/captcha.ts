@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'GET') {
     // Gerar novo CAPTCHA
     try {
-      const captcha = createCaptcha()
+      const captcha = await createCaptcha()
       
       return res.status(200).json({
         id: captcha.id,
@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       }
       
-      const result = validateCaptcha(id, code)
+      const result = await validateCaptcha(id, code)
       
       return res.status(200).json(result)
     } catch (error: any) {

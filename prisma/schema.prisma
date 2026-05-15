@@ -78,6 +78,7 @@ model User {
   apiKeys       ApiKey[]
   eventsCreated Event[] @relation("EventCreator")
   eventParticipations EventParticipation[]
+  premiumTrialRedemptions PremiumTrialRedemption[]
 
 }
 
@@ -97,6 +98,16 @@ model EmailVerification {
   expiresAt DateTime
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// CAPTCHA visual (gerador) — persistido para serverless: memória não compartilha entre instâncias da Vercel.
+model CaptchaChallenge {
+  id        String   @id @map("_id")
+  code      String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }
 
 model Service {
@@ -173,6 +184,27 @@ model RedeemedKey {
   userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   redeemedAt DateTime @default(now())
+}
+
+model PremiumTrialRedemption {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String   @unique @db.ObjectId
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId            String   @db.ObjectId
+  planName          String
+  durationDays      Int
+  startsAt          DateTime @default(now())
+  expiresAt         DateTime
+  deviceFingerprint String?
+  registrationIp    String?
+  redeemedIp        String?
+  userAgent         String?
+  createdAt         DateTime @default(now())
+
+  @@index([deviceFingerprint])
+  @@index([registrationIp])
+  @@index([redeemedIp])
+  @@index([expiresAt])
 }
 
 model GeneratedAccount {

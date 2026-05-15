@@ -12,23 +12,40 @@ const globalForPrisma = globalThis as unknown as {
  * "read preference in a transaction must be primary".
  *
  * Removemos readPreference/maxStalenessSeconds se vierem na URL por engano.
+ *
+ * Evitamos URLSearchParams na query inteira: ele pode re-codificar valores e, em
+ * alguns ambientes, contribuir para falhas de handshake TLS com mongodb+srv.
  */
 function effectiveDatabaseUrl(): string | undefined {
   const url = process.env.DATABASE_URL
   if (!url) return undefined
 
   const qIndex = url.indexOf('?')
-  const base = qIndex === -1 ? url : url.substring(0, qIndex)
-  const query = qIndex === -1 ? '' : url.substring(qIndex + 1)
-  const params = new URLSearchParams(query)
+  const base = qIndex === -1 ? url : url.slice(0, qIndex)
+  const rawQuery = qIndex === -1 ? '' : url.slice(qIndex + 1)
 
-  params.delete('readPreference')
-  params.delete('readpreference')
-  params.delete('maxStalenessSeconds')
-  params.delete('maxstalenessseconds')
+  const pairs: string[] = []
+  const seenKeys = new Set<string>()
+
+  if (rawQuery) {
+    for (const part of rawQuery.split('&')) {
+      if (!part) continue
+      const eq = part.indexOf('=')
+      const keyRaw = eq === -1 ? part : part.slice(0, eq)
+      const key = keyRaw.toLowerCase()
+      if (key === 'readpreference' || key === 'maxstalenessseconds') {
+        continue
+      }
+      pairs.push(part)
+      seenKeys.add(key)
+    }
+  }
 
   const addIfMissing = (key: string, value: string) => {
-    if (!params.has(key)) params.set(key, value)
+    if (!seenKeys.has(key.toLowerCase())) {
+      pairs.push(`${key}=${value}`)
+      seenKeys.add(key.toLowerCase())
+    }
   }
 
   addIfMissing('maxPoolSize', '10')
@@ -36,8 +53,8 @@ function effectiveDatabaseUrl(): string | undefined {
   addIfMissing('serverSelectionTimeoutMS', '45000')
   addIfMissing('connectTimeoutMS', '15000')
 
-  const qs = params.toString()
-  return qs ? `${base}?${qs}` : base
+  if (pairs.length === 0) return base
+  return `${base}?${pairs.join('&')}`
 }
 
 const databaseUrl = process.env.DATABASE_URL
