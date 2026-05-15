@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Component, useCallback, useEffect, useRef, useState } from 'react'
+import type { ErrorInfo, ReactNode } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import axios from 'axios'
@@ -6,6 +7,57 @@ import toast from 'react-hot-toast'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale/pt-BR'
+
+// ── Error Boundary ─────────────────────────────────────────
+class CookieErrorBoundary extends Component<
+  { children: ReactNode },
+  { error: Error | null; info: string }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props)
+    this.state = { error: null, info: '' }
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('🍪 AdminCookies render error:', error)
+    console.error('Component stack:', info.componentStack)
+    this.setState({ info: info.componentStack ?? '' })
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="mx-auto max-w-3xl px-6 py-16">
+          <div className="rounded-2xl border border-rose-400/30 bg-rose-400/5 p-6">
+            <h2 className="text-lg font-bold text-rose-400 mb-3">
+              ❌ Erro de renderização capturado
+            </h2>
+            <p className="text-sm text-white/70 mb-4">
+              Copie a mensagem abaixo e envie para o suporte:
+            </p>
+            <pre className="overflow-x-auto rounded-xl bg-black/40 p-4 text-[11px] text-rose-300 font-mono whitespace-pre-wrap break-all leading-relaxed border border-rose-400/15">
+              {this.state.error.message}
+              {'\n\n'}
+              {this.state.error.stack}
+              {this.state.info ? '\n\nComponent stack:' + this.state.info : ''}
+            </pre>
+            <button
+              className="mt-4 btn btn-ghost btn-sm"
+              onClick={() => this.setState({ error: null, info: '' })}
+            >
+              Tentar novamente
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 interface CookieStock {
   id: string
@@ -28,7 +80,15 @@ interface Service {
 
 type ActiveTab = 'estoque' | 'gerenciamento' | 'servicos'
 
-export default function AdminCookies() {
+export default function AdminCookiesPage() {
+  return (
+    <CookieErrorBoundary>
+      <AdminCookies />
+    </CookieErrorBoundary>
+  )
+}
+
+function AdminCookies() {
   const { data: session, status } = useSession()
   const router = useRouter()
 
@@ -91,6 +151,22 @@ export default function AdminCookies() {
   const [newServiceDesc, setNewServiceDesc] = useState<string>('')
   const [creatingService, setCreatingService] = useState(false)
 
+  // Captura erros não tratados para diagnóstico
+  useEffect(() => {
+    const onUnhandled = (e: PromiseRejectionEvent) => {
+      console.error('🍪 [AdminCookies] Unhandled rejection:', e.reason)
+    }
+    const onError = (e: ErrorEvent) => {
+      console.error('🍪 [AdminCookies] Window error:', e.message, e.filename, e.lineno)
+    }
+    window.addEventListener('unhandledrejection', onUnhandled)
+    window.addEventListener('error', onError)
+    return () => {
+      window.removeEventListener('unhandledrejection', onUnhandled)
+      window.removeEventListener('error', onError)
+    }
+  }, [])
+
   useEffect(() => {
     if (status === 'loading') return
     if (status === 'unauthenticated') { router.replace('/login'); return }
@@ -123,10 +199,27 @@ export default function AdminCookies() {
     try {
       setStocksLoading(true)
       const res = await axios.get('/api/stocks')
+      console.log('🍪 loadStocks raw count:', Array.isArray(res.data) ? res.data.length : 'not-array', typeof res.data)
       const allStocks: CookieStock[] = Array.isArray(res.data) ? res.data : []
-      setStocks(allStocks.filter(s => isCookieStock(s)))
+      // Sanitize each stock to prevent render crashes from unexpected DB fields
+      const safe = allStocks.map(s => ({
+        ...s,
+        username: s.username ?? null,
+        password: s.password ?? null,
+        email: s.email ?? null,
+        extraData: s.extraData ?? null,
+        isUsed: Boolean(s.isUsed),
+        usedAt: s.usedAt ?? null,
+        createdAt: s.createdAt ?? new Date().toISOString(),
+        service: s.service
+          ? { id: s.service.id ?? '', name: s.service.name ?? 'Serviço', icon: s.service.icon ?? null }
+          : null,
+      })) as CookieStock[]
+      const cookieStocks = safe.filter(s => isCookieStock(s))
+      console.log('🍪 cookie stocks after filter:', cookieStocks.length)
+      setStocks(cookieStocks)
     } catch (err) {
-      console.error('Erro ao carregar stocks:', err)
+      console.error('🍪 Erro ao carregar stocks:', err)
       toast.error('Erro ao carregar estoque de cookies')
     } finally {
       setStocksLoading(false)
