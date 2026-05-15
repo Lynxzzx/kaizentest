@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import axios from 'axios'
@@ -54,8 +54,33 @@ export default function AdminCookies() {
   const [selectedFiles, setSelectedFiles]   = useState<File[]>([])
   const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null)
 
-  // Ref para o input de pasta (webkitdirectory não é tipado no React — definido via useEffect)
+  // Ref do input de pasta (oculto, atributo definido via callback ref)
   const folderInputRef = useRef<HTMLInputElement>(null)
+
+  // Cria input de pasta dinamicamente para garantir webkitdirectory
+  const openFolderPicker = useCallback(() => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.multiple = true
+    input.setAttribute('webkitdirectory', '')
+    input.setAttribute('directory', '')
+    input.setAttribute('mozdirectory', '')
+    input.style.display = 'none'
+    document.body.appendChild(input)
+
+    input.onchange = () => {
+      const files = Array.from(input.files || []).filter(f =>
+        f.name.toLowerCase().endsWith('.txt')
+      )
+      setSelectedFiles(prev => {
+        const existing = new Set(prev.map(f => f.name))
+        return [...prev, ...files.filter(f => !existing.has(f.name))]
+      })
+      document.body.removeChild(input)
+    }
+
+    input.click()
+  }, [])
 
   // ── Serviços de cookies ───────────────────────────────────
   const [newServiceName, setNewServiceName] = useState<string>('')
@@ -75,14 +100,6 @@ export default function AdminCookies() {
     }
   }, [session])
 
-  // Ativa seleção de pasta no input via atributo DOM (não suportado em tipos React/TS)
-  useEffect(() => {
-    if (folderInputRef.current) {
-      folderInputRef.current.setAttribute('webkitdirectory', '')
-      folderInputRef.current.setAttribute('directory', '')
-      folderInputRef.current.setAttribute('mozdirectory', '')
-    }
-  }, [])
 
   // ──────────────────────────────────────────────────────────
   // Data helpers
@@ -635,7 +652,7 @@ export default function AdminCookies() {
                 <div className="space-y-4">
                   {/* Drop zone — clique abre seleção de pasta */}
                   <div
-                    onClick={() => folderInputRef.current?.click()}
+                    onClick={openFolderPicker}
                     className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-amber-400/30 bg-amber-400/5 py-10 cursor-pointer hover:border-amber-400/50 hover:bg-amber-400/8 transition-all select-none"
                   >
                     <span className="text-4xl">📁</span>
@@ -662,31 +679,14 @@ export default function AdminCookies() {
                       <label className="mb-1.5 block text-[11px] font-semibold text-white/40 uppercase tracking-wider">
                         Selecionar Pasta
                       </label>
-                      <label
-                        className="flex items-center gap-2 cursor-pointer rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 hover:border-amber-400/30 hover:bg-amber-400/5 transition-all"
-                        onClick={() => folderInputRef.current?.click()}
+                      <button
+                        type="button"
+                        onClick={openFolderPicker}
+                        className="flex items-center gap-2 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-4 py-3 hover:border-amber-400/30 hover:bg-amber-400/5 transition-all w-full"
                       >
                         <span className="text-lg">📂</span>
                         <span className="text-sm text-white/60">Escolher pasta de cookies</span>
-                      </label>
-                      {/* Input de pasta — webkitdirectory definido via ref/useEffect */}
-                      <input
-                        ref={folderInputRef}
-                        type="file"
-                        multiple
-                        className="hidden"
-                        onChange={e => {
-                          const files = Array.from(e.target.files || []).filter(f =>
-                            f.name.toLowerCase().endsWith('.txt')
-                          )
-                          setSelectedFiles(prev => {
-                            const existing = new Set(prev.map(f => f.name))
-                            return [...prev, ...files.filter(f => !existing.has(f.name))]
-                          })
-                          // Limpa o input para permitir re-seleção da mesma pasta
-                          e.target.value = ''
-                        }}
-                      />
+                      </button>
                     </div>
                     <div>
                       <label className="mb-1.5 block text-[11px] font-semibold text-white/40 uppercase tracking-wider">
