@@ -16,17 +16,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(403).json({ error: 'Unauthorized' })
     }
 
-    const { serviceId } = req.query
+    const { serviceId, cookieOnly } = req.query
+
+    const where: Record<string, unknown> = {}
+    if (serviceId) where.serviceId = serviceId as string
+    if (cookieOnly === 'true') where.extraData = { contains: '"type":"cookie"' }
 
     const stocks = await prisma.stock.findMany({
-      where: serviceId ? { serviceId: serviceId as string } : {},
+      where,
       include: {
         service: true
       },
       orderBy: { createdAt: 'desc' }
     })
 
-    return res.json(stocks)
+    // Remove o campo `raw` do extraData para reduzir o tamanho da resposta
+    const stocksStripped = stocks.map(stock => {
+      if (!stock.extraData) return stock
+      try {
+        const extra = JSON.parse(stock.extraData)
+        if ('raw' in extra) {
+          const { raw: _raw, ...rest } = extra
+          return { ...stock, extraData: JSON.stringify(rest) }
+        }
+      } catch {}
+      return stock
+    })
+
+    return res.json(stocksStripped)
   }
 
   if (req.method === 'POST') {

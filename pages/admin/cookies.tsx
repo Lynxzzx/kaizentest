@@ -198,7 +198,7 @@ function AdminCookies() {
   const loadStocks = async () => {
     try {
       setStocksLoading(true)
-      const res = await axios.get('/api/stocks')
+      const res = await axios.get('/api/stocks?cookieOnly=true')
       console.log('🍪 loadStocks raw count:', Array.isArray(res.data) ? res.data.length : 'not-array', typeof res.data)
       const allStocks: CookieStock[] = Array.isArray(res.data) ? res.data : []
       // Sanitize each stock to prevent render crashes from unexpected DB fields
@@ -314,21 +314,28 @@ function AdminCookies() {
         return
       }
 
-      // ── Envio para a API ──────────────────────────────────
-      const res = await axios.post('/api/cookies/bulk', {
-        serviceId: importServiceId,
-        files: filePayloads
-      })
+      // ── Envio em lotes de 50 arquivos para evitar limite de 4MB ──────────
+      const BATCH_SIZE = 50
+      let totalCreated = 0
+      const totalErrors: string[] = []
+      const batches = Math.ceil(filePayloads.length / BATCH_SIZE)
 
-      const created: number       = res.data.created       ?? 0
-      const filesProcessed: number = res.data.filesProcessed ?? filePayloads.length
-      const errors: string[]       = res.data.errors        ?? []
+      for (let b = 0; b < batches; b++) {
+        const batch = filePayloads.slice(b * BATCH_SIZE, (b + 1) * BATCH_SIZE)
+        const res = await axios.post('/api/cookies/bulk', {
+          serviceId: importServiceId,
+          files: batch
+        })
+        totalCreated += res.data.created ?? 0
+        if (res.data.errors?.length) totalErrors.push(...res.data.errors)
+        setImportProgress({ done: Math.min((b + 1) * BATCH_SIZE, filePayloads.length), total: filePayloads.length })
+      }
 
-      toast.success(`✅ ${created} sessão(ões) importada(s) de ${filesProcessed} arquivo(s)!`)
+      toast.success(`✅ ${totalCreated} sessão(ões) importada(s) de ${filePayloads.length} arquivo(s)!`)
 
-      if (errors.length > 0) {
-        toast.error(`⚠️ ${errors.length} erro(s) durante importação`)
-        console.warn('Erros de importação:', errors)
+      if (totalErrors.length > 0) {
+        toast.error(`⚠️ ${totalErrors.length} erro(s) durante importação`)
+        console.warn('Erros de importação:', totalErrors)
       }
 
       setSelectedFiles([])

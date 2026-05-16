@@ -3,6 +3,14 @@ import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb',
+    },
+  },
+}
+
 interface CookieLine {
   domain: string
   includeSubdomains: boolean
