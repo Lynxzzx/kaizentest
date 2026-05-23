@@ -122,8 +122,7 @@ export default function ApiPlans() {
     }
 
     if (method === 'CARD') {
-      setPendingCardPayment(plan)
-      setShowCardModal(true)
+      toast.error('Pagamento por cartão temporariamente indisponível. Use PIX ou Crypto.')
       return
     }
 
@@ -254,7 +253,6 @@ export default function ApiPlans() {
               <div className="space-y-2">
                 <button onClick={() => handlePayment(plan, 'PIX')} className="btn btn-primary btn-sm w-full">{t('payViaPix')}</button>
                 <button onClick={() => handlePayment(plan, 'CRYPTO')} className="btn btn-ghost btn-sm w-full">Crypto</button>
-                <button onClick={() => handlePayment(plan, 'CARD')} className="btn btn-ghost btn-sm w-full">Cartão</button>
               </div>
             </div>
           ))}

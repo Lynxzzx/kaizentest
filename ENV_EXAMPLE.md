@@ -10,12 +10,9 @@ DATABASE_URL="mongodb://localhost:27017/kaizen-gens"
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-secret-key-here
 
-# Asaas
-# Para testes (Sandbox):
-ASAAS_API_URL=https://api-sandbox.asaas.com/v3
-# Para produção:
-# ASAAS_API_URL=https://api.asaas.com/v3
-ASAAS_API_KEY=$aact_prod_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OmNjNTFlMjU5LTU2NTgtNGZkZi04NzM5LTRkNDE3YjYxYWM4Yjo6JGFhY2hfNGY0MDg2ZjktYmFhYS00MDJiLWFiZWUtMjYzZTlkNGUzYTNm
+# MisticPay (PIX) - https://docs.misticpay.com/
+MISTICPAY_CLIENT_ID=ci_seu_client_id
+MISTICPAY_CLIENT_SECRET=cs_seu_client_secret
 
 # Binance (Pagamentos via Criptomoedas)
 BINANCE_API_KEY=luweSTLeGMHiod5NAcGPTcVdLZ5LKNa4UjSqiHmHlXIJXHhCvJwifviwoaRSo3D5

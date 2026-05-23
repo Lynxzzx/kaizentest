@@ -129,10 +129,8 @@ export default function Plans() {
 
     if (method === 'PIX') { setPendingPayment({ plan, method }); setShowEmailModal(true); return }
     if (method === 'CARD') {
-      setPendingCardPayment(plan)
-      if (!cardEmail) { const e = (session.user as any)?.email || ''; if (e) setCardEmail(e) }
-      if (!cardHolderName) { const h = (session.user as any)?.username || ''; if (h) setCardHolderName(h.toUpperCase()) }
-      setShowCardModal(true); return
+      toast.error('Pagamento por cartão temporariamente indisponível. Use PIX ou Crypto.')
+      return
     }
     if (method === 'CRYPTO') { setPendingBitcoinPayment(plan); setShowLanguageModal(true); return }
   }
@@ -363,14 +361,9 @@ export default function Plans() {
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4 2 7-6.5-4.5L5.5 20l2-7L2 9h7z"/></svg>
                       Pagar com PIX
                     </button>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => handlePayment(plan, 'CARD')} className="btn btn-ghost">
-                        💳 Cartão
-                      </button>
-                      <button onClick={() => handlePayment(plan, 'CRYPTO')} className="btn btn-ghost">
-                        ₿ Crypto
-                      </button>
-                    </div>
+                    <button onClick={() => handlePayment(plan, 'CRYPTO')} className="btn btn-ghost w-full">
+                      ₿ Crypto
+                    </button>
                   </div>
                 </div>
               </div>

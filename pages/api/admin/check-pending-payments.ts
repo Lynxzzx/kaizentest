@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
-import { getPagSeguroPayment } from '@/lib/pagseguro'
+import { checkMisticPayTransaction, isMisticPayPaid, isMisticPayTransactionId } from '@/lib/misticpay'
 import { checkPaymentStatus } from '@/lib/binance'
 import { settlePaymentAsPaid } from '@/lib/payment-utils'
 
@@ -60,15 +60,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // VERIFICAÇÃO DE PAGAMENTOS PIX
       // ========================================
       if (payment.method === 'PIX') {
-        const isPagSeguro = !!payment.asaasId && !payment.asaasId.startsWith('pay_')
-        
-        if (!isPagSeguro) {
-          console.log(`⏭️ [admin-check] Pulando pagamento PIX ${payment.id} - não é PagSeguro (é Asaas, será processado via webhook)`)
+        if (!payment.asaasId || !isMisticPayTransactionId(payment.asaasId)) {
           results.details.push({
             paymentId: payment.id,
             method: 'PIX',
             status: 'skipped',
-            reason: 'Not PagSeguro - will be processed via webhook'
+            reason: 'Not a MisticPay PIX payment'
           })
           continue
         }
@@ -76,42 +73,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         results.checked++
 
         try {
-          console.log(`🔄 [admin-check] Verificando pagamento PIX ${payment.id} (${payment.user.username})...`)
-          console.log(`   ID: ${payment.asaasId}`)
-          console.log(`   Reference ID: ${payment.pagSeguroReferenceId}`)
-          
-          // Buscar status no PagSeguro
-          const pagSeguroOrder = await getPagSeguroPayment(payment.asaasId!)
-          
-          const orderStatus = pagSeguroOrder.status
-          const chargeStatus = pagSeguroOrder.charges?.[0]?.status
-          const normalizedOrderStatus = typeof orderStatus === 'string' ? orderStatus.toUpperCase() : ''
-          const normalizedChargeStatus = typeof chargeStatus === 'string' ? chargeStatus.toUpperCase() : ''
-          
-          const isPaid = normalizedOrderStatus === 'PAID' || 
-                         normalizedChargeStatus === 'PAID' ||
-                         normalizedOrderStatus === 'CONFIRMED' ||
-                         normalizedChargeStatus === 'CONFIRMED' ||
-                         normalizedOrderStatus === 'APPROVED' ||
-                         normalizedChargeStatus === 'APPROVED'
+          const remote = await checkMisticPayTransaction(payment.asaasId)
+          const isPaid = isMisticPayPaid(remote.transactionState)
 
           if (isPaid) {
-            console.log(`✅ [admin-check] Pagamento PIX ${payment.id} está PAGO! Ativando plano...`)
-            
-            const paidAt = pagSeguroOrder.charges?.[0]?.paid_at
-              ? new Date(pagSeguroOrder.charges[0].paid_at)
-              : new Date()
-
-            const referenceId =
-              pagSeguroOrder.reference_id ||
-              pagSeguroOrder.order_id ||
-              pagSeguroOrder.charges?.[0]?.reference_id ||
-              pagSeguroOrder.charge_reference ||
-              null
-
             await settlePaymentAsPaid(payment, {
-              paidAt,
-              pagSeguroReferenceId: referenceId ?? undefined
+              paidAt: remote.paidAt,
+              pagSeguroReferenceId: payment.pagSeguroReferenceId ?? undefined
             })
 
             results.activated++
@@ -122,53 +90,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               planName: payment.plan.name,
               method: 'PIX',
               status: 'activated',
-              paidAt: paidAt.toISOString()
+              paidAt: remote.paidAt.toISOString()
             })
-
-            console.log(`✅ [admin-check] Plano ativado para ${payment.user.username}!`)
           } else {
-            console.log(`⏳ [admin-check] Pagamento PIX ${payment.id} ainda está pendente`)
             results.stillPending++
             results.details.push({
               paymentId: payment.id,
-              userId: payment.userId,
-              username: payment.user.username,
               method: 'PIX',
               status: 'still_pending',
-              orderStatus: normalizedOrderStatus || orderStatus,
-              chargeStatus: normalizedChargeStatus || chargeStatus
+              providerStatus: remote.transactionState
             })
           }
         } catch (error: any) {
-          console.error(`❌ [admin-check] Erro ao verificar pagamento PIX ${payment.id}:`, error.message)
-          console.error(`   ID tentado: ${payment.asaasId}`)
-          console.error(`   Reference ID: ${payment.pagSeguroReferenceId}`)
-          
-          // Se o erro for 400/404, é porque o ID não é válido/encontrado
-          if (error.response?.status === 400 || error.response?.status === 404) {
-            console.warn(`⚠️ [admin-check] ID inválido/não encontrado. Marcando como erro mas aguardando webhook.`)
-            results.stillPending++
-            results.details.push({
-              paymentId: payment.id,
-              userId: payment.userId,
-              username: payment.user.username,
-              method: 'PIX',
-              status: 'awaiting_webhook',
-              note: 'Payment ID not found in PagSeguro API. Will be activated via webhook.',
-              asaasId: payment.asaasId,
-              referenceId: payment.pagSeguroReferenceId
-            })
-          } else {
-            results.errors++
-            results.details.push({
-              paymentId: payment.id,
-              userId: payment.userId,
-              username: payment.user.username,
-              method: 'PIX',
-              status: 'error',
-              error: error.message
-            })
-          }
+          results.errors++
+          results.details.push({
+            paymentId: payment.id,
+            method: 'PIX',
+            status: 'error',
+            error: error.message
+          })
         }
       }
       

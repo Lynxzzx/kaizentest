@@ -58,11 +58,8 @@ export default function AdminConfig() {
       const defaultConfigs = [
         { key: 'ASAAS_API_KEY', description: 'Chave de API do Asaas (para pagamentos PIX)' },
         { key: 'ASAAS_API_URL', description: 'URL da API do Asaas' },
-        { key: 'PAGSEGURO_APP_KEY', description: 'Chave de AplicaÃ§Ã£o do PagSeguro (para pagamentos PIX)' },
-        { key: 'PAGSEGURO_TOKEN', description: 'Token do PagSeguro (alternativa Ã  chave de aplicaÃ§Ã£o)' },
-        { key: 'PAGSEGURO_SELLER_EMAIL', description: 'Email do vendedor/conta PagSeguro (obrigatÃ³rio em alguns casos)' },
-        { key: 'PAGSEGURO_API_URL', description: 'URL da API do PagSeguro (ex: https://api.pagseguro.com ou https://sandbox.api.pagseguro.com)' },
-        { key: 'PAGSEGURO_SANDBOX', description: 'Usar ambiente sandbox do PagSeguro (true/false) - ignorado se PAGSEGURO_API_URL estiver configurada' }
+        { key: 'MISTICPAY_CLIENT_ID', description: 'Client ID da MisticPay (pagamentos PIX)' },
+        { key: 'MISTICPAY_CLIENT_SECRET', description: 'Client Secret da MisticPay (pagamentos PIX)' }
       ]
       
       const existingKeys = data.configs.map((c: SystemConfig) => c.key)
@@ -293,28 +290,16 @@ export default function AdminConfig() {
               + ASAAS_API_URL
             </button>
             <button
-              onClick={() => quickAddConfig('PAGSEGURO_APP_KEY', 'Chave de AplicaÃ§Ã£o do PagSeguro (para pagamentos PIX)')}
+              onClick={() => quickAddConfig('MISTICPAY_CLIENT_ID', 'Client ID da MisticPay (pagamentos PIX)')}
               className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
             >
-              + PAGSEGURO_APP_KEY
+              + MISTICPAY_CLIENT_ID
             </button>
             <button
-              onClick={() => quickAddConfig('PAGSEGURO_TOKEN', 'Token do PagSeguro (alternativa Ã  chave de aplicaÃ§Ã£o)')}
+              onClick={() => quickAddConfig('MISTICPAY_CLIENT_SECRET', 'Client Secret da MisticPay (pagamentos PIX)')}
               className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
             >
-              + PAGSEGURO_TOKEN
-            </button>
-            <button
-              onClick={() => quickAddConfig('PAGSEGURO_SELLER_EMAIL', 'Email do vendedor/conta PagSeguro (obrigatÃ³rio em alguns casos)')}
-              className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
-            >
-              + PAGSEGURO_SELLER_EMAIL
-            </button>
-            <button
-              onClick={() => quickAddConfig('PAGSEGURO_API_URL', 'URL da API do PagSeguro (ex: https://api.pagseguro.com ou https://sandbox.api.pagseguro.com)')}
-              className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
-            >
-              + PAGSEGURO_API_URL
+              + MISTICPAY_CLIENT_SECRET
             </button>
             <button
               onClick={() => quickAddConfig('PAGSEGURO_SANDBOX', 'Usar ambiente sandbox do PagSeguro (true/false) - ignorado se PAGSEGURO_API_URL estiver configurada')}
