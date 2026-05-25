@@ -7,6 +7,7 @@ import axios from 'axios'
 import { getStoredDeviceFingerprint } from '@/lib/device-fingerprint'
 import toast from 'react-hot-toast'
 import ReCaptcha, { useReCaptcha, ReCaptchaBadge } from '@/components/ReCaptcha'
+import { fetchRecaptchaToken, recaptchaLoadErrorMessage } from '@/lib/recaptcha-client'
 
 export default function Register() {
   const { t } = useTranslation()
@@ -25,7 +26,7 @@ export default function Register() {
   const formStartTimeRef = useRef<number>(Date.now())
 
   const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
-  const [_recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
 
   useEffect(() => {
     if (router.query.ref && typeof router.query.ref === 'string') {
@@ -34,6 +35,21 @@ export default function Register() {
   }, [router.query.ref])
 
   useEffect(() => { formStartTimeRef.current = Date.now() }, [])
+
+  useEffect(() => {
+    if (!recaptchaReady) return
+    let cancelled = false
+    const warm = async () => {
+      const token = await executeRecaptcha('register')
+      if (!cancelled && token) setRecaptchaToken(token)
+    }
+    warm()
+    const interval = setInterval(warm, 90_000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [recaptchaReady, executeRecaptcha])
 
   const handleSendVerificationCode = async () => {
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error('Email inválido'); return }
@@ -62,12 +78,15 @@ export default function Register() {
     setLoading(true)
     try {
       if (!recaptchaConfigured) { toast.error('Verificação de segurança não configurada.'); setLoading(false); return }
-      let token = await executeRecaptcha('register')
-      if (!token && !recaptchaReady) {
-        await new Promise(r => setTimeout(r, 1000))
-        token = await executeRecaptcha('register')
+      const token = await fetchRecaptchaToken(executeRecaptcha, 'register', {
+        isReady: recaptchaReady,
+        cachedToken: recaptchaToken,
+      })
+      if (!token) {
+        toast.error(recaptchaLoadErrorMessage(), { duration: 7000 })
+        setLoading(false)
+        return
       }
-      if (!token) { toast.error('Erro ao verificar segurança. Recarregue.'); setLoading(false); return }
       setRecaptchaToken(token)
 
       const controller = new AbortController()
@@ -218,7 +237,7 @@ export default function Register() {
               />
             </div>
 
-            <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="register" />
+            <ReCaptcha action="register" />
             <ReCaptchaBadge />
 
             <button type="submit" disabled={loading || !recaptchaConfigured} className="btn btn-primary btn-lg w-full">

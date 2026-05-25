@@ -32,21 +32,91 @@ export default function AdminConfig() {
   const [newConfigValue, setNewConfigValue] = useState('')
   const [newConfigDescription, setNewConfigDescription] = useState('')
 
+  const [misticClientId, setMisticClientId] = useState('')
+  const [misticClientSecret, setMisticClientSecret] = useState('')
+  const [misticLoading, setMisticLoading] = useState(true)
+  const [misticSaving, setMisticSaving] = useState(false)
+  const [misticStatus, setMisticStatus] = useState<{
+    ready: boolean
+    clientIdMask: string | null
+    clientSecretMask: string | null
+    storedInDatabase: { clientId: boolean; clientSecret: boolean }
+  } | null>(null)
+
   useEffect(() => {
+    const role = session?.user?.role
+    const canAccess = role === 'ADMIN' || role === 'OWNER' || role === 'CO_OWNER'
+
     if (status === 'unauthenticated') {
       router.push('/login')
       return
     }
 
-    if (status === 'authenticated' && session?.user?.role !== 'ADMIN' && session?.user?.role !== 'OWNER') {
+    if (status === 'authenticated' && !canAccess) {
       router.push('/')
       return
     }
 
-    if (status === 'authenticated') {
+    if (status === 'authenticated' && canAccess) {
       loadConfigs()
+      loadMisticPayConfig()
     }
-  }, [status, session, router])
+  }, [status, session?.user?.role, router])
+
+  const loadMisticPayConfig = async () => {
+    setMisticLoading(true)
+    try {
+      const res = await fetch('/api/admin/config/misticpay')
+      if (!res.ok) throw new Error('Falha ao carregar MisticPay')
+      const data = await res.json()
+      setMisticStatus({
+        ready: data.ready,
+        clientIdMask: data.clientIdMask,
+        clientSecretMask: data.clientSecretMask,
+        storedInDatabase: data.storedInDatabase
+      })
+    } catch (error: any) {
+      console.error('Error loading MisticPay config:', error)
+    } finally {
+      setMisticLoading(false)
+    }
+  }
+
+  const saveMisticPayConfig = async () => {
+    if (!misticClientId.trim()) {
+      setMessage({ type: 'error', text: 'Informe o Client ID (ci_...)' })
+      return
+    }
+    if (!misticClientSecret.trim() && !misticStatus?.storedInDatabase.clientSecret) {
+      setMessage({ type: 'error', text: 'Informe o Client Secret (cs_...)' })
+      return
+    }
+
+    setMisticSaving(true)
+    setMessage(null)
+    try {
+      const res = await fetch('/api/admin/config/misticpay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: misticClientId.trim(),
+          clientSecret: misticClientSecret.trim()
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Erro ao salvar')
+
+      setMessage({ type: 'success', text: data.message || 'MisticPay configurada!' })
+      setMisticClientId('')
+      setMisticClientSecret('')
+      await loadMisticPayConfig()
+      await loadConfigs()
+    } catch (error: any) {
+      setMessage({ type: 'error', text: error.message || 'Erro ao salvar MisticPay' })
+    } finally {
+      setMisticSaving(false)
+    }
+  }
 
   const loadConfigs = async () => {
     try {
@@ -301,12 +371,6 @@ export default function AdminConfig() {
             >
               + MISTICPAY_CLIENT_SECRET
             </button>
-            <button
-              onClick={() => quickAddConfig('PAGSEGURO_SANDBOX', 'Usar ambiente sandbox do PagSeguro (true/false) - ignorado se PAGSEGURO_API_URL estiver configurada')}
-              className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded hover:bg-green-200 dark:hover:bg-green-800 text-sm"
-            >
-              + PAGSEGURO_SANDBOX
-            </button>
           </div>
         </div>
 
@@ -321,6 +385,104 @@ export default function AdminConfig() {
             {message.text}
           </div>
         )}
+
+        <div className="mb-8 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg border-2 border-green-500/30">
+          <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                MisticPay — PIX
+              </h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Configure o Client ID e Client Secret obtidos em{' '}
+                <a
+                  href="https://app.misticpay.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 dark:text-indigo-400 underline"
+                >
+                  app.misticpay.com
+                </a>
+              </p>
+            </div>
+            {misticLoading ? (
+              <span className="px-3 py-1 text-xs rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600">
+                Carregando...
+              </span>
+            ) : (
+              <span
+                className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                  misticStatus?.ready
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                }`}
+              >
+                {misticStatus?.ready ? 'Pronta para PIX' : 'Não configurada'}
+              </span>
+            )}
+          </div>
+
+          {misticStatus?.ready && (
+            <div className="mb-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-900/50 text-sm text-gray-600 dark:text-gray-400">
+              <p>
+                <span className="font-medium text-gray-800 dark:text-gray-200">Client ID:</span>{' '}
+                {misticStatus.clientIdMask}
+                {misticStatus.storedInDatabase.clientId ? ' (salvo no painel)' : ' (variável de ambiente)'}
+              </p>
+              <p className="mt-1">
+                <span className="font-medium text-gray-800 dark:text-gray-200">Client Secret:</span>{' '}
+                {misticStatus.clientSecretMask}
+                {misticStatus.storedInDatabase.clientSecret ? ' (salvo no painel)' : ' (variável de ambiente)'}
+              </p>
+            </div>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Client ID
+              </label>
+              <input
+                type="text"
+                value={misticClientId}
+                onChange={(e) => setMisticClientId(e.target.value.trim())}
+                placeholder="ci_xxxxxxxx"
+                autoComplete="off"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Client Secret
+              </label>
+              <input
+                type="password"
+                value={misticClientSecret}
+                onChange={(e) => setMisticClientSecret(e.target.value)}
+                placeholder={
+                  misticStatus?.storedInDatabase.clientSecret
+                    ? 'Deixe vazio para manter o atual'
+                    : 'cs_xxxxxxxx'
+                }
+                autoComplete="new-password"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm"
+              />
+            </div>
+          </div>
+
+          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+            As credenciais são salvas no banco e têm prioridade sobre o arquivo .env. Ao salvar, testamos a conexão com a API da MisticPay.
+          </p>
+
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={saveMisticPayConfig}
+              disabled={misticSaving || misticLoading}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              {misticSaving ? 'Salvando...' : 'Salvar credenciais MisticPay'}
+            </button>
+          </div>
+        </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
@@ -447,16 +609,7 @@ export default function AdminConfig() {
               â€¢ Para ASAAS_API_KEY: Cole a chave completa do Asaas (deve comeÃ§ar com $aact_prod_ ou $aact_hmlg_)
             </li>
             <li>
-              â€¢ Para PAGSEGURO_APP_KEY ou PAGSEGURO_TOKEN: Cole a chave/token do PagSeguro obtida no painel
-            </li>
-            <li>
-              â€¢ Para PAGSEGURO_SELLER_EMAIL: Configure o email da conta PagSeguro/vendedor (obrigatÃ³rio em alguns casos de autenticaÃ§Ã£o)
-            </li>
-            <li>
-              â€¢ Para PAGSEGURO_API_URL: Configure a URL completa da API (ex: https://api.pagseguro.com para produÃ§Ã£o ou https://sandbox.api.pagseguro.com para sandbox)
-            </li>
-            <li>
-              â€¢ Para PAGSEGURO_SANDBOX: Use "true" para ambiente de testes ou "false" para produÃ§Ã£o (ignorado se PAGSEGURO_API_URL estiver configurada)
+              â€¢ MisticPay (PIX): use o formulário acima com Client ID (ci_...) e Client Secret (cs_...) do painel MisticPay
             </li>
             <li>
               â€¢ ApÃ³s atualizar, a configuraÃ§Ã£o serÃ¡ usada automaticamente nas prÃ³ximas requisiÃ§Ãµes

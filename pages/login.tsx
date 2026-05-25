@@ -6,6 +6,7 @@ import Link from 'next/link'
 import toast from 'react-hot-toast'
 import axios from 'axios'
 import ReCaptcha, { useReCaptcha, ReCaptchaBadge } from '@/components/ReCaptcha'
+import { fetchRecaptchaToken, recaptchaLoadErrorMessage } from '@/lib/recaptcha-client'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -20,11 +21,27 @@ export default function Login() {
   const [loginAttempts, setLoginAttempts] = useState(0)
 
   const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
-  const [_recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
 
   useEffect(() => {
     formStartTimeRef.current = Date.now()
   }, [])
+
+  // Pré-carrega token reCAPTCHA assim que o script estiver pronto
+  useEffect(() => {
+    if (!recaptchaReady) return
+    let cancelled = false
+    const warm = async () => {
+      const token = await executeRecaptcha('login')
+      if (!cancelled && token) setRecaptchaToken(token)
+    }
+    warm()
+    const interval = setInterval(warm, 90_000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [recaptchaReady, executeRecaptcha])
 
   useEffect(() => {
     if (loginAttempts >= 3) {
@@ -43,12 +60,15 @@ export default function Login() {
       if (!recaptchaConfigured) {
         toast.error('Verificação de segurança não configurada.'); setLoading(false); return
       }
-      let token = await executeRecaptcha('login')
-      if (!token && !recaptchaReady) {
-        await new Promise(r => setTimeout(r, 1000))
-        token = await executeRecaptcha('login')
+      const token = await fetchRecaptchaToken(executeRecaptcha, 'login', {
+        isReady: recaptchaReady,
+        cachedToken: recaptchaToken,
+      })
+      if (!token) {
+        toast.error(recaptchaLoadErrorMessage(), { duration: 7000 })
+        setLoading(false)
+        return
       }
-      if (!token) { toast.error('Erro ao verificar segurança. Recarregue a página.'); setLoading(false); return }
       setRecaptchaToken(token)
 
       try {
@@ -141,7 +161,7 @@ export default function Login() {
               </div>
             </div>
 
-            <ReCaptcha onVerify={(token) => setRecaptchaToken(token)} action="login" />
+            <ReCaptcha action="login" />
             <ReCaptchaBadge />
 
             <div className="flex justify-end">

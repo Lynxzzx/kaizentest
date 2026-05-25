@@ -299,7 +299,11 @@ interface BotDetectionResult {
 /**
  * Analisar request para detectar comportamento de bot
  */
-export function detectBot(req: NextApiRequest, formStartTime?: number): BotDetectionResult {
+export function detectBot(
+  req: NextApiRequest,
+  formStartTime?: number,
+  formType: 'login' | 'register' = 'register'
+): BotDetectionResult {
   const reasons: string[] = []
   let score = 0
   
@@ -341,10 +345,14 @@ export function detectBot(req: NextApiRequest, formStartTime?: number): BotDetec
   if (formStartTime) {
     const now = Date.now()
     const fillTime = (now - formStartTime) / 1000 // em segundos
-    
-    if (fillTime < SECURITY_CONFIG.MIN_FORM_FILL_TIME_REGISTER) {
+    const minFillTime =
+      formType === 'login'
+        ? SECURITY_CONFIG.MIN_FORM_FILL_TIME_LOGIN
+        : SECURITY_CONFIG.MIN_FORM_FILL_TIME_REGISTER
+
+    if (fillTime < minFillTime) {
       reasons.push(`Formulário preenchido muito rápido: ${fillTime.toFixed(1)}s`)
-      score += 40
+      score += formType === 'login' ? 20 : 40
     }
   }
   
@@ -581,16 +589,13 @@ export async function verifyRecaptcha(token: string, expectedAction: string): Pr
       }
     }
     
-    // Verificar action
+    // Action divergente: log apenas (evita bloquear usuários legítimos)
     if (expectedAction && data.action && data.action !== expectedAction) {
-      return {
-        success: false,
-        score: data.score,
-        action: data.action,
-        errorCodes: ['action-mismatch']
-      }
+      console.warn(
+        `⚠️ reCAPTCHA action mismatch: esperado "${expectedAction}", recebido "${data.action}"`
+      )
     }
-    
+
     return {
       success: true,
       score: data.score,
@@ -900,7 +905,7 @@ export async function validateLoginRequest(
   }
   
   // 3. Detecção básica de Bot
-  const botCheck = detectBot(req, data.formStartTime)
+  const botCheck = detectBot(req, data.formStartTime, 'login')
   if (botCheck.score >= 70) { // Threshold mais alto para login
     await logSecurityEvent({
       type: 'bot_detected',

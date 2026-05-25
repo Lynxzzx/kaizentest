@@ -1,131 +1,128 @@
 /**
  * 🛡️ Componente de reCAPTCHA v3
- * 
- * Este componente integra o Google reCAPTCHA v3 para proteção contra bots.
- * O reCAPTCHA v3 funciona de forma invisível, analisando o comportamento do usuário.
+ *
+ * Carrega o script do Google. Use o hook useReCaptcha() na página para executar o token.
  */
 
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useState, useRef } from 'react'
 import Script from 'next/script'
 
-// Tipos importados de types/grecaptcha.d.ts
-
 interface ReCaptchaProps {
-  onVerify?: (token: string) => void
   action?: string
 }
 
-// Hook para usar reCAPTCHA
+const SCRIPT_LOAD_TIMEOUT_MS = 15000
+
 export function useReCaptcha() {
   const [isReady, setIsReady] = useState(false)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [siteKey, setSiteKey] = useState<string | null>(null)
+  const readyRef = useRef(false)
 
   useEffect(() => {
-    // Obter a site key das variáveis de ambiente públicas
     const key = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
     if (key) {
       setSiteKey(key)
     }
   }, [])
 
-  useEffect(() => {
-    // Verificar se o script já está carregado
-    const checkReady = () => {
-      if (siteKey && window.grecaptcha) {
-        window.grecaptcha.ready(() => {
-          setIsReady(true)
-        })
-      }
-    }
-
-    // Se já estiver carregado
-    if (window.grecaptcha) {
-      checkReady()
-    } else {
-      // Aguardar o script carregar
-      const interval = setInterval(() => {
-        if (window.grecaptcha) {
-          checkReady()
-          clearInterval(interval)
-        }
-      }, 100)
-
-      // Limpar após 10 segundos
-      setTimeout(() => clearInterval(interval), 10000)
-    }
+  const markReady = useCallback(() => {
+    if (!siteKey || !window.grecaptcha || readyRef.current) return
+    window.grecaptcha.ready(() => {
+      readyRef.current = true
+      setIsReady(true)
+      setLoadFailed(false)
+    })
   }, [siteKey])
-
-  const executeRecaptcha = useCallback(async (action: string): Promise<string | null> => {
-    if (!siteKey) {
-      console.warn('⚠️ reCAPTCHA site key não configurada')
-      return null
-    }
-
-    // Aguardar o grecaptcha estar pronto
-    if (!window.grecaptcha) {
-      console.warn('⚠️ reCAPTCHA não carregado, aguardando...')
-      // Tentar aguardar um pouco
-      await new Promise(resolve => setTimeout(resolve, 500))
-      if (!window.grecaptcha) {
-        console.error('❌ reCAPTCHA não carregou após aguardar')
-        return null
-      }
-    }
-
-    try {
-      // Garantir que está pronto
-      await new Promise<void>((resolve) => {
-        if (window.grecaptcha) {
-          window.grecaptcha.ready(() => {
-            resolve()
-          })
-        } else {
-          resolve()
-        }
-      })
-
-      const token = await window.grecaptcha.execute(siteKey, { action })
-      return token
-    } catch (error) {
-      console.error('❌ Erro ao executar reCAPTCHA:', error)
-      return null
-    }
-  }, [siteKey])
-
-  return {
-    isReady,
-    executeRecaptcha,
-    isConfigured: !!siteKey
-  }
-}
-
-// Componente que carrega o script do reCAPTCHA v3 (não executa automaticamente)
-export default function ReCaptcha({ onVerify, action = 'submit' }: ReCaptchaProps) {
-  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 
   useEffect(() => {
     if (!siteKey) return
 
-    // Função para marcar que o script está carregado
-    const markAsLoaded = () => {
-      // Apenas marca que está carregado, não executa
-      // A execução será feita manualmente via executeRecaptcha
+    readyRef.current = false
+    setIsReady(false)
+    setLoadFailed(false)
+
+    if (window.grecaptcha) {
+      markReady()
+      return
     }
 
-    // Se já estiver carregado
-    if (window.grecaptcha) {
-      markAsLoaded()
-    } else {
-      // Aguardar o script carregar
-      window.onRecaptchaLoad = markAsLoaded
-    }
+    const interval = setInterval(() => {
+      if (window.grecaptcha) {
+        markReady()
+        clearInterval(interval)
+      }
+    }, 100)
+
+    const timeout = setTimeout(() => {
+      clearInterval(interval)
+      if (!readyRef.current) {
+        setLoadFailed(true)
+        console.error('❌ reCAPTCHA: script não carregou a tempo')
+      }
+    }, SCRIPT_LOAD_TIMEOUT_MS)
 
     return () => {
-      if (window.onRecaptchaLoad === markAsLoaded) {
-        delete window.onRecaptchaLoad
+      clearInterval(interval)
+      clearTimeout(timeout)
+    }
+  }, [siteKey, markReady])
+
+  const executeRecaptcha = useCallback(
+    async (action: string): Promise<string | null> => {
+      if (!siteKey) {
+        console.warn('⚠️ reCAPTCHA site key não configurada')
+        return null
+      }
+
+      if (!window.grecaptcha) {
+        for (let i = 0; i < 10; i++) {
+          await new Promise((r) => setTimeout(r, 400))
+          if (window.grecaptcha) break
+        }
+        if (!window.grecaptcha) {
+          console.error('❌ reCAPTCHA não carregou após aguardar')
+          return null
+        }
+      }
+
+      try {
+        await new Promise<void>((resolve) => {
+          window.grecaptcha!.ready(() => resolve())
+        })
+
+        const token = await window.grecaptcha!.execute(siteKey, { action })
+        return token || null
+      } catch (error) {
+        console.error('❌ Erro ao executar reCAPTCHA:', error)
+        return null
+      }
+    },
+    [siteKey]
+  )
+
+  return {
+    isReady,
+    loadFailed,
+    executeRecaptcha,
+    isConfigured: !!siteKey,
+  }
+}
+
+/** Apenas carrega o script — o hook useReCaptcha fica na página pai */
+export default function ReCaptcha(_props: ReCaptchaProps) {
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+
+  useEffect(() => {
+    window.onRecaptchaLoad = () => {
+      if (window.grecaptcha) {
+        window.grecaptcha.ready(() => {})
       }
     }
-  }, [siteKey])
+    return () => {
+      delete window.onRecaptchaLoad
+    }
+  }, [])
 
   if (!siteKey) {
     return null
@@ -136,15 +133,21 @@ export default function ReCaptcha({ onVerify, action = 'submit' }: ReCaptchaProp
       src={`https://www.google.com/recaptcha/api.js?render=${siteKey}`}
       strategy="afterInteractive"
       onLoad={() => {
-        if (window.onRecaptchaLoad) {
-          window.onRecaptchaLoad()
+        if (window.grecaptcha) {
+          window.grecaptcha.ready(() => {
+            window.onRecaptchaLoad?.()
+          })
+        } else {
+          window.onRecaptchaLoad?.()
         }
+      }}
+      onError={() => {
+        console.error('❌ Falha ao carregar script reCAPTCHA (rede, CSP ou bloqueador)')
       }}
     />
   )
 }
 
-// Componente de badge do reCAPTCHA (para exibir o texto obrigatório)
 export function ReCaptchaBadge() {
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
 
@@ -176,4 +179,3 @@ export function ReCaptchaBadge() {
     </div>
   )
 }
-

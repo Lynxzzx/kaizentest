@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '../../auth/[...nextauth]'
 import { prisma } from '@/lib/prisma'
+import { canManagePaymentConfig } from '@/lib/admin-payment-config-auth'
 
 /**
  * API para listar configurações do sistema
@@ -24,8 +25,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where: { id: session.user.id }
     })
 
-    if (!user || (user.role !== 'ADMIN' && user.role !== 'OWNER')) {
-      return res.status(403).json({ error: 'Forbidden - Admin only' })
+    if (!user || !canManagePaymentConfig(user.role)) {
+      return res.status(403).json({ error: 'Forbidden' })
     }
 
     const configs = await prisma.systemConfig.findMany({

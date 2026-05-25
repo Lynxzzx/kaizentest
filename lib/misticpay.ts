@@ -20,15 +20,12 @@ async function getConfigValue(key: string): Promise<string | null> {
 }
 
 export async function getMisticPayCredentials(): Promise<MisticPayCredentials> {
-  let clientId = process.env.MISTICPAY_CLIENT_ID
-  let clientSecret = process.env.MISTICPAY_CLIENT_SECRET
+  // Painel admin tem prioridade; .env é fallback (ex.: Vercel sem config no banco)
+  const dbClientId = await getConfigValue('MISTICPAY_CLIENT_ID')
+  const dbClientSecret = await getConfigValue('MISTICPAY_CLIENT_SECRET')
 
-  if (!clientId?.trim()) {
-    clientId = (await getConfigValue('MISTICPAY_CLIENT_ID')) || undefined
-  }
-  if (!clientSecret?.trim()) {
-    clientSecret = (await getConfigValue('MISTICPAY_CLIENT_SECRET')) || undefined
-  }
+  let clientId = dbClientId || process.env.MISTICPAY_CLIENT_ID
+  let clientSecret = dbClientSecret || process.env.MISTICPAY_CLIENT_SECRET
 
   if (!clientId?.trim() || !clientSecret?.trim()) {
     throw new Error(
