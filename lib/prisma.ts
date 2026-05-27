@@ -20,8 +20,8 @@ function effectiveDatabaseUrl(): string | undefined {
   let url = process.env.DATABASE_URL
   if (!url) return undefined
   
-  // Limpar aspas e espaços extras que podem vir do .env
-  url = url.trim().replace(/^["'](.+)["']$/, '$1').trim()
+  // Limpar aspas, espaços e caracteres invisíveis
+  url = url.trim().replace(/^["'](.+)["']$/, '$1').replace(/\s/g, '')
 
   const qIndex = url.indexOf('?')
   let base = qIndex === -1 ? url : url.slice(0, qIndex)
@@ -71,7 +71,7 @@ function effectiveDatabaseUrl(): string | undefined {
 }
 
 let rawUrl = process.env.DATABASE_URL
-const databaseUrl = rawUrl ? rawUrl.trim().replace(/^["'](.+)["']$/, '$1').trim() : undefined
+const databaseUrl = rawUrl ? rawUrl.trim().replace(/^["'](.+)["']$/, '$1').replace(/\s/g, '') : undefined
 
 if (!databaseUrl) {
   console.error('⚠️ DATABASE_URL não está configurada no arquivo .env')
