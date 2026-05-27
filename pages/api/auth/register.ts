@@ -35,6 +35,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       deviceFingerprint, 
       affiliateRef,
       recaptchaToken,
+      captchaId,
+      captchaCode,
       honeypot,
       formStartTime,
       verificationCode
@@ -47,7 +49,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // ================================================
     const securityCheck = await validateRegisterRequest(req, {
       username: sanitizedUsername,
-      recaptchaToken,
+      recaptchaToken: recaptchaToken || undefined,
+      captchaId: captchaId || undefined,
+      captchaCode: captchaCode || undefined,
       honeypot,
       formStartTime
     })

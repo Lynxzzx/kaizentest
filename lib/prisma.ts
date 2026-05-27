@@ -21,7 +21,7 @@ function effectiveDatabaseUrl(): string | undefined {
   if (!url) return undefined
 
   const qIndex = url.indexOf('?')
-  const base = qIndex === -1 ? url : url.slice(0, qIndex)
+  let base = qIndex === -1 ? url : url.slice(0, qIndex)
   const rawQuery = qIndex === -1 ? '' : url.slice(qIndex + 1)
 
   const pairs: string[] = []
@@ -52,6 +52,16 @@ function effectiveDatabaseUrl(): string | undefined {
   addIfMissing('minPoolSize', '0')
   addIfMissing('serverSelectionTimeoutMS', '45000')
   addIfMissing('connectTimeoutMS', '15000')
+
+  // FIX: Garantir que exista uma barra entre o host e os parâmetros
+  // O MongoDB exige: mongodb+srv://host/dbname?params ou mongodb+srv://host/?params
+  const protocolEndIndex = base.indexOf('://')
+  if (protocolEndIndex !== -1) {
+    const afterProtocol = base.slice(protocolEndIndex + 3)
+    if (!afterProtocol.includes('/')) {
+      base += '/'
+    }
+  }
 
   if (pairs.length === 0) return base
   return `${base}?${pairs.join('&')}`

@@ -10,6 +10,7 @@
 
 import { NextApiRequest } from 'next'
 import { prisma } from './prisma'
+import { validateCaptcha } from './captcha'
 
 // ===========================================
 // 📊 CONFIGURAÇÕES DE SEGURANÇA
@@ -668,6 +669,8 @@ export async function validateRegisterRequest(
   data: {
     username: string
     recaptchaToken?: string
+    captchaId?: string
+    captchaCode?: string
     honeypot?: string
     formStartTime?: number
   }
@@ -797,6 +800,27 @@ export async function validateRegisterRequest(
       }
     }
     // reCAPTCHA v3 passou - sucesso!
+  } else if (data.captchaId && data.captchaCode) {
+    // Fallback: Validar CAPTCHA Visual
+    const captchaResult = await validateCaptcha(data.captchaId, data.captchaCode)
+    if (!captchaResult.valid) {
+      await logSecurityEvent({
+        type: 'bot_detected',
+        ip,
+        userAgent,
+        username: data.username,
+        success: false,
+        reason: `CAPTCHA Visual falhou: ${captchaResult.error}`
+      })
+
+      return {
+        allowed: false,
+        reason: captchaResult.error || 'Verificação de segurança falhou.',
+        warnings: [],
+        botScore: 40
+      }
+    }
+    // CAPTCHA Visual passou!
   } else if (process.env.RECAPTCHA_SECRET_KEY && process.env.NODE_ENV === 'production') {
     // reCAPTCHA obrigatório em produção se configurado
     return {
@@ -837,6 +861,8 @@ export async function validateLoginRequest(
   data: {
     username: string
     recaptchaToken?: string
+    captchaId?: string
+    captchaCode?: string
     honeypot?: string
     formStartTime?: number
   }
@@ -950,6 +976,27 @@ export async function validateLoginRequest(
       }
     }
     // reCAPTCHA v3 passou - sucesso!
+  } else if (data.captchaId && data.captchaCode) {
+    // Fallback: Validar CAPTCHA Visual
+    const captchaResult = await validateCaptcha(data.captchaId, data.captchaCode)
+    if (!captchaResult.valid) {
+      await logSecurityEvent({
+        type: 'bot_detected',
+        ip,
+        userAgent,
+        username: data.username,
+        success: false,
+        reason: `CAPTCHA Visual falhou (login): ${captchaResult.error}`
+      })
+
+      return {
+        allowed: false,
+        reason: captchaResult.error || 'Verificação de segurança falhou.',
+        warnings: [],
+        botScore: 40
+      }
+    }
+    // CAPTCHA Visual passou!
   } else if (process.env.RECAPTCHA_SECRET_KEY && process.env.NODE_ENV === 'production') {
     // reCAPTCHA obrigatório em produção se configurado
     return {

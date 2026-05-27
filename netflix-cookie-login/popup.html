@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Netflix Cookie Login</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 400px;
+      background: #141414;
+      color: #e5e5e5;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      padding: 0;
+      user-select: none;
+    }
+
+    .header {
+      background: #000;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid #222;
+    }
+
+    .logo-n {
+      background: #E50914;
+      color: #fff;
+      font-size: 20px;
+      font-weight: 900;
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      letter-spacing: -1px;
+      flex-shrink: 0;
+      font-style: italic;
+    }
+
+    .header-text h1 {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .header-text p {
+      font-size: 11px;
+      color: #777;
+      margin-top: 2px;
+    }
+
+    .body {
+      padding: 18px 20px 20px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .field-label span.badge {
+      background: #2a2a2a;
+      border: 1px solid #404040;
+      color: #777;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      text-transform: none;
+      letter-spacing: 0;
+      font-weight: 400;
+    }
+
+    textarea {
+      width: 100%;
+      height: 140px;
+      background: #1f1f1f;
+      border: 1.5px solid #333;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 10.5px;
+      line-height: 1.5;
+      padding: 10px 12px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      border-color: #E50914;
+    }
+
+    textarea::placeholder {
+      color: #3a3a3a;
+      font-size: 10px;
+    }
+
+    .hint-box {
+      margin-top: 8px;
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 5px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #6a8fc8;
+      line-height: 1.5;
+    }
+
+    .hint-box strong {
+      color: #8aabf0;
+    }
+
+    .btn-login {
+      width: 100%;
+      margin-top: 16px;
+      padding: 13px;
+      background: #E50914;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+      transition: background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-login:hover:not(:disabled) {
+      background: #f40612;
+    }
+
+    .btn-login:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    .btn-login:disabled {
+      background: #444;
+      cursor: not-allowed;
+    }
+
+    .btn-clear {
+      width: 100%;
+      margin-top: 8px;
+      padding: 8px;
+      background: transparent;
+      color: #666;
+      border: 1px solid #333;
+      border-radius: 5px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .btn-clear:hover {
+      color: #aaa;
+      border-color: #555;
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 12.5px;
+      line-height: 1.4;
+      display: none;
+    }
+
+    .status.success {
+      background: #0d2e0d;
+      border: 1px solid #1e5c1e;
+      color: #5cb85c;
+      display: block;
+    }
+
+    .status.error {
+      background: #2e0d0d;
+      border: 1px solid #5c1e1e;
+      color: #e05555;
+      display: block;
+    }
+
+    .status.info {
+      background: #0d1e2e;
+      border: 1px solid #1e3a5c;
+      color: #5599dd;
+      display: block;
+    }
+
+    .cookie-count {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #555;
+      text-align: right;
+    }
+
+    .cookie-count span {
+      color: #E50914;
+      font-weight: 600;
+    }
+
+    .footer {
+      padding: 10px 20px;
+      border-top: 1px solid #1e1e1e;
+      background: #0a0a0a;
+      font-size: 10px;
+      color: #444;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo-n">N</div>
+    <div class="header-text">
+      <h1>Netflix Cookie Login</h1>
+      <p>Sessão via importação de cookies</p>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="field-label">
+      Cookies
+      <span class="badge">formato Netscape</span>
+    </div>
+
+    <textarea
+      id="cookieInput"
+      spellcheck="false"
+      placeholder=".netflix.com&#9;TRUE&#9;/&#9;TRUE&#9;1793639790&#9;NetflixId&#9;ct%3D...
+.netflix.com&#9;TRUE&#9;/&#9;TRUE&#9;1793639790&#9;SecureNetflixId&#9;v%3D3..."
+    ></textarea>
+
+    <div class="hint-box">
+      <strong>Como usar:</strong> Cole as linhas de cookie no formato exportado por
+      <em>EditThisCookie</em>, <em>Cookie-Editor</em>, ou arquivos <em>cookies.txt</em>.
+      Cada linha deve ter 7 colunas separadas por TAB.
+    </div>
+
+    <div class="cookie-count" id="cookieCount"></div>
+
+    <button class="btn-login" id="loginBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+      Fazer Login na Netflix
+    </button>
+
+    <button class="btn-clear" id="clearBtn">Limpar campo</button>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="footer">
+    Extensão para uso pessoal &nbsp;·&nbsp; Compatible: Chrome · Firefox · Edge · Opera · Brave
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

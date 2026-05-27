@@ -8,6 +8,7 @@ import { getStoredDeviceFingerprint } from '@/lib/device-fingerprint'
 import toast from 'react-hot-toast'
 import ReCaptcha, { useReCaptcha, ReCaptchaBadge } from '@/components/ReCaptcha'
 import { fetchRecaptchaToken, recaptchaLoadErrorMessage } from '@/lib/recaptcha-client'
+import VisualCaptcha, { useCaptcha as useVisualCaptcha } from '@/components/VisualCaptcha'
 
 export default function Register() {
   const { t } = useTranslation()
@@ -25,8 +26,27 @@ export default function Register() {
   const [honeypot, setHoneypot] = useState('')
   const formStartTimeRef = useRef<number>(Date.now())
 
-  const { isReady: recaptchaReady, executeRecaptcha, isConfigured: recaptchaConfigured } = useReCaptcha()
+  const { 
+    isReady: recaptchaReady, 
+    executeRecaptcha, 
+    isConfigured: recaptchaConfigured,
+    loadFailed: recaptchaLoadFailed 
+  } = useReCaptcha()
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+
+  // Fallback CAPTCHA Visual
+  const [useVisualFallback, setUseVisualFallback] = useState(false)
+  const { 
+    captchaId, setCaptchaId, captchaValue, setCaptchaValue, 
+    captchaError, resetCaptcha 
+  } = useVisualCaptcha()
+
+  // Se o reCAPTCHA falhar ao carregar, ativa fallback visual
+  useEffect(() => {
+    if (recaptchaLoadFailed && recaptchaConfigured) {
+      setUseVisualFallback(true)
+    }
+  }, [recaptchaLoadFailed, recaptchaConfigured])
 
   useEffect(() => {
     if (router.query.ref && typeof router.query.ref === 'string') {
@@ -77,17 +97,29 @@ export default function Register() {
 
     setLoading(true)
     try {
-      if (!recaptchaConfigured) { toast.error('Verificação de segurança não configurada.'); setLoading(false); return }
-      const token = await fetchRecaptchaToken(executeRecaptcha, 'register', {
-        isReady: recaptchaReady,
-        cachedToken: recaptchaToken,
-      })
-      if (!token) {
-        toast.error(recaptchaLoadErrorMessage(), { duration: 7000 })
-        setLoading(false)
-        return
+      let token = null
+      let currentCaptchaId = null
+      let currentCaptchaCode = null
+
+      if (!useVisualFallback) {
+        token = await fetchRecaptchaToken(executeRecaptcha, 'register', {
+          isReady: recaptchaReady,
+          cachedToken: recaptchaToken,
+        })
+        if (!token) {
+          setUseVisualFallback(true)
+          toast.error('Não foi possível carregar a verificação automática. Por favor, use o código da imagem.', { duration: 5000 })
+          setLoading(false)
+          return
+        }
+        setRecaptchaToken(token)
+      } else {
+        if (!captchaValue) {
+          toast.error('Por favor, digite o código da imagem'); setLoading(false); return
+        }
+        currentCaptchaId = captchaId
+        currentCaptchaCode = captchaValue
       }
-      setRecaptchaToken(token)
 
       const controller = new AbortController()
       const timeoutId = setTimeout(() => controller.abort(), 30000)
@@ -96,7 +128,10 @@ export default function Register() {
       await axios.post('/api/auth/register', {
         username, email, password, deviceFingerprint,
         affiliateRef: affiliateRef || null,
-        recaptchaToken: token, honeypot, formStartTime: formStartTimeRef.current, verificationCode
+        recaptchaToken: token || undefined,
+        captchaId: currentCaptchaId || undefined,
+        captchaCode: currentCaptchaCode || undefined,
+        honeypot, formStartTime: formStartTimeRef.current, verificationCode
       }, { signal: controller.signal, timeout: 30000 })
       clearTimeout(timeoutId)
 
@@ -109,6 +144,7 @@ export default function Register() {
       }
     } catch (error: any) {
       setRecaptchaToken(null)
+      if (useVisualFallback) resetCaptcha()
       let msg = t('errorCreatingAccount')
       if (error.code === 'ECONNABORTED' || error.message === 'canceled') msg = 'Timeout: A requisição demorou muito.'
       else if (error.response?.data?.error) msg = error.response.data.error
@@ -237,10 +273,25 @@ export default function Register() {
               />
             </div>
 
-            <ReCaptcha action="register" />
-            <ReCaptchaBadge />
+            {useVisualFallback ? (
+              <div className="animate-fade-in my-2">
+                <VisualCaptcha
+                  captchaId={captchaId}
+                  onCaptchaIdChange={setCaptchaId}
+                  value={captchaValue}
+                  onChange={setCaptchaValue}
+                  onValidated={() => {}}
+                  error={captchaError || undefined}
+                />
+              </div>
+            ) : (
+              <>
+                <ReCaptcha action="register" />
+                <ReCaptchaBadge />
+              </>
+            )}
 
-            <button type="submit" disabled={loading || !recaptchaConfigured} className="btn btn-primary btn-lg w-full">
+            <button type="submit" disabled={loading} className="btn btn-primary btn-lg w-full">
               {loading ? (
                 <>
                   <svg className="-ml-1 mr-1 h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
