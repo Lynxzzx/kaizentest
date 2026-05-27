@@ -40,9 +40,10 @@ export default function VisualCaptcha({
       const response = await axios.get('/api/auth/captcha')
       setCaptchaImage(response.data.image)
       onCaptchaIdChange(response.data.id)
-    } catch (err: any) {
-      console.error('Erro ao carregar CAPTCHA:', err)
-      setLocalError('Erro ao carregar CAPTCHA')
+    } catch (error: any) {
+      console.error('Falha ao obter CAPTCHA:', error)
+      const errorMsg = error.response?.data?.details || error.message || 'Não foi possível carregar a verificação.'
+      setLocalError(`${errorMsg}. Recarregue a página.`)
     } finally {
       setLoading(false)
     }

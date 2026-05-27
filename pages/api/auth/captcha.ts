@@ -18,8 +18,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         image: captcha.dataUrl
       })
     } catch (error: any) {
-      console.error('Erro ao gerar CAPTCHA:', error)
-      return res.status(500).json({ error: 'Erro ao gerar CAPTCHA' })
+      console.error('❌ Erro crítico ao gerar CAPTCHA:', {
+        message: error.message,
+        stack: error.stack,
+        code: error.code
+      })
+      return res.status(500).json({ 
+        error: 'Erro ao gerar CAPTCHA',
+        details: error.message
+      })
     }
   }
   
