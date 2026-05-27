@@ -149,20 +149,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           debugCode: verificationCode // Remover em produção
         })
       } catch (emailError: any) {
-        console.error('❌ Erro detalhado ao enviar email:')
-        console.error('Erro:', emailError.message)
-        console.error('Código do erro:', emailError.code)
-        
-        // Mesmo que o email falhe, ainda assim retornar sucesso para não expor o erro ao usuário
-        // Mas logar o erro para monitoramento
-        return res.status(200).json({ 
-          message: 'Código enviado com sucesso',
-          debugCode: verificationCode // Remover em produção
+        console.error('❌ Erro ao enviar email:', emailError.message, emailError.code)
+        return res.status(500).json({ 
+          error: `Erro ao enviar email: ${emailError.message}`,
+          code: emailError.code
         })
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao enviar código:', error)
-      return res.status(500).json({ error: 'Erro ao enviar código' })
+      return res.status(500).json({ 
+        error: error.message || 'Erro ao enviar código',
+        details: error.code
+      })
     }
   }
 
