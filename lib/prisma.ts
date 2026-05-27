@@ -17,8 +17,11 @@ const globalForPrisma = globalThis as unknown as {
  * alguns ambientes, contribuir para falhas de handshake TLS com mongodb+srv.
  */
 function effectiveDatabaseUrl(): string | undefined {
-  const url = process.env.DATABASE_URL
+  let url = process.env.DATABASE_URL
   if (!url) return undefined
+  
+  // Limpar aspas e espaços extras que podem vir do .env
+  url = url.trim().replace(/^["'](.+)["']$/, '$1').trim()
 
   const qIndex = url.indexOf('?')
   let base = qIndex === -1 ? url : url.slice(0, qIndex)
@@ -67,7 +70,9 @@ function effectiveDatabaseUrl(): string | undefined {
   return `${base}?${pairs.join('&')}`
 }
 
-const databaseUrl = process.env.DATABASE_URL
+let rawUrl = process.env.DATABASE_URL
+const databaseUrl = rawUrl ? rawUrl.trim().replace(/^["'](.+)["']$/, '$1').trim() : undefined
+
 if (!databaseUrl) {
   console.error('⚠️ DATABASE_URL não está configurada no arquivo .env')
 } else {
