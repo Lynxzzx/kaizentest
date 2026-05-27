@@ -5,9 +5,6 @@ import { useTranslation } from '@/lib/i18n-helper'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import axios from 'axios'
-import ReCaptcha, { useReCaptcha, ReCaptchaBadge } from '@/components/ReCaptcha'
-import { fetchRecaptchaToken, recaptchaLoadErrorMessage } from '@/lib/recaptcha-client'
-import VisualCaptcha, { useCaptcha } from '@/components/VisualCaptcha'
 
 export default function Login() {
   const { t } = useTranslation()
@@ -21,47 +18,9 @@ export default function Login() {
   const formStartTimeRef = useRef<number>(Date.now())
   const [loginAttempts, setLoginAttempts] = useState(0)
 
-  const { 
-    isReady: recaptchaReady, 
-    executeRecaptcha, 
-    isConfigured: recaptchaConfigured,
-    loadFailed: recaptchaLoadFailed
-  } = useReCaptcha()
-  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
-
-  // Estado para fallback de CAPTCHA visual
-  const [useVisualFallback, setUseVisualFallback] = useState(false)
-  const { 
-    captchaId, setCaptchaId, captchaValue, setCaptchaValue, 
-    captchaError, setCaptchaError, validateCaptcha, resetCaptcha 
-  } = useCaptcha()
-
-  // Se o reCAPTCHA falhar ao carregar, ativa fallback visual
-  useEffect(() => {
-    if (recaptchaLoadFailed && recaptchaConfigured) {
-      setUseVisualFallback(true)
-    }
-  }, [recaptchaLoadFailed, recaptchaConfigured])
-
   useEffect(() => {
     formStartTimeRef.current = Date.now()
   }, [])
-
-  // Pré-carrega token reCAPTCHA assim que o script estiver pronto
-  useEffect(() => {
-    if (!recaptchaReady) return
-    let cancelled = false
-    const warm = async () => {
-      const token = await executeRecaptcha('login')
-      if (!cancelled && token) setRecaptchaToken(token)
-    }
-    warm()
-    const interval = setInterval(warm, 90_000)
-    return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
-  }, [recaptchaReady, executeRecaptcha])
 
   useEffect(() => {
     if (loginAttempts >= 3) {
@@ -77,66 +36,33 @@ export default function Login() {
 
     setLoading(true)
     try {
-      let token = null
-      let currentCaptchaId = null
-      let currentCaptchaCode = null
-
-      if (!useVisualFallback) {
-        token = await fetchRecaptchaToken(executeRecaptcha, 'login', {
-          isReady: recaptchaReady,
-          cachedToken: recaptchaToken,
-        })
-        
-        if (!token) {
-          // Se falhou o reCAPTCHA, ativa fallback visual em vez de apenas dar erro
-          setUseVisualFallback(true)
-          toast.error('Não foi possível carregar a verificação automática. Por favor, use o código da imagem.', { duration: 5000 })
-          setLoading(false)
-          return
-        }
-        setRecaptchaToken(token)
-      } else {
-        // Validar CAPTCHA visual
-        if (!captchaValue) {
-          toast.error('Por favor, digite o código da imagem'); setLoading(false); return
-        }
-        currentCaptchaId = captchaId
-        currentCaptchaCode = captchaValue
-      }
-
       try {
         const validateResponse = await axios.post('/api/auth/validate-login', {
-          username: username.trim(), 
-          recaptchaToken: token || undefined,
-          captchaId: currentCaptchaId || undefined,
-          captchaCode: currentCaptchaCode || undefined,
+          username: username.trim(),
           honeypot, 
           formStartTime: formStartTimeRef.current
         })
         if (!validateResponse.data.allowed && validateResponse.status !== 200) {
           toast.error(validateResponse.data.error || 'Verificação de segurança falhou.')
-          if (useVisualFallback) resetCaptcha()
-          setRecaptchaToken(null); return
+          return
         }
       } catch (validateError: any) {
         if (validateError.response?.status === 403) {
           toast.error(validateError.response.data.error || 'Acesso temporariamente bloqueado.')
-          setRecaptchaToken(null); return
+          return
         }
       }
 
       const result = await signIn('credentials', { redirect: false, username: username.trim(), password })
       if (result?.error) {
         setLoginAttempts(p => p + 1); toast.error(t('invalidCredentials')); 
-        setRecaptchaToken(null)
-        if (useVisualFallback) resetCaptcha()
       } else {
         try { await axios.post('/api/auth/validate-login', { username: username.trim(), resetAttempts: true }) } catch {}
         toast.success(t('loginSuccess'))
         router.push('/dashboard')
       }
     } catch (error: any) {
-      setLoginAttempts(p => p + 1); setRecaptchaToken(null)
+      setLoginAttempts(p => p + 1)
       const msg = error.response?.data?.error || error.message || t('errorLoggingIn')
       toast.error(msg)
     } finally { setLoading(false) }
@@ -201,24 +127,6 @@ export default function Login() {
                 </button>
               </div>
             </div>
-
-            {useVisualFallback ? (
-              <div className="animate-fade-in my-2">
-                <VisualCaptcha
-                  captchaId={captchaId}
-                  onCaptchaIdChange={setCaptchaId}
-                  value={captchaValue}
-                  onChange={setCaptchaValue}
-                  onValidated={() => {}}
-                  error={captchaError || undefined}
-                />
-              </div>
-            ) : (
-              <>
-                <ReCaptcha action="login" />
-                <ReCaptchaBadge />
-              </>
-            )}
 
             <div className="flex justify-end">
               <Link href="/forgot-password" className="text-[12.5px] font-semibold text-aurora-violet hover:text-aurora-magenta transition-colors">

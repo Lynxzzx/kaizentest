@@ -950,68 +950,12 @@ export async function validateLoginRequest(
     }
   }
   
-  // 4. Google reCAPTCHA v3 (invisível)
-  let recaptchaScore: number | undefined
-  if (data.recaptchaToken) {
-    const recaptchaResult = await verifyRecaptcha(data.recaptchaToken, 'login')
-    recaptchaScore = recaptchaResult.score
-    
-    if (!recaptchaResult.success) {
-      await logSecurityEvent({
-        type: 'bot_detected',
-        ip,
-        userAgent,
-        username: data.username,
-        success: false,
-        reason: 'reCAPTCHA v3 falhou',
-        metadata: { errorCodes: recaptchaResult.errorCodes, score: recaptchaResult.score }
-      })
-      
-      return {
-        allowed: false,
-        reason: 'Verificação de segurança falhou. Por favor, tente novamente.',
-        warnings: [],
-        botScore: 80,
-        recaptchaScore
-      }
-    }
-    // reCAPTCHA v3 passou - sucesso!
-  } else if (data.captchaId && data.captchaCode) {
-    // Fallback: Validar CAPTCHA Visual
-    const captchaResult = await validateCaptcha(data.captchaId, data.captchaCode)
-    if (!captchaResult.valid) {
-      await logSecurityEvent({
-        type: 'bot_detected',
-        ip,
-        userAgent,
-        username: data.username,
-        success: false,
-        reason: `CAPTCHA Visual falhou (login): ${captchaResult.error}`
-      })
-
-      return {
-        allowed: false,
-        reason: captchaResult.error || 'Verificação de segurança falhou.',
-        warnings: [],
-        botScore: 40
-      }
-    }
-    // CAPTCHA Visual passou!
-  } else if (process.env.RECAPTCHA_SECRET_KEY && process.env.NODE_ENV === 'production') {
-    // reCAPTCHA obrigatório em produção se configurado
-    return {
-      allowed: false,
-      reason: 'Verificação de segurança obrigatória.',
-      warnings: [],
-      botScore: 50
-    }
-  }
+  // 4. (Removido) CAPTCHAs não são mais necessários no login
   
   return {
     allowed: true,
     warnings,
     botScore: botCheck.score,
-    recaptchaScore
   }
 }
 

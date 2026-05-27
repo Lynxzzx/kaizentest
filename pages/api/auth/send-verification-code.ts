@@ -95,36 +95,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           to: email,
           subject: 'Código de Verificação - Kaizen Gens',
           html: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; color: white;">
-                <h1 style="margin: 0; font-size: 28px;">Kaizen Gens</h1>
-                <p style="margin: 10px 0 0 0; font-size: 16px;">Verificação de Email</p>
+            <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0b0f19; color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.5);">
+              <div style="background: linear-gradient(135deg, #101423 0%, #171026 100%); padding: 40px 30px; text-align: center; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+                <h1 style="margin: 0; font-size: 32px; font-weight: 800; background: linear-gradient(90deg, #A78BFA 0%, #F472B6 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; color: #A78BFA;">KAIZEN GENS</h1>
+                <p style="margin: 15px 0 0 0; font-size: 16px; color: #a1a1aa; letter-spacing: 1px; text-transform: uppercase;">Acesso Premium</p>
               </div>
-              <div style="padding: 30px; background-color: #f8f9fa; border-radius: 0 0 8px 8px;">
-                <h2 style="color: #333; margin-top: 0;">Olá ${username}!</h2>
-                <p style="color: #666; font-size: 16px; line-height: 1.6;">
-                  Você está criando uma conta no Kaizen Gens. 
-                  Use o código abaixo para verificar seu email:
+              <div style="padding: 40px 30px; background-color: #0b0f19; position: relative;">
+                <div style="position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 200px; height: 100px; background: radial-gradient(circle, rgba(167, 139, 250, 0.15) 0%, rgba(244, 114, 182, 0) 70%); pointer-events: none;"></div>
+                
+                <h2 style="color: #f4f4f5; margin-top: 0; font-size: 20px; font-weight: 600;">Olá, ${username}!</h2>
+                <p style="color: #a1a1aa; font-size: 16px; line-height: 1.6; margin-bottom: 25px;">
+                  Notamos que você está tentando criar uma conta. Utilize o código de verificação abaixo para concluir o registro com segurança:
                 </p>
-                <div style="text-align: center; margin: 30px 0;">
-                  <div style="background-color: #667eea; color: white; padding: 15px 30px; border-radius: 8px; font-size: 24px; font-weight: bold; letter-spacing: 3px; display: inline-block;">
+                
+                <div style="text-align: center; margin: 35px 0;">
+                  <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(167, 139, 250, 0.3); color: #fff; padding: 20px 30px; border-radius: 12px; font-size: 36px; font-weight: 800; letter-spacing: 8px; display: inline-block; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.05);">
                     ${verificationCode}
                   </div>
                 </div>
-                <p style="color: #666; font-size: 14px; margin-bottom: 0;">
-                  <strong>Importante:</strong> Este código expira em 15 minutos.
+                
+                <div style="background-color: rgba(239, 68, 68, 0.05); border-left: 3px solid #ef4444; padding: 15px; border-radius: 4px; margin-top: 30px;">
+                  <p style="color: #f87171; font-size: 14px; margin: 0;">
+                    <strong style="margin-right: 5px;">Importante:</strong> Este código expira em 15 minutos.
+                  </p>
+                </div>
+                
+                <p style="color: #71717a; font-size: 13px; margin-top: 25px; line-height: 1.5; text-align: center;">
+                  Caso não tenha solicitado este registro, considere mudar sua senha de email. Apenas ignore esta mensagem.
                 </p>
-                <p style="color: #666; font-size: 14px; margin-top: 10px;">
-                  Se você não solicitou este registro, por favor ignore este email.
-                </p>
-                <hr style="border: none; border-top: 1px solid #ddd; margin: 30px 0;">
-                <p style="color: #999; font-size: 12px; text-align: center; margin: 0;">
-                  Kaizen Gens - Todos os direitos reservados
+                
+                <hr style="border: none; border-top: 1px solid rgba(255, 255, 255, 0.05); margin: 35px 0 25px 0;">
+                
+                <p style="color: #52525b; font-size: 12px; text-align: center; margin: 0; font-weight: 500;">
+                  &copy; ${new Date().getFullYear()} Kaizen Gens. Todos os direitos reservados.
                 </p>
               </div>
             </div>
-          `,
-          text: `
+          `,          text: `
             Olá ${username}!\n\n
             Você está criando uma conta no Kaizen Gens.\n
             Use o código abaixo para verificar seu email:\n\n
