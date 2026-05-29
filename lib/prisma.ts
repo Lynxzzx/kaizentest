@@ -15,23 +15,27 @@ function getDbUrl(): string | undefined {
   const raw = process.env.DATABASE_URL
   if (!raw) return undefined
 
-  // Passo 1: remove espaços/quebras de linha e aspas externas
-  let url = raw.replace(/\s/g, '').replace(/^["'](.+)["']$/, '$1')
+  // Passo 1: remove todos os espaços, quebras de linha e QUALQUER tipo de aspa (" ou ')
+  // Usamos regex global para aspas para garantir que mesmo aspas mal posicionadas sejam removidas
+  let url = raw.replace(/\s/g, '').replace(/["']/g, '')
 
   // Passo 2: garante a barra entre o host/dbname e os query params
-  // Só aplica se ainda não houver barra após o "://"
+  // No mongodb+srv, o formato ideal é mongodb+srv://user:pass@host/dbname?options
   const protoEnd = url.indexOf('://')
   if (protoEnd !== -1) {
     const afterProto = url.slice(protoEnd + 3)
     const slashPos = afterProto.indexOf('/')
     const queryPos = afterProto.indexOf('?')
 
-    // Se não há barra, ou a barra só aparece depois do "?"
+    // Se não há barra antes dos parâmetros de query (ou não há barra nenhuma)
     if (slashPos === -1 || (queryPos !== -1 && slashPos > queryPos)) {
       if (queryPos !== -1) {
         // Insere uma barra antes do "?"
-        url = url.slice(0, protoEnd + 3 + queryPos) + '/' + url.slice(protoEnd + 3 + queryPos)
+        const beforeQuery = url.slice(0, protoEnd + 3 + queryPos)
+        const afterQuery = url.slice(protoEnd + 3 + queryPos)
+        url = beforeQuery + '/' + afterQuery
       } else {
+        // Apenas adiciona ao final se não houver "?"
         url += '/'
       }
     }
