@@ -86,10 +86,22 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error: any) {
           console.error('❌ NextAuth authorize error:', error.message)
-          // Verificar se é erro de conexão
-          if (error.code === 'ECONNREFUSED' || error.message?.includes('connect')) {
-            throw new Error('Erro de conexão com o banco de dados')
+          
+          // Verificar se é erro de conexão ou DNS
+          const errorMsg = error.message?.toLowerCase() || ''
+          const isConnError = 
+            error.code === 'ECONNREFUSED' || 
+            errorMsg.includes('connect') || 
+            errorMsg.includes('dns') || 
+            errorMsg.includes('resolution') || 
+            errorMsg.includes('malformed label') ||
+            errorMsg.includes('database connection')
+
+          if (isConnError) {
+            console.error('⚠️ Detalhes do erro de banco:', error)
+            throw new Error('Erro de conexão com o banco de dados. Verifique a DATABASE_URL na Vercel.')
           }
+          
           throw error
         }
       }
