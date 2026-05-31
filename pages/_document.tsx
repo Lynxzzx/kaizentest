@@ -11,6 +11,8 @@ export default function Document() {
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="icon" type="image/png" href="/favicon.png" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
 
         {/* Prevenção de zoom automático em inputs no iOS */}
         <meta name="format-detection" content="telephone=no" />
