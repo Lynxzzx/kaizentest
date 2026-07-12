@@ -35,7 +35,7 @@ export default function Register() {
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
 
   // Fallback CAPTCHA Visual
-  const [useVisualFallback, setUseVisualFallback] = useState(false)
+  const [useVisualFallback, setUseVisualFallback] = useState(!recaptchaConfigured)
   const { 
     captchaId, setCaptchaId, captchaValue, setCaptchaValue, 
     captchaError, resetCaptcha 
@@ -43,7 +43,7 @@ export default function Register() {
 
   // Se o reCAPTCHA falhar ao carregar, ativa fallback visual
   useEffect(() => {
-    if (recaptchaLoadFailed && recaptchaConfigured) {
+    if ((recaptchaLoadFailed && recaptchaConfigured) || !recaptchaConfigured) {
       setUseVisualFallback(true)
     }
   }, [recaptchaLoadFailed, recaptchaConfigured])

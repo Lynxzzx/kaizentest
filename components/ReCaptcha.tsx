@@ -16,15 +16,8 @@ const SCRIPT_LOAD_TIMEOUT_MS = 15000
 export function useReCaptcha() {
   const [isReady, setIsReady] = useState(false)
   const [loadFailed, setLoadFailed] = useState(false)
-  const [siteKey, setSiteKey] = useState<string | null>(null)
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || null
   const readyRef = useRef(false)
-
-  useEffect(() => {
-    const key = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
-    if (key) {
-      setSiteKey(key)
-    }
-  }, [])
 
   const markReady = useCallback(() => {
     if (!siteKey || !window.grecaptcha || readyRef.current) return
