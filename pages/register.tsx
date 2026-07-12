@@ -192,7 +192,7 @@ export default function Register() {
         <div className="surface-card-elevated p-7 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-              <input type="text" name="website" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
+              <input type="text" name="__val_field_data" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
             </div>
 
             <div>

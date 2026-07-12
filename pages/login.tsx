@@ -94,8 +94,8 @@ export default function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-              <label htmlFor="company">Company</label>
-              <input type="text" id="company" name="company" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
+              <label htmlFor="__val_field_data">Data Field</label>
+              <input type="text" id="__val_field_data" name="__val_field_data" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
             </div>
 
             <div>
