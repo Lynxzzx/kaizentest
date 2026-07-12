@@ -15,7 +15,7 @@ export async function fetchRecaptchaToken(
     waitForReadyMs?: number
   }
 ): Promise<string | null> {
-  const { isReady = false, cachedToken, waitForReadyMs = 8000 } = options ?? {}
+  const { isReady = false, cachedToken, waitForReadyMs = 4000 } = options ?? {}
 
   const deadline = Date.now() + waitForReadyMs
 
