@@ -5,6 +5,8 @@
 
 const MAX_ATTEMPTS = 6
 const RETRY_MS = 500
+/** Tokens do Google expiram em ~120s — não reutilizar após isso */
+const MAX_CACHED_TOKEN_AGE_MS = 90_000
 
 export async function fetchRecaptchaToken(
   executeRecaptcha: (action: string) => Promise<string | null>,
@@ -12,10 +14,16 @@ export async function fetchRecaptchaToken(
   options?: {
     isReady?: boolean
     cachedToken?: string | null
+    cachedTokenAt?: number | null
     waitForReadyMs?: number
   }
 ): Promise<string | null> {
-  const { isReady = false, cachedToken, waitForReadyMs = 4000 } = options ?? {}
+  const {
+    isReady = false,
+    cachedToken,
+    cachedTokenAt,
+    waitForReadyMs = 8000,
+  } = options ?? {}
 
   const deadline = Date.now() + waitForReadyMs
 
@@ -33,8 +41,10 @@ export async function fetchRecaptchaToken(
     await sleep(RETRY_MS * (attempt + 1))
   }
 
-  // Fallback: token pré-carregado na página (ex.: script demorou mas warm-up gerou token)
-  if (cachedToken?.trim()) {
+  // Fallback: token pré-carregado só se ainda estiver fresco
+  const tokenAge =
+    typeof cachedTokenAt === 'number' ? Date.now() - cachedTokenAt : Number.POSITIVE_INFINITY
+  if (cachedToken?.trim() && tokenAge < MAX_CACHED_TOKEN_AGE_MS) {
     return cachedToken
   }
 

@@ -11,7 +11,7 @@ interface ReCaptchaProps {
   action?: string
 }
 
-const SCRIPT_LOAD_TIMEOUT_MS = 15000
+const SCRIPT_LOAD_TIMEOUT_MS = 10000
 
 export function useReCaptcha() {
   const [isReady, setIsReady] = useState(false)
@@ -43,6 +43,9 @@ export function useReCaptcha() {
     const interval = setInterval(() => {
       if (window.grecaptcha) {
         markReady()
+        clearInterval(interval)
+      } else if ((window as any).reCaptchaError) {
+        setLoadFailed(true)
         clearInterval(interval)
       }
     }, 100)
@@ -136,6 +139,7 @@ export default function ReCaptcha(_props: ReCaptchaProps) {
       }}
       onError={() => {
         console.error('❌ Falha ao carregar script reCAPTCHA (rede, CSP ou bloqueador)')
+        if (typeof window !== 'undefined') (window as any).reCaptchaError = true;
       }}
     />
   )

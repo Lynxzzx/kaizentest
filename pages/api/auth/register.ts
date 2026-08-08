@@ -57,10 +57,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     if (!securityCheck.allowed) {
-      console.log('🚫 Security check failed:', securityCheck.reason)
+      console.log('🚫 Security check failed:', securityCheck.reason, {
+        challengeRequired: securityCheck.challengeRequired,
+        recaptchaScore: securityCheck.recaptchaScore,
+      })
       return res.status(403).json({ 
         error: securityCheck.reason || 'Verificação de segurança falhou',
-        securityBlock: true
+        securityBlock: true,
+        challengeRequired: Boolean(securityCheck.challengeRequired),
       })
     }
 

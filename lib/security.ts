@@ -659,6 +659,8 @@ export interface SecurityCheckResult {
   warnings: string[]
   botScore: number
   recaptchaScore?: number
+  /** Pedir CAPTCHA visual em vez de bloquear o usuário de vez */
+  challengeRequired?: boolean
 }
 
 /**
@@ -719,23 +721,43 @@ export async function validateRegisterRequest(
     }
   }
   
-  // 2. Honeypot
+  // 2. Honeypot — autofill de gerenciadores de senha às vezes preenche campos ocultos.
+  // Só bloqueia se o form foi preenchido rápido demais (bot típico).
+  const formFillSeconds =
+    typeof data.formStartTime === 'number' && data.formStartTime > 0
+      ? (Date.now() - data.formStartTime) / 1000
+      : 0
+
   if (!validateHoneypot(data.honeypot)) {
+    if (formFillSeconds > 0 && formFillSeconds < 3) {
+      await logSecurityEvent({
+        type: 'bot_detected',
+        ip,
+        userAgent,
+        username: data.username,
+        success: false,
+        reason: 'Honeypot preenchido',
+        metadata: { formFillSeconds }
+      })
+
+      return {
+        allowed: false,
+        reason: 'Atividade suspeita detectada. Por favor, tente novamente.',
+        warnings: [],
+        botScore: 100
+      }
+    }
+
+    warnings.push('Honeypot preenchido (possível autofill)')
     await logSecurityEvent({
       type: 'bot_detected',
       ip,
       userAgent,
       username: data.username,
-      success: false,
-      reason: 'Honeypot preenchido'
+      success: true,
+      reason: 'Honeypot preenchido — ignorado (autofill provável)',
+      metadata: { formFillSeconds }
     })
-    
-    return {
-      allowed: false,
-      reason: 'Atividade suspeita detectada. Por favor, tente novamente.',
-      warnings: [],
-      botScore: 100
-    }
   }
   
   // 3. Detecção de Bot
@@ -774,34 +796,12 @@ export async function validateRegisterRequest(
     warnings.push('Username com padrão suspeito')
   }
   
-  // 5. Google reCAPTCHA v3 (invisível)
+  // 5. Google reCAPTCHA v3 (invisível) + fallback visual
   let recaptchaScore: number | undefined
-  if (data.recaptchaToken) {
-    const recaptchaResult = await verifyRecaptcha(data.recaptchaToken, 'register')
-    recaptchaScore = recaptchaResult.score
-    
-    if (!recaptchaResult.success) {
-      await logSecurityEvent({
-        type: 'bot_detected',
-        ip,
-        userAgent,
-        username: data.username,
-        success: false,
-        reason: 'reCAPTCHA v3 falhou',
-        metadata: { errorCodes: recaptchaResult.errorCodes, score: recaptchaResult.score }
-      })
-      
-      return {
-        allowed: false,
-        reason: 'Verificação de segurança falhou. Por favor, tente novamente.',
-        warnings: [],
-        botScore: 80,
-        recaptchaScore
-      }
-    }
-    // reCAPTCHA v3 passou - sucesso!
-  } else if (data.captchaId && data.captchaCode) {
-    // Fallback: Validar CAPTCHA Visual
+  const hasVisualCaptcha = Boolean(data.captchaId && data.captchaCode)
+
+  const validateVisualCaptchaOrFail = async (): Promise<SecurityCheckResult | null> => {
+    if (!data.captchaId || !data.captchaCode) return null
     const captchaResult = await validateCaptcha(data.captchaId, data.captchaCode)
     if (!captchaResult.valid) {
       await logSecurityEvent({
@@ -817,17 +817,82 @@ export async function validateRegisterRequest(
         allowed: false,
         reason: captchaResult.error || 'Verificação de segurança falhou.',
         warnings: [],
-        botScore: 40
+        botScore: 40,
+        challengeRequired: true
       }
     }
-    // CAPTCHA Visual passou!
+    return null
+  }
+
+  if (data.recaptchaToken) {
+    const recaptchaResult = await verifyRecaptcha(data.recaptchaToken, 'register')
+    recaptchaScore = recaptchaResult.score
+
+    if (!recaptchaResult.success) {
+      const errorCodes = recaptchaResult.errorCodes || []
+      // Erros recuperáveis: pedir CAPTCHA visual em vez de bloquear o usuário
+      const recoverableCodes = new Set([
+        'low-score',
+        'browser-error',
+        'timeout-or-duplicate',
+        'invalid-input-response',
+        'missing-input-response',
+        'network-error',
+      ])
+      const isRecoverable = errorCodes.some((code) => recoverableCodes.has(code))
+
+      await logSecurityEvent({
+        type: 'bot_detected',
+        ip,
+        userAgent,
+        username: data.username,
+        success: false,
+        reason: 'reCAPTCHA v3 falhou',
+        metadata: {
+          errorCodes,
+          score: recaptchaResult.score,
+          recoverable: isRecoverable,
+          hasVisualCaptcha,
+        }
+      })
+
+      if (isRecoverable) {
+        if (hasVisualCaptcha) {
+          const visualFail = await validateVisualCaptchaOrFail()
+          if (visualFail) return { ...visualFail, recaptchaScore }
+          // visual passou — segue
+        } else {
+          return {
+            allowed: false,
+            reason: 'Precisamos de uma verificação adicional. Digite o código da imagem.',
+            warnings: [],
+            botScore: 50,
+            recaptchaScore,
+            challengeRequired: true
+          }
+        }
+      } else {
+        return {
+          allowed: false,
+          reason: 'Verificação de segurança falhou. Por favor, tente novamente.',
+          warnings: [],
+          botScore: 80,
+          recaptchaScore,
+          challengeRequired: true
+        }
+      }
+    }
+    // reCAPTCHA v3 passou - sucesso!
+  } else if (hasVisualCaptcha) {
+    const visualFail = await validateVisualCaptchaOrFail()
+    if (visualFail) return visualFail
   } else if (process.env.RECAPTCHA_SECRET_KEY && process.env.NODE_ENV === 'production') {
-    // reCAPTCHA obrigatório em produção se configurado
     return {
       allowed: false,
       reason: 'Verificação de segurança obrigatória.',
       warnings: [],
-      botScore: 50
+      botScore: 50,
+      challengeRequired: true
     }
   }
   

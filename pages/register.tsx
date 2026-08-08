@@ -25,6 +25,7 @@ export default function Register() {
 
   const [honeypot, setHoneypot] = useState('')
   const formStartTimeRef = useRef<number>(Date.now())
+  const honeypotRef = useRef<HTMLInputElement>(null)
 
   const { 
     isReady: recaptchaReady, 
@@ -33,6 +34,7 @@ export default function Register() {
     loadFailed: recaptchaLoadFailed 
   } = useReCaptcha()
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null)
+  const [recaptchaTokenAt, setRecaptchaTokenAt] = useState<number | null>(null)
 
   // Fallback CAPTCHA Visual
   const [useVisualFallback, setUseVisualFallback] = useState(!recaptchaConfigured)
@@ -56,12 +58,25 @@ export default function Register() {
 
   useEffect(() => { formStartTimeRef.current = Date.now() }, [])
 
+  // Impede autofill de gerenciadores de senha no honeypot
+  useEffect(() => {
+    const el = honeypotRef.current
+    if (!el) return
+    el.setAttribute('readonly', 'readonly')
+    const unlock = () => el.removeAttribute('readonly')
+    el.addEventListener('focus', unlock)
+    return () => el.removeEventListener('focus', unlock)
+  }, [])
+
   useEffect(() => {
     if (!recaptchaReady) return
     let cancelled = false
     const warm = async () => {
       const token = await executeRecaptcha('register')
-      if (!cancelled && token) setRecaptchaToken(token)
+      if (!cancelled && token) {
+        setRecaptchaToken(token)
+        setRecaptchaTokenAt(Date.now())
+      }
     }
     warm()
     const interval = setInterval(warm, 90_000)
@@ -86,7 +101,12 @@ export default function Register() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (honeypot) { toast.error('Verificação de segurança falhou.'); return }
+    // Autofill às vezes preenche honeypot — só bloqueia no cliente se o form foi preenchido rápido demais
+    const fillSeconds = (Date.now() - formStartTimeRef.current) / 1000
+    if (honeypot && fillSeconds < 3) {
+      toast.error('Verificação de segurança falhou.')
+      return
+    }
     if (password !== confirmPassword) { toast.error(t('passwordsDontMatch')); return }
     if (password.length < 6) { toast.error(t('passwordMinLength')); return }
     if (username.length < 3) { toast.error('Username deve ter pelo menos 3 caracteres'); return }
@@ -105,6 +125,7 @@ export default function Register() {
         token = await fetchRecaptchaToken(executeRecaptcha, 'register', {
           isReady: recaptchaReady,
           cachedToken: recaptchaToken,
+          cachedTokenAt: recaptchaTokenAt,
         })
         if (!token) {
           setUseVisualFallback(true)
@@ -113,6 +134,7 @@ export default function Register() {
           return
         }
         setRecaptchaToken(token)
+        setRecaptchaTokenAt(Date.now())
       } else {
         if (!captchaValue) {
           toast.error('Por favor, digite o código da imagem'); setLoading(false); return
@@ -131,7 +153,9 @@ export default function Register() {
         recaptchaToken: token || undefined,
         captchaId: currentCaptchaId || undefined,
         captchaCode: currentCaptchaCode || undefined,
-        honeypot, formStartTime: formStartTimeRef.current, verificationCode
+        honeypot,
+        formStartTime: formStartTimeRef.current,
+        verificationCode
       }, { signal: controller.signal, timeout: 30000 })
       clearTimeout(timeoutId)
 
@@ -144,10 +168,17 @@ export default function Register() {
       }
     } catch (error: any) {
       setRecaptchaToken(null)
-      if (useVisualFallback) resetCaptcha()
+      setRecaptchaTokenAt(null)
+      const data = error.response?.data
+      if (data?.challengeRequired || data?.securityBlock) {
+        setUseVisualFallback(true)
+        resetCaptcha()
+      } else if (useVisualFallback) {
+        resetCaptcha()
+      }
       let msg = t('errorCreatingAccount')
       if (error.code === 'ECONNABORTED' || error.message === 'canceled') msg = 'Timeout: A requisição demorou muito.'
-      else if (error.response?.data?.error) msg = error.response.data.error
+      else if (data?.error) msg = data.error
       else if (error.message) msg = error.message
       toast.error(msg, { duration: 8000 })
     } finally { setLoading(false) }
@@ -192,7 +223,18 @@ export default function Register() {
         <div className="surface-card-elevated p-7 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div aria-hidden="true" style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-              <input type="text" name="__val_field_data" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} tabIndex={-1} autoComplete="off" />
+              <label htmlFor="kz_hp_website">Website</label>
+              <input
+                ref={honeypotRef}
+                id="kz_hp_website"
+                type="text"
+                name="kz_hp_website"
+                value={honeypot}
+                onChange={(e) => setHoneypot(e.target.value)}
+                tabIndex={-1}
+                autoComplete="off"
+                inputMode="none"
+              />
             </div>
 
             <div>
